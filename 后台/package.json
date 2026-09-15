@@ -11,10 +11,17 @@
     "seed:demo": "node server/seed-demo.js",
     "backup": "node server/backup.js",
     "make:admin": "node server/make-admin.js",
+    "mqtt:broker": "node server/mqtt-broker.js",
+    "mqtt": "node server/mqtt-bridge.js",
+    "test:mqtt": "node server/test-mqtt.js",
     "test": "node server/test-api.js"
   },
   "dependencies": {
     "better-sqlite3": "^12.2.0",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "mqtt": "^5.15.2"
+  },
+  "devDependencies": {
+    "aedes": "^0.51.3"
   }
 }

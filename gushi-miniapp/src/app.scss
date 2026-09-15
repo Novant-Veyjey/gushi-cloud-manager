@@ -796,6 +796,36 @@ page {
   box-shadow: 0 8px 20px rgba(25, 70, 49, 0.08);
 }
 
+/* ---------- 设备历史曲线 ---------- */
+.chart {
+  display: flex;
+  align-items: flex-end;
+  height: 190px;
+  margin-top: 18px;
+}
+
+.chart-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.chart-bar {
+  width: 18px;
+  min-height: 8px;
+  border-radius: 10px 10px 4px 4px;
+  background: linear-gradient(180deg, var(--lime), var(--g600));
+}
+
+.chart-x {
+  font-size: 16px;
+  color: #9ba89f;
+  margin-top: 8px;
+  transform: scale(0.9);
+}
+
 /* ---------- AI 问答 ---------- */
 .line {
   display: block;

@@ -207,6 +207,30 @@ function revealSecret(id, userId) {
   return { id: device.id, code: device.code, secret: device.secret };
 }
 
+/**
+ * 设备鉴权：HTTP 上报与 MQTT 适配层共用同一套校验逻辑。
+ * 通过后返回设备记录，失败抛出带 status 的错误。
+ */
+function authenticateDevice(code, secret) {
+  if (!text(code) || !text(secret)) {
+    const error = new Error('缺少设备编号或设备密钥');
+    error.status = 401;
+    throw error;
+  }
+  const device = deviceByCode(code);
+  if (!device || device.secret !== text(secret)) {
+    const error = new Error('设备编号或密钥不正确');
+    error.status = 401;
+    throw error;
+  }
+  if (device.status !== 'active') {
+    const error = new Error('设备已被停用，请先在后台启用');
+    error.status = 403;
+    throw error;
+  }
+  return device;
+}
+
 /** 从请求头解析设备身份，支持 X-Device-Code / X-Device-Secret 或 Authorization: Device code:secret */
 function resolveDevice(req) {
   const header = String(req.headers.authorization || '');
@@ -219,25 +243,75 @@ function resolveDevice(req) {
     code = code || text(c);
     secret = secret || text(s);
   }
+  return authenticateDevice(code, secret);
+}
 
-  if (!code || !secret) {
-    const error = new Error('缺少设备编号或设备密钥');
-    error.status = 401;
+function aggregate(values) {
+  const valid = values.filter((value) => value !== null && value !== undefined && Number.isFinite(Number(value))).map(Number);
+  if (!valid.length) return null;
+  const sum = valid.reduce((total, value) => total + value, 0);
+  return {
+    avg: Number((sum / valid.length).toFixed(2)),
+    min: Number(Math.min(...valid).toFixed(2)),
+    max: Number(Math.max(...valid).toFixed(2))
+  };
+}
+
+/**
+ * 设备历史曲线：把最近 N 小时的数据按等长时间桶聚合，供小程序画趋势图。
+ * 只统计该设备、该账号的真实上报记录。
+ */
+function seriesForDevice(deviceId, userId, hours = 24, bucketCount = 12) {
+  const device = getDevice(deviceId, userId);
+  if (!device) {
+    const error = new Error('设备不存在');
+    error.status = 404;
     throw error;
   }
 
-  const device = deviceByCode(code);
-  if (!device || device.secret !== secret) {
-    const error = new Error('设备编号或密钥不正确');
-    error.status = 401;
-    throw error;
+  const spanHours = Math.min(Math.max(Number(hours) || 24, 1), 168);
+  const buckets = Math.min(Math.max(Number(bucketCount) || 12, 4), 48);
+  const end = Date.now();
+  const start = end - spanHours * 3600 * 1000;
+
+  const rows = db
+    .prepare(
+      `SELECT temperature, humidity, co2, light, recorded_at FROM readings
+       WHERE device_id = ? AND user_id = ? AND recorded_at >= ?
+       ORDER BY recorded_at ASC LIMIT 5000`
+    )
+    .all(device.id, userId, new Date(start).toISOString());
+
+  const bucketMs = (spanHours * 3600 * 1000) / buckets;
+  const groups = Array.from({ length: buckets }, () => ({ temperature: [], humidity: [], co2: [], light: [], count: 0 }));
+
+  for (const row of rows) {
+    const at = new Date(String(row.recorded_at).replace(' ', 'T')).getTime();
+    if (Number.isNaN(at)) continue;
+    const index = Math.min(buckets - 1, Math.max(0, Math.floor((at - start) / bucketMs)));
+    const group = groups[index];
+    group.count += 1;
+    group.temperature.push(row.temperature);
+    group.humidity.push(row.humidity);
+    group.co2.push(row.co2);
+    group.light.push(row.light);
   }
-  if (device.status !== 'active') {
-    const error = new Error('设备已被停用，请先在后台启用');
-    error.status = 403;
-    throw error;
-  }
-  return device;
+
+  return {
+    device: { id: device.id, code: device.code, name: device.name, base_id: device.base_id },
+    hours: spanHours,
+    bucket_minutes: Math.round(bucketMs / 60000),
+    total_records: rows.length,
+    buckets: groups.map((group, index) => ({
+      start: new Date(start + index * bucketMs).toISOString(),
+      end: new Date(start + (index + 1) * bucketMs).toISOString(),
+      count: group.count,
+      temperature: aggregate(group.temperature),
+      humidity: aggregate(group.humidity),
+      co2: aggregate(group.co2),
+      light: aggregate(group.light)
+    }))
+  };
 }
 
 /**
@@ -324,6 +398,9 @@ module.exports = {
   isOnline,
   listDevices,
   getDevice,
+  deviceByCode,
+  authenticateDevice,
+  seriesForDevice,
   createDevice,
   updateDevice,
   deleteDevice,

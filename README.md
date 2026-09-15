@@ -98,6 +98,15 @@ curl -X POST http://localhost:3000/api/ingest/readings \
 
 上报即入库并按阈值自动预警；超过 10 分钟无上报，小程序显示设备离线。另有 `POST /api/ingest/heartbeat`（心跳）与 `GET /api/ingest/config`（设备自检阈值）。
 
+**也支持 MQTT 接入**（适配层把报文转成同一套入库逻辑）：
+
+```bash
+npm run mqtt:broker   # 可选：内置的本地 broker（基于 aedes），没有真实 broker 时用于演示
+npm run mqtt          # 启动适配层，订阅 <前缀>/devices/<设备编号>/readings 与 /heartbeat
+```
+
+报文格式 `{"secret":"<设备密钥>","temperature":24.5,"humidity":88,"co2":650,"light":320}`；密钥错误、设备停用、非法 JSON 一律丢弃并打印原因。历史数据可通过 `GET /api/devices/:id/series?hours=24` 取等长分桶的曲线数据（小程序监测页可直接查看近 24 小时温度趋势）。
+
 ## AI 智能问答
 
 `POST /api/ai/ask` 调用大模型回答种植问题，并自动把该账号最近的基地、批次、环境数据作为上下文。回答会标注来源：`ai`（大模型）/ `rule`（未配置密钥或调用失败时降级为内置规则知识库）/ 人工专家补充。AI 仅作辅助，重要决策请咨询当地农技专家。

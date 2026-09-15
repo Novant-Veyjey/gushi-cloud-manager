@@ -318,6 +318,15 @@ app.delete('/api/devices/:id', requireAuth, requirePermission('devices', 'w'), (
   }
 });
 
+/** 设备历史曲线：等长分桶聚合，供小程序画趋势 */
+app.get('/api/devices/:id/series', requireAuth, requirePermission('devices', 'r'), (req, res) => {
+  try {
+    ok(res, deviceService.seriesForDevice(req.params.id, req.user.id, req.query.hours || 24, req.query.buckets || 12));
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
 app.get('/api/devices/:id/secret', requireAuth, requirePermission('devices', 'w'), (req, res) => {
   try {
     ok(res, deviceService.revealSecret(req.params.id, req.user.id));

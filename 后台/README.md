@@ -118,7 +118,46 @@ GET    /api/devices/:id/secret   查看完整密钥（用于填进硬件）
 POST   /api/devices/:id/rotate   重置密钥
 ```
 
-> 后续接 MQTT 时，只需把 broker 收到的报文转成上面的 HTTP 上报，或在本项目内加一个 MQTT 适配层调用同一套 `server/devices.js` 逻辑，阈值、预警、在线状态都不用重写。
+### 3. MQTT 接入（设备走 MQTT 而不是 HTTP）
+
+设备也可以直接走 MQTT，适配层会把报文转成与 HTTP 上报**完全相同**的入库与预警逻辑。
+
+```text
+主题：<前缀>/devices/<设备编号>/readings     上报环境数据
+      <前缀>/devices/<设备编号>/heartbeat   仅心跳（刷新在线状态）
+前缀：默认 gushi，可用 MQTT_TOPIC_PREFIX 修改
+
+报文：{"secret":"<设备密钥>","temperature":24.5,"humidity":88,"co2":650,"light":320}
+     密钥也可通过 broker 的连接用户名传入（MQTT_USERNAME），报文里就不必再带
+```
+
+启动适配层：
+
+```bash
+# 指向真实 broker（EMQX / Mosquitto 等）
+# .env: MQTT_URL=mqtt://127.0.0.1:1883  MQTT_USERNAME=  MQTT_PASSWORD=
+npm run mqtt
+```
+
+没有真实 broker 时，用内置的纯 JS broker 演示（基于 aedes）：
+
+```bash
+npm run mqtt:broker      # 终端 A：本地 broker，默认 1883
+npm run mqtt             # 终端 B：适配层，订阅并入库
+npm start                # 终端 C：后台接口
+```
+
+适配层特性：报文不是合法 JSON、设备编号不存在、密钥错误、设备被停用 → 一律丢弃并打印原因，不会写入脏数据；正常入库后自动按设备阈值生成预警；单条异常不影响后续报文。
+
+发布一条测试报文（任选一种客户端）：
+
+```bash
+npx mqtt pub -t gushi/devices/GS-XXXXXX/readings -m '{"secret":"<设备密钥>","temperature":24.5,"humidity":88,"co2":650,"light":320}'
+```
+
+### 4. 历史曲线
+
+`GET /api/devices/:id/series?hours=24&buckets=12` 把最近 N 小时的数据按等长时间桶聚合，返回每桶的温度/湿度/CO₂/光照平均值、最小值和最大值，小程序「监测」页设备卡片里可直接查看。
 
 ## AI 智能问答（原“专家服务”）
 
@@ -138,6 +177,7 @@ GET  /api/health                 健康检查（公开）
 GET/POST/PUT/DELETE /api/bases           基地
 GET/POST/PUT/DELETE /api/batches         生产批次
 GET/POST/PUT/DELETE /api/devices         大棚设备（编号、密钥、阈值、在线状态）
+GET  /api/devices/:id/series             设备历史曲线（等长分桶聚合）
 GET/POST/PUT/DELETE /api/readings        环境记录（设备自动上报为主，手动补录为辅）
 GET/POST/PUT/DELETE /api/alerts          预警
 POST /api/alerts/:id/ack                 处理预警
@@ -176,7 +216,8 @@ npm run backup
 ## 自动化测试
 
 ```bash
-npm test
+npm test          # 接口与权限（含设备 HTTP 上报、AI 问答）
+npm run test:mqtt # MQTT 适配层端到端（临时 broker → 订阅 → 入库 → 预警 → 密钥校验 → 曲线聚合）
 ```
 
 覆盖：JWT 结构、注册登录、重复注册 409、密码错误 401、未登录 401、账号隔离、跨账号修改拦截、RBAC（采购商建基地 403、专家发供应 403、政府写入 403、管理员接口 403/可用）、微信登录未配置返回 501、**大棚设备接入（密钥错误 401、上报写入 `source=device`、超阈值自动生成 3 条预警、心跳在线、设备自检阈值、dashboard 统计设备数据、采购商无权建设备）**、**AI 问答（写入问答记录、来源标记、无密钥时降级规则知识库）**、数据持久化、密码加密、公开溯源、退出后 token 失效。

@@ -115,6 +115,25 @@ export interface ExpertQuestion {
   base_name?: string
 }
 
+/** 设备历史曲线（等长分桶聚合） */
+export interface SeriesBucket {
+  start: string
+  end: string
+  count: number
+  temperature: { avg: number; min: number; max: number } | null
+  humidity: { avg: number; min: number; max: number } | null
+  co2: { avg: number; min: number; max: number } | null
+  light: { avg: number; min: number; max: number } | null
+}
+
+export interface DeviceSeries {
+  device: { id: number; code: string; name: string; base_id: number | null }
+  hours: number
+  bucket_minutes: number
+  total_records: number
+  buckets: SeriesBucket[]
+}
+
 /** AI 问答返回结果 */
 export interface AiAnswer {
   answer: string

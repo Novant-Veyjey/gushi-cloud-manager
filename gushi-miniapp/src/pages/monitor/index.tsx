@@ -12,7 +12,41 @@ import { baseNameOf, useCloudData } from '@/hooks/useCloudData'
 import { api } from '@/utils/request'
 import { readableTime } from '@/utils/format'
 import { FORM_MODULE, guard } from '@/utils/permission'
-import type { Device } from '@/types'
+import type { Device, DeviceSeries } from '@/types'
+
+/** 设备近 24 小时温度趋势（等长分桶的平均值柱状图） */
+function TemperatureTrend({ series }: { series: DeviceSeries }) {
+  const points = series.buckets.filter((bucket) => bucket.temperature)
+  if (!points.length) {
+    return <Text className='meta'>该时间段暂无上报数据</Text>
+  }
+  const values = points.map((point) => point.temperature!.avg)
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const span = Math.max(max - min, 0.1)
+  const average = values.reduce((total, value) => total + value, 0) / values.length
+
+  return (
+    <View>
+      <View className='chart'>
+        {points.map((point, index) => {
+          const height = Math.round(20 + ((point.temperature!.avg - min) / span) * 130)
+          const hour = new Date(point.start).getHours()
+          return (
+            <View className='chart-col' key={`${index}-${point.start}`}>
+              <View className='chart-bar' style={`height:${height}px`} />
+              <Text className='chart-x'>{String(hour).padStart(2, '0')}</Text>
+            </View>
+          )
+        })}
+      </View>
+      <Text className='meta'>
+        平均 {average.toFixed(1)}℃ · 最低 {min.toFixed(1)}℃ · 最高 {max.toFixed(1)}℃ · 共 {series.total_records} 条记录（每桶{' '}
+        {series.bucket_minutes} 分钟）
+      </Text>
+    </View>
+  )
+}
 
 const REFRESH_INTERVAL = 30000
 
@@ -22,6 +56,8 @@ export default function Monitor() {
 
   const [activeForm, setActiveForm] = useState<FormConfig | null>(null)
   const [credential, setCredential] = useState<Device | null>(null)
+  const [seriesMap, setSeriesMap] = useState<Record<number, DeviceSeries>>({})
+  const [seriesLoading, setSeriesLoading] = useState(0)
   const [lastRefresh, setLastRefresh] = useState('')
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -70,6 +106,27 @@ export default function Monitor() {
       await reload(true)
     } catch (err) {
       Taro.showToast({ title: (err as Error).message, icon: 'none' })
+    }
+  }
+
+  /** 展开/收起设备近 24 小时温度曲线（按需拉取，避免每次刷新都请求） */
+  const toggleSeries = async (deviceId: number) => {
+    if (seriesMap[deviceId]) {
+      setSeriesMap((prev) => {
+        const next = { ...prev }
+        delete next[deviceId]
+        return next
+      })
+      return
+    }
+    setSeriesLoading(deviceId)
+    try {
+      const result = await api<DeviceSeries>(`/api/devices/${deviceId}/series?hours=24&buckets=12`)
+      setSeriesMap((prev) => ({ ...prev, [deviceId]: result }))
+    } catch (err) {
+      Taro.showToast({ title: (err as Error).message, icon: 'none' })
+    } finally {
+      setSeriesLoading(0)
     }
   }
 
@@ -165,7 +222,17 @@ export default function Monitor() {
                   >
                     查看设备密钥
                   </View>
+                  <View className='btn secondary' onClick={() => toggleSeries(device.id)}>
+                    {seriesLoading === device.id ? '加载中...' : seriesMap[device.id] ? '收起曲线' : '近 24 小时曲线'}
+                  </View>
                 </View>
+
+                {seriesMap[device.id] ? (
+                  <View>
+                    <Text className='meta'>温度趋势（每根柱为该时间段的平均值，横轴为小时）</Text>
+                    <TemperatureTrend series={seriesMap[device.id]} />
+                  </View>
+                ) : null}
               </View>
             ))
           ) : (
