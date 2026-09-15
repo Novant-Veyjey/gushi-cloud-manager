@@ -795,3 +795,27 @@ page {
   color: var(--g800);
   box-shadow: 0 8px 20px rgba(25, 70, 49, 0.08);
 }
+
+/* ---------- AI 问答 ---------- */
+.line {
+  display: block;
+  font-size: 24px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+
+.answer {
+  margin-top: 8px;
+}
+
+.quick-question {
+  display: block;
+  width: 100%;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  border-radius: 22px;
+  background: #f5f8f6;
+  color: #3f564a;
+  font-size: 22px;
+  line-height: 1.5;
+}

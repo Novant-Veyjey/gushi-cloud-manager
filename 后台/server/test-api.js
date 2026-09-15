@@ -4,7 +4,8 @@ const { hashPassword } = require('./auth');
 async function request(base, path, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
-    ...(options.token ? { Authorization: `Bearer ${options.token}` } : {})
+    ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+    ...(options.headers || {})
   };
   const response = await fetch(base + path, { method: options.method || 'GET', headers, body: options.body });
   let json = null;
@@ -35,7 +36,7 @@ function decodeJwt(token) {
   const base = `http://127.0.0.1:${server.address().port}`;
   const suffix = Date.now();
   const createdUsers = [];
-  const tables = ['alerts', 'trace_events', 'readings', 'products', 'demands', 'tasks', 'expert_questions', 'batches', 'bases', 'partners', 'sessions'];
+  const tables = ['alerts', 'trace_events', 'readings', 'products', 'demands', 'tasks', 'expert_questions', 'batches', 'bases', 'partners', 'devices', 'ingest_logs', 'sessions'];
 
   async function registerUser(role, tag) {
     const result = await request(base, '/api/auth/register', {
@@ -244,11 +245,71 @@ function decodeJwt(token) {
     });
     if (ai.priority !== 'high') throw new Error('规则引擎优先级判断失败');
 
-    // 17. 退出登录后 JWT 立即失效（会话被撤销）
+    // 17. 硬件设备接入：创建设备 → 上报 → 自动预警 → 在线状态
+    const device = await request(base, '/api/devices', {
+      method: 'POST',
+      token: alice.token,
+      body: JSON.stringify({ name: '1 号棚温湿度网关', base_id: createdBase.id, model: 'ESP32-S3' })
+    });
+    if (!device.code || !device.secret) throw new Error('创建设备未返回编号与密钥');
+
+    const deviceHeaders = { 'X-Device-Code': device.code, 'X-Device-Secret': device.secret };
+    await request(base, '/api/ingest/readings', {
+      method: 'POST',
+      headers: { 'X-Device-Code': device.code, 'X-Device-Secret': 'wrong-secret' },
+      body: JSON.stringify({ temperature: 24 }),
+      expectStatus: 401
+    });
+    const ingest = await request(base, '/api/ingest/readings', {
+      method: 'POST',
+      headers: deviceHeaders,
+      body: JSON.stringify({ temperature: 29.5, humidity: 72, co2: 950, light: 260 })
+    });
+    if (ingest.reading.source !== 'device') throw new Error('硬件上报的数据来源未标记为 device');
+    if (ingest.alerts.length < 3) throw new Error('硬件上报未按阈值自动生成 3 条预警');
+    await request(base, '/api/ingest/heartbeat', { method: 'POST', headers: deviceHeaders, body: '{}' });
+    const deviceConfig = await request(base, '/api/ingest/config', { headers: deviceHeaders });
+    if (deviceConfig.thresholds.temp_max !== 26) throw new Error('设备阈值配置返回不正确');
+    const dashboard2 = await request(base, '/api/dashboard', { token: alice.token });
+    if (dashboard2.devices < 1 || dashboard2.devicesOnline < 1 || dashboard2.deviceReadings < 1) {
+      throw new Error('dashboard 未统计设备数量/在线状态/设备上报数据');
+    }
+    await request(base, '/api/devices', {
+      method: 'POST',
+      token: carol.token,
+      body: JSON.stringify({ name: '采购商不该创建的设备' }),
+      expectStatus: 403
+    });
+
+    // 18. AI 问答：写入问答记录，未配置时降级为规则知识库
+    const aiStatus = await request(base, '/api/ai/status', { token: alice.token });
+    const ask = await request(base, '/api/ai/ask', {
+      method: 'POST',
+      token: alice.token,
+      body: JSON.stringify({ question: '菌棒表面发绿霉，温度 28 度湿度 92，应该怎么处理？', base_id: createdBase.id })
+    });
+    if (!ask.answer || ask.answer.length < 20) throw new Error('AI 问答未返回有效回答');
+    if (aiStatus.configured && ask.source !== 'ai') throw new Error('已配置 AI 但回答来源不是 ai');
+    const savedQuestions = await request(base, '/api/questions', { token: alice.token });
+    if (!savedQuestions.some((item) => item.id === ask.question_id && item.answer_source === ask.source)) {
+      throw new Error('AI 问答未写入问答记录');
+    }
+
+    const { answerQuestion } = require('./ai');
+    const backupKey = process.env.AI_API_KEY;
+    delete process.env.AI_API_KEY;
+    const ruleResult = await answerQuestion({ question: '菌棒表面发绿霉怎么办', userId: alice.user.id, save: false });
+    if (ruleResult.source !== 'rule' || !/规则知识库/.test(ruleResult.answer)) throw new Error('规则知识库降级失败');
+    process.env.AI_API_KEY = backupKey;
+
+    // 19. 退出登录后 JWT 立即失效（会话被撤销）
     await request(base, '/api/auth/logout', { method: 'POST', token: login.token });
     await request(base, '/api/auth/me', { token: login.token, expectStatus: 401 });
 
-    console.log('API tests passed：JWT 登录、角色权限（RBAC）、账号隔离、管理员接口、微信登录降级、持久化与公开溯源均通过');
+    console.log(
+      `API tests passed：JWT 登录、RBAC、账号隔离、管理员接口、微信登录降级、` +
+        `硬件自动上报与阈值预警、AI 问答（当前来源 ${ask.source}，模型 ${aiStatus.model}）、持久化与公开溯源均通过`
+    );
   } finally {
     for (const user of createdUsers) {
       const uid = user.id;

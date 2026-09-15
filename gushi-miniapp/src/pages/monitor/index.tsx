@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Text, View } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import Taro, { useDidHide, useDidShow } from '@tarojs/taro'
 
 import BrandBar from '@/components/BrandBar'
 import EmptyState from '@/components/EmptyState'
@@ -8,23 +8,58 @@ import FormSheet from '@/components/FormSheet'
 import StateHint from '@/components/StateHint'
 import { buildFormConfigs, type FormConfig } from '@/config/forms'
 import { THRESHOLDS } from '@/config'
-import { FORM_MODULE, guard } from '@/utils/permission'
 import { baseNameOf, useCloudData } from '@/hooks/useCloudData'
 import { api } from '@/utils/request'
 import { readableTime } from '@/utils/format'
+import { FORM_MODULE, guard } from '@/utils/permission'
+import type { Device } from '@/types'
+
+const REFRESH_INTERVAL = 30000
 
 export default function Monitor() {
   const { data, loading, error, reload } = useCloudData()
   const forms = buildFormConfigs(data)
-  const [activeForm, setActiveForm] = useState<FormConfig | null>(null)
 
-  const openForm = (key: string) => {
+  const [activeForm, setActiveForm] = useState<FormConfig | null>(null)
+  const [credential, setCredential] = useState<Device | null>(null)
+  const [lastRefresh, setLastRefresh] = useState('')
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // 页面可见时每 30 秒静默刷新一次：大棚设备上报的数据会自动出现在列表里
+  useDidShow(() => {
+    setLastRefresh(readableTime(new Date().toISOString()))
+    timer.current = setInterval(() => {
+      reload(true).then(() => setLastRefresh(readableTime(new Date().toISOString())))
+    }, REFRESH_INTERVAL)
+  })
+
+  useDidHide(() => {
+    if (timer.current) clearInterval(timer.current)
+    timer.current = null
+  })
+
+  const openForm = (key: string, preset?: Record<string, string>) => {
     if (!guard(FORM_MODULE[key] || 'readings', 'w')) return
+    const config = forms[key]
+    if (!config) return
     if (key === 'reading' && !data.bases.length) {
       Taro.showToast({ title: '请先新增基地', icon: 'none' })
       return
     }
-    setActiveForm(forms[key] || null)
+    if (key === 'device' && !data.bases.length) {
+      Taro.showToast({ title: '请先新增基地，再接入设备', icon: 'none' })
+      return
+    }
+    setActiveForm(
+      preset
+        ? { ...config, fields: config.fields.map((field) => (preset[field.name] !== undefined ? { ...field, defaultValue: preset[field.name] } : field)) }
+        : config
+    )
+  }
+
+  const handleSaved = async (result?: any) => {
+    if (result && result.secret) setCredential(result as Device)
+    await reload(true)
   }
 
   const handleAck = async (id: number) => {
@@ -32,22 +67,32 @@ export default function Monitor() {
     try {
       await api(`/api/alerts/${id}/ack`, { method: 'POST', data: {} })
       Taro.showToast({ title: '预警已处理', icon: 'success' })
-      await reload()
+      await reload(true)
     } catch (err) {
       Taro.showToast({ title: (err as Error).message, icon: 'none' })
     }
   }
 
+  const copy = (value: string) => {
+    Taro.setClipboardData({ data: value }).then(() => Taro.showToast({ title: '已复制', icon: 'success' }))
+  }
+
+  const devices = data.devices
+  const online = devices.filter((item) => item.online).length
   const readings = data.readings.slice(0, 20)
   const openAlerts = data.alerts.filter((alert) => alert.status === 'open')
+  const deviceReported = readings.filter((item) => item.source === 'device').length
 
   return (
     <View className='page'>
-      <BrandBar title='环境监测' sub='设备数据与自动预警' onAdd={() => openForm('reading')} />
+      <BrandBar title='环境监测' sub='大棚设备自动上报 · 超阈值自动预警' onAdd={() => openForm('device')} />
 
       <View className='toolbar'>
-        <View className='btn primary' onClick={() => openForm('reading')}>
-          ＋ 录入环境数据
+        <View className='btn primary' onClick={() => openForm('device')}>
+          ＋ 接入大棚设备
+        </View>
+        <View className='btn secondary' onClick={() => openForm('reading')}>
+          手动补录
         </View>
       </View>
 
@@ -56,14 +101,84 @@ export default function Monitor() {
       ) : (
         <View>
           <View className='notice'>
-            阈值规则：温度 &gt; {THRESHOLDS.temperatureMax}℃、湿度 &lt; {THRESHOLDS.humidityMin}%、CO₂ &gt;{' '}
-            {THRESHOLDS.co2Max} ppm 时，后台自动生成预警。
+            温度 &gt; {THRESHOLDS.temperatureMax}℃、湿度 &lt; {THRESHOLDS.humidityMin}%、CO₂ &gt; {THRESHOLDS.co2Max} ppm 时后台自动生成预警
+            （阈值可按设备单独设置）。设备每 30 秒自动上报一次，页面每 30 秒自动刷新。
+            {lastRefresh ? `上次刷新：${lastRefresh}` : ''}
           </View>
 
           <View className='section-title'>
             <View>
+              <Text className='section-title-main'>大棚设备</Text>
+              <Text className='section-title-sub'>
+                共 {devices.length} 台，在线 {online} 台{devices.length ? '（10 分钟内有上报视为在线）' : ''}
+              </Text>
+            </View>
+          </View>
+
+          {devices.length ? (
+            devices.map((device) => (
+              <View className='card' key={device.id}>
+                <View className='row-top'>
+                  <View>
+                    <Text className='row-title'>{device.name}</Text>
+                    <Text className='row-desc'>
+                      编号 {device.code}
+                      {device.model ? ` · ${device.model}` : ''}
+                      {'\n'}
+                      {device.base_name || baseNameOf(data.bases, device.base_id)}
+                    </Text>
+                  </View>
+                  <Text className={`badge${device.online ? '' : ' plain'}`}>{device.online ? '在线' : '离线'}</Text>
+                </View>
+
+                <View className='metric-line'>
+                  <View className='metric-line-item'>
+                    <Text className='metric-line-label'>温度</Text>
+                    <Text className='metric-line-value'>{device.last_values?.temperature ?? '--'}℃</Text>
+                  </View>
+                  <View className='metric-line-item'>
+                    <Text className='metric-line-label'>湿度</Text>
+                    <Text className='metric-line-value'>{device.last_values?.humidity ?? '--'}%</Text>
+                  </View>
+                  <View className='metric-line-item'>
+                    <Text className='metric-line-label'>CO₂</Text>
+                    <Text className='metric-line-value'>{device.last_values?.co2 ?? '--'} ppm</Text>
+                  </View>
+                </View>
+
+                <Text className='meta'>
+                  阈值：温度 ≤ {device.temp_max}℃ · 湿度 ≥ {device.humidity_min}% · CO₂ ≤ {device.co2_max} ppm
+                  {'\n'}
+                  最近上报：{device.last_seen_at ? readableTime(device.last_seen_at) : '尚未上报'}
+                  {'\n'}
+                  密钥：{device.secret_masked || '可在详情中查看'}
+                </Text>
+
+                <View className='toolbar' style='margin-bottom:0'>
+                  <View
+                    className='btn secondary'
+                    onClick={() =>
+                      api<{ code: string; secret: string }>(`/api/devices/${device.id}/secret`).then((res) =>
+                        setCredential({ ...device, code: res.code, secret: res.secret })
+                      )
+                    }
+                  >
+                    查看设备密钥
+                  </View>
+                </View>
+              </View>
+            ))
+          ) : (
+            <EmptyState
+              title='还没有接入设备'
+              text='点击“接入大棚设备”，把生成的设备编号与密钥填入温室网关（ESP32/智能网关），设备就会自动上报温度、湿度、CO₂ 和光照。'
+            />
+          )}
+
+          <View className='section-title'>
+            <View>
               <Text className='section-title-main'>环境数据</Text>
-              <Text className='section-title-sub'>保存后自动判断温度、湿度和 CO₂ 阈值</Text>
+              <Text className='section-title-sub'>共 {readings.length} 条记录，其中设备自动上报 {deviceReported} 条</Text>
             </View>
           </View>
 
@@ -74,12 +189,12 @@ export default function Monitor() {
                   <View>
                     <Text className='row-title'>{reading.device_name || '未命名设备'}</Text>
                     <Text className='row-desc'>
-                      {baseNameOf(data.bases, reading.base_id)}
-                      {'\n'}
-                      {readableTime(reading.recorded_at)}
+                      {baseNameOf(data.bases, reading.base_id)} · {readableTime(reading.recorded_at)}
                     </Text>
                   </View>
-                  <Text className='badge'>已保存</Text>
+                  <Text className={`badge${reading.source === 'device' ? '' : ' plain'}`}>
+                    {reading.source === 'device' ? '硬件自动' : '手动补录'}
+                  </Text>
                 </View>
                 <View className='metric-line'>
                   <View className='metric-line-item'>
@@ -95,19 +210,17 @@ export default function Monitor() {
                     <Text className='metric-line-value'>{reading.co2 ?? '--'} ppm</Text>
                   </View>
                 </View>
-                {reading.light !== null && reading.light !== undefined ? (
-                  <Text className='meta'>光照：{reading.light} lux</Text>
-                ) : null}
+                {reading.light !== null && reading.light !== undefined ? <Text className='meta'>光照：{reading.light} lux</Text> : null}
               </View>
             ))
           ) : (
-            <EmptyState title='暂无环境数据' text='请先新增基地，再录入设备名称和环境指标。' />
+            <EmptyState title='暂无环境数据' text='接入大棚设备后数据会自动上报；也可以点击“手动补录”录入历史数据。' />
           )}
 
           <View className='section-title'>
             <View>
               <Text className='section-title-main'>待处理预警</Text>
-              <Text className='section-title-sub'>预警由后台规则自动生成，可点击处理</Text>
+              <Text className='section-title-sub'>设备上报的数据超过阈值时自动生成</Text>
             </View>
           </View>
           {openAlerts.length ? (
@@ -135,7 +248,50 @@ export default function Monitor() {
         </View>
       )}
 
-      <FormSheet visible={!!activeForm} config={activeForm} onClose={() => setActiveForm(null)} onSaved={reload} />
+      <FormSheet
+        visible={!!activeForm}
+        config={activeForm}
+        onClose={() => setActiveForm(null)}
+        onSaved={handleSaved}
+      />
+
+      {credential ? (
+        <View className='sheet-mask' onClick={() => setCredential(null)}>
+          <View className='sheet' onClick={(event) => event.stopPropagation()}>
+            <Text className='sheet-title'>设备接入凭证</Text>
+            <Text className='sheet-desc'>把下面两项配置到温室网关，设备即可自动上报数据（密钥请勿外泄）。</Text>
+
+            <View className='field'>
+              <Text className='field-label'>设备编号</Text>
+              <View className='field-picker filled'>{credential.code}</View>
+            </View>
+            <View className='field'>
+              <Text className='field-label'>设备密钥</Text>
+              <View className='field-picker filled'>{credential.secret || '（已隐藏，请重新获取）'}</View>
+            </View>
+
+            <View className='notice'>
+              上报地址：POST /api/ingest/readings{'\n'}
+              请求头：X-Device-Code、X-Device-Secret{'\n'}
+              请求体示例：{'{'}"temperature":24.5,"humidity":88,"co2":650,"light":320{'}'}
+            </View>
+
+            <View className='sheet-actions'>
+              <View className='btn secondary' onClick={() => copy(credential.code)}>
+                复制编号
+              </View>
+              <View className='btn primary' onClick={() => copy(credential.secret || '')}>
+                复制密钥
+              </View>
+            </View>
+            <View className='sheet-actions'>
+              <View className='btn secondary' onClick={() => setCredential(null)}>
+                关闭
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : null}
     </View>
   )
 }

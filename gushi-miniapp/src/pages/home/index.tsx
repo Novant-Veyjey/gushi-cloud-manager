@@ -99,13 +99,13 @@ export default function Home() {
               <Text className='quick-icon'>▤</Text>
               <Text className='quick-label'>新增批次</Text>
             </View>
-            <View className='quick-item' onClick={() => openForm('reading')}>
-              <Text className='quick-icon'>🌡</Text>
-              <Text className='quick-label'>录入环境</Text>
+            <View className='quick-item' onClick={() => openForm('device')}>
+              <Text className='quick-icon'>📡</Text>
+              <Text className='quick-label'>大棚设备</Text>
             </View>
             <View className='quick-item' onClick={() => Taro.navigateTo({ url: '/pages/expert/index' })}>
-              <Text className='quick-icon'>👩‍🌾</Text>
-              <Text className='quick-label'>专家服务</Text>
+              <Text className='quick-icon'>🤖</Text>
+              <Text className='quick-label'>AI 问答</Text>
             </View>
           </View>
 
@@ -138,7 +138,9 @@ export default function Home() {
                 {dashboard.devices}
                 <Text className='stat-unit'>台</Text>
               </Text>
-              <Text className='stat-foot'>按设备名称统计</Text>
+              <Text className='stat-foot'>
+                在线 {dashboard.devicesOnline ?? 0} 台 · 自动上报 {dashboard.deviceReadings ?? 0} 条
+              </Text>
             </View>
             <View className='stat'>
               <Text className='stat-label'>待处理预警</Text>
@@ -153,10 +155,10 @@ export default function Home() {
           <View className='section-title'>
             <View>
               <Text className='section-title-main'>最新环境记录</Text>
-              <Text className='section-title-sub'>只展示已保存的真实记录</Text>
+              <Text className='section-title-sub'>大棚设备自动上报，异常时自动预警</Text>
             </View>
             <Text className='section-title-action' onClick={() => openForm('reading')}>
-              录入
+              手动补录
             </Text>
           </View>
           <View className='card'>
@@ -170,7 +172,7 @@ export default function Home() {
                     <Text className='todo-title'>{reading.base_name || baseNameOf(data.bases, reading.base_id)}</Text>
                     <Text className='todo-desc'>
                       {reading.device_name || '未命名设备'} · {reading.temperature ?? '--'}℃ · 湿度 {reading.humidity ?? '--'}% · CO₂{' '}
-                      {reading.co2 ?? '--'}ppm
+                      {reading.co2 ?? '--'}ppm · {reading.source === 'device' ? '硬件自动' : '手动补录'}
                     </Text>
                   </View>
                   <Text className='todo-action'>{dateOnly(reading.recorded_at)}</Text>

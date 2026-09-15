@@ -13,6 +13,7 @@ export type PermissionModule =
   | 'demands'
   | 'tasks'
   | 'partners'
+  | 'devices'
   | 'dashboard'
   | 'uploads'
   | 'ai'
@@ -32,17 +33,17 @@ const MATRIX: Record<string, Rule> = {
   base: {
     bases: 'rw', batches: 'rw', readings: 'rw', alerts: 'rw', 'trace-events': 'rw',
     questions: 'rw', products: 'rw', demands: 'rw', tasks: 'rw', partners: 'rw',
-    dashboard: 'r', uploads: 'w', ai: 'r', users: 'r'
+    devices: 'rw', dashboard: 'r', uploads: 'w', ai: 'r', users: 'r'
   },
   farmer: {
     bases: 'rw', batches: 'rw', readings: 'rw', alerts: 'rw', 'trace-events': 'rw',
     questions: 'rw', products: 'r', demands: 'r', tasks: 'rw', partners: 'r',
-    dashboard: 'r', uploads: 'w', ai: 'r'
+    devices: 'rw', dashboard: 'r', uploads: 'w', ai: 'r'
   },
   expert: {
     bases: 'r', batches: 'r', readings: 'r', alerts: 'r', 'trace-events': 'r',
     questions: 'rw', products: 'r', demands: 'r', tasks: 'r', partners: 'r',
-    dashboard: 'r', uploads: 'w', ai: 'r'
+    devices: 'r', dashboard: 'r', uploads: 'w', ai: 'r'
   },
   buyer: {
     bases: 'r', batches: 'r', 'trace-events': 'r', questions: 'rw',
@@ -51,7 +52,7 @@ const MATRIX: Record<string, Rule> = {
   government: {
     bases: 'r', batches: 'r', readings: 'r', alerts: 'r', 'trace-events': 'r',
     questions: 'r', products: 'r', demands: 'r', tasks: 'r', partners: 'r',
-    dashboard: 'r', ai: 'r'
+    devices: 'r', dashboard: 'r', ai: 'r'
   }
 }
 
@@ -66,6 +67,7 @@ export const FORM_MODULE: Record<string, PermissionModule> = {
   demand: 'demands',
   task: 'tasks',
   partner: 'partners',
+  device: 'devices',
   reply: 'questions',
   icon: 'products'
 }

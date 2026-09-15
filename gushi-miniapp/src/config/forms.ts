@@ -36,7 +36,8 @@ export interface FormConfig {
 export const RECORD_MENU: Array<{ key: string; label: string }> = [
   { key: 'base', label: '基地档案' },
   { key: 'batch', label: '生产批次' },
-  { key: 'reading', label: '环境数据' },
+  { key: 'device', label: '大棚设备' },
+  { key: 'reading', label: '环境数据（手动补录）' },
   { key: 'question', label: '专家问题' },
   { key: 'trace-event', label: '溯源事件' },
   { key: 'product', label: '供应信息' },
@@ -115,8 +116,8 @@ export function buildFormConfigs(data: CloudData): Record<string, FormConfig> {
     },
     reading: {
       key: 'reading',
-      title: '录入环境数据',
-      desc: '温度超过 26℃、湿度低于 80%、CO₂ 超过 800ppm 时，后台会自动生成预警。',
+      title: '手动补录环境数据',
+      desc: '正常情况下环境数据由大棚设备自动上报；断网、设备维修或核对历史数据时可在此手动补录，超出阈值同样会自动生成预警。',
       endpoint: '/api/readings',
       fields: [
         {
@@ -133,6 +134,30 @@ export function buildFormConfigs(data: CloudData): Record<string, FormConfig> {
         { name: 'co2', label: 'CO₂（ppm）', type: 'number' },
         { name: 'light', label: '光照（lux）', type: 'number' },
         { name: 'recorded_at', label: '记录时间', type: 'datetime', required: true, defaultValue: nowLocalDateTime() },
+        { name: 'notes', label: '备注', type: 'textarea' }
+      ]
+    },
+    device: {
+      key: 'device',
+      title: '接入大棚检测设备',
+      desc: '创建后把「设备编号 + 设备密钥」配置到温室网关，设备定时上报温湿度、CO₂、光照，后台自动入库并触发阈值预警。',
+      notice: '上报接口：POST /api/ingest/readings，请求头 X-Device-Code 与 X-Device-Secret。',
+      endpoint: '/api/devices',
+      fields: [
+        { name: 'name', label: '设备名称', required: true, placeholder: '例如：1 号棚温湿度网关' },
+        {
+          name: 'base_id',
+          label: '所属基地',
+          type: 'select',
+          required: true,
+          options: requiredBaseOptions,
+          placeholder: '请选择基地'
+        },
+        { name: 'code', label: '设备编号（留空自动生成）', placeholder: '例如 GS-1A2B3C' },
+        { name: 'model', label: '设备型号', placeholder: '例如 ESP32-S3 / 智能网关' },
+        { name: 'temp_max', label: '温度上限（℃）', type: 'number', defaultValue: '26' },
+        { name: 'humidity_min', label: '湿度下限（%）', type: 'number', defaultValue: '80' },
+        { name: 'co2_max', label: 'CO₂ 上限（ppm）', type: 'number', defaultValue: '800' },
         { name: 'notes', label: '备注', type: 'textarea' }
       ]
     },

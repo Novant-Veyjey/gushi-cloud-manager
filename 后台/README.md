@@ -73,6 +73,62 @@ PUT /api/admin/users/:id/role        {role:'farmer|base|expert|buyer|government|
 3. 首次登录自动建账号（用户名形如 `wx_xxxxxxxxxx`，角色默认菇农），之后自动复用同一账号。
 4. **未配置时接口返回 501 和明确提示**，小程序会提醒改用账号密码登录，不会静默失败。
 
+## 大棚硬件接入（环境数据自动上报）
+
+环境数据默认由大棚里的检测设备自动上报，不需要人工在界面上录入；小程序里的“手动补录”只用于断网、设备维修或核对历史数据。
+
+### 1. 在后台或小程序创建设备
+
+```bash
+curl -X POST http://localhost:3000/api/devices \
+  -H "Authorization: Bearer <你的 JWT>" -H "Content-Type: application/json" \
+  -d '{"name":"1 号棚温湿度网关","base_id":1,"model":"ESP32-S3","temp_max":26,"humidity_min":80,"co2_max":800}'
+```
+
+返回里含 **设备编号 code** 与 **设备密钥 secret**（密钥只在创建/重置/单独查询时返回，列表里是掩码）。阈值可按设备单独配置。
+
+### 2. 硬件端定时上报（设备密钥鉴权，不需要账号登录）
+
+```bash
+curl -X POST http://<后台地址>/api/ingest/readings \
+  -H "X-Device-Code: GS-XXXXXX" \
+  -H "X-Device-Secret: <设备密钥>" \
+  -H "Content-Type: application/json" \
+  -d '{"temperature":24.5,"humidity":88,"co2":650,"light":320}'
+```
+
+- 上报成功即写入 `readings`（`source=device`），并按设备阈值自动生成预警；
+- 超过 10 分钟没有上报，小程序里该设备显示为离线；
+- 也支持 `Authorization: Device <编号>:<密钥>`；`recorded_at` 不传则用服务器时间。
+
+| 接口 | 说明 |
+|---|---|
+| `POST /api/ingest/readings` | 上报温湿度/CO₂/光照，自动预警 |
+| `POST /api/ingest/heartbeat` | 心跳，仅刷新在线状态 |
+| `GET /api/ingest/config` | 设备开机自检：读自己的阈值与服务器时间 |
+
+设备管理接口（需登录 + `devices` 权限）：
+
+```text
+GET    /api/devices              设备列表（含在线状态、最新读数、密钥掩码）
+POST   /api/devices              创建设备，返回编号与密钥
+PUT    /api/devices/:id          修改名称/基地/阈值/状态
+DELETE /api/devices/:id          删除设备
+GET    /api/devices/:id/secret   查看完整密钥（用于填进硬件）
+POST   /api/devices/:id/rotate   重置密钥
+```
+
+> 后续接 MQTT 时，只需把 broker 收到的报文转成上面的 HTTP 上报，或在本项目内加一个 MQTT 适配层调用同一套 `server/devices.js` 逻辑，阈值、预警、在线状态都不用重写。
+
+## AI 智能问答（原“专家服务”）
+
+- `POST /api/ai/ask` `{question, base_id?, category?, save?}`：调用 OpenAI 兼容大模型回答，**自动把该账号最近的基地、批次和环境数据作为上下文**；`save=true`（默认）会写入问答记录，方便专家复核。
+- `GET /api/ai/status`：返回是否已接入大模型、模型名、规则库条目数。
+- 未配置 `AI_API_KEY` 或调用失败时，自动降级为内置规则知识库（8 类常见问题），回答里会注明来源与降级原因，不会把规则库答复伪装成 AI 结论。
+- 人工专家仍可通过 `PUT /api/questions/:id` 补充/纠正回答，回答来源标记为人工。
+
+当前 `.env` 已接入 DeepSeek（`deepseek-chat`），返回体里的 `source` 为 `ai` 表示大模型回答。
+
 ## 主要业务接口（均需登录，并按角色校验）
 
 ```text
@@ -81,7 +137,8 @@ GET  /api/health                 健康检查（公开）
 
 GET/POST/PUT/DELETE /api/bases           基地
 GET/POST/PUT/DELETE /api/batches         生产批次
-GET/POST/PUT/DELETE /api/readings        环境记录（保存后自动按阈值生成预警）
+GET/POST/PUT/DELETE /api/devices         大棚设备（编号、密钥、阈值、在线状态）
+GET/POST/PUT/DELETE /api/readings        环境记录（设备自动上报为主，手动补录为辅）
 GET/POST/PUT/DELETE /api/alerts          预警
 POST /api/alerts/:id/ack                 处理预警
 GET/POST/PUT/DELETE /api/trace-events    溯源事件
@@ -122,7 +179,7 @@ npm run backup
 npm test
 ```
 
-覆盖：JWT 结构、注册登录、重复注册 409、密码错误 401、未登录 401、账号隔离、跨账号修改拦截、RBAC（采购商建基地 403、专家发供应 403、政府写入 403、管理员接口 403/可用）、微信登录未配置返回 501、数据持久化、密码加密、公开溯源、退出后 token 失效。
+覆盖：JWT 结构、注册登录、重复注册 409、密码错误 401、未登录 401、账号隔离、跨账号修改拦截、RBAC（采购商建基地 403、专家发供应 403、政府写入 403、管理员接口 403/可用）、微信登录未配置返回 501、**大棚设备接入（密钥错误 401、上报写入 `source=device`、超阈值自动生成 3 条预警、心跳在线、设备自检阈值、dashboard 统计设备数据、采购商无权建设备）**、**AI 问答（写入问答记录、来源标记、无密钥时降级规则知识库）**、数据持久化、密码加密、公开溯源、退出后 token 失效。
 
 ## 数据真实性原则
 

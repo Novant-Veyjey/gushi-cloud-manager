@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { useDidShow } from '@tarojs/taro'
 
 import { api } from '@/utils/request'
-import type { Alert, Base, Batch, CloudData, Dashboard, Demand, ExpertQuestion, Product, Reading, Task } from '@/types'
+import type { Alert, Base, Batch, CloudData, Dashboard, Demand, Device, ExpertQuestion, Product, Reading, Task } from '@/types'
 
 /** 空数据结构：后台没有数据时页面显示空状态，绝不填充虚构数字 */
 export const EMPTY_CLOUD_DATA: CloudData = {
@@ -20,6 +20,7 @@ export const EMPTY_CLOUD_DATA: CloudData = {
   },
   bases: [],
   batches: [],
+  devices: [],
   readings: [],
   alerts: [],
   questions: [],
@@ -37,14 +38,20 @@ export function useCloudData() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const reload = useCallback(async () => {
-    setLoading(true)
-    setError('')
+  /**
+   * silent = true 时不显示全屏加载态，用于定时自动刷新（设备上报的数据会自动出现）。
+   */
+  const reload = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true)
+      setError('')
+    }
     try {
-      const [dashboard, bases, batches, readings, alerts, questions, products, demands, tasks] = await Promise.all([
+      const [dashboard, bases, batches, devices, readings, alerts, questions, products, demands, tasks] = await Promise.all([
         api<Dashboard>('/api/dashboard'),
         api<Base[]>('/api/bases'),
         api<Batch[]>('/api/batches'),
+        api<Device[]>('/api/devices'),
         api<Reading[]>('/api/readings?limit=100'),
         api<Alert[]>('/api/alerts?limit=100'),
         api<ExpertQuestion[]>('/api/questions'),
@@ -52,11 +59,11 @@ export function useCloudData() {
         api<Demand[]>('/api/demands'),
         api<Task[]>('/api/tasks')
       ])
-      setData({ dashboard, bases, batches, readings, alerts, questions, products, demands, tasks })
+      setData({ dashboard, bases, batches, devices, readings, alerts, questions, products, demands, tasks })
     } catch (err) {
       setError((err as Error).message)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [])
 

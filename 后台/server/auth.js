@@ -31,17 +31,17 @@ const PERMISSIONS = {
   base: {
     bases: 'rw', batches: 'rw', readings: 'rw', alerts: 'rw', 'trace-events': 'rw',
     questions: 'rw', products: 'rw', demands: 'rw', tasks: 'rw', partners: 'rw',
-    dashboard: 'r', uploads: 'w', ai: 'r', users: 'r'
+    devices: 'rw', dashboard: 'r', uploads: 'w', ai: 'r', users: 'r'
   },
   farmer: {
     bases: 'rw', batches: 'rw', readings: 'rw', alerts: 'rw', 'trace-events': 'rw',
     questions: 'rw', products: 'r', demands: 'r', tasks: 'rw', partners: 'r',
-    dashboard: 'r', uploads: 'w', ai: 'r'
+    devices: 'rw', dashboard: 'r', uploads: 'w', ai: 'r'
   },
   expert: {
     bases: 'r', batches: 'r', readings: 'r', alerts: 'r', 'trace-events': 'r',
     questions: 'rw', products: 'r', demands: 'r', tasks: 'r', partners: 'r',
-    dashboard: 'r', uploads: 'w', ai: 'r'
+    devices: 'r', dashboard: 'r', uploads: 'w', ai: 'r'
   },
   buyer: {
     bases: 'r', batches: 'r', 'trace-events': 'r', questions: 'rw',
@@ -50,7 +50,7 @@ const PERMISSIONS = {
   government: {
     bases: 'r', batches: 'r', readings: 'r', alerts: 'r', 'trace-events': 'r',
     questions: 'r', products: 'r', demands: 'r', tasks: 'r', partners: 'r',
-    dashboard: 'r', ai: 'r'
+    devices: 'r', dashboard: 'r', ai: 'r'
   }
 };
 

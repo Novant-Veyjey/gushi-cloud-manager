@@ -167,6 +167,38 @@ CREATE TABLE IF NOT EXISTS tasks (
   FOREIGN KEY(batch_id) REFERENCES batches(id) ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS devices (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER,
+  base_id INTEGER,
+  name TEXT NOT NULL,
+  code TEXT NOT NULL UNIQUE,
+  secret TEXT NOT NULL,
+  model TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'active',
+  temp_max REAL DEFAULT 26,
+  humidity_min REAL DEFAULT 80,
+  co2_max REAL DEFAULT 800,
+  last_seen_at TEXT DEFAULT '',
+  last_values TEXT DEFAULT '',
+  notes TEXT DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(base_id) REFERENCES bases(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS ingest_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  device_id INTEGER,
+  user_id INTEGER,
+  temperature REAL,
+  humidity REAL,
+  co2 REAL,
+  light REAL,
+  result TEXT DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_batches_base ON batches(base_id);
 CREATE INDEX IF NOT EXISTS idx_readings_base_time ON readings(base_id, recorded_at);
 CREATE INDEX IF NOT EXISTS idx_alerts_status ON alerts(status, created_at);
@@ -191,11 +223,21 @@ const productColumns = db.prepare('PRAGMA table_info(products)').all().map((colu
 if (!productColumns.includes('icon')) db.exec("ALTER TABLE products ADD COLUMN icon TEXT DEFAULT ''");
 
 /** 每个账号的数据通过 user_id 隔离，所有业务表都需要该字段 */
-const businessTables = ['partners', 'bases', 'batches', 'readings', 'alerts', 'trace_events', 'expert_questions', 'products', 'demands', 'tasks'];
+const businessTables = ['partners', 'bases', 'batches', 'readings', 'alerts', 'trace_events', 'expert_questions', 'products', 'demands', 'tasks', 'devices'];
 for (const table of businessTables) {
   ensureColumn(table, 'user_id', 'INTEGER');
   db.exec(`CREATE INDEX IF NOT EXISTS idx_${table}_user ON ${table}(user_id)`);
 }
+
+/** 环境数据来源：manual（手动补录）/ device（大棚硬件自动上报） */
+ensureColumn('readings', 'device_id', 'INTEGER');
+ensureColumn('readings', 'source', "TEXT DEFAULT 'manual'");
+
+/** AI 问答：标记回答来源，便于区分 AI、规则知识库与人工专家 */
+ensureColumn('expert_questions', 'answer_source', "TEXT DEFAULT ''");
+ensureColumn('expert_questions', 'ai_model', "TEXT DEFAULT ''");
+db.exec('CREATE INDEX IF NOT EXISTS idx_readings_device ON readings(device_id, recorded_at)');
+db.exec('CREATE INDEX IF NOT EXISTS idx_ingest_logs_device ON ingest_logs(device_id, created_at)');
 
 /** 微信登录标识：同一个微信用户只对应一个账号 */
 ensureColumn('users', 'openid', 'TEXT');

@@ -1,9 +1,17 @@
+const { loadEnvFile } = require('./env');
+
+// 先加载 .env，保证后续模块能读到 AI / 微信 / 数据库配置
+loadEnvFile();
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { db } = require('./db');
 const auth = require('./auth');
+const deviceService = require('./devices');
+const aiService = require('./ai');
+const { evaluateReadingAlerts } = require('./alerts');
 const { requireAuth, requirePermission, requireRole } = auth;
 
 const app = express();
@@ -195,22 +203,14 @@ function makeCrudRouter(name, config) {
   return router;
 }
 
-function evaluateReadingAlerts(reading) {
-  const alerts = [];
-  if (reading.temperature !== null && reading.temperature !== undefined && reading.temperature > 26) {
-    alerts.push({ type: '温度偏高', level: 'high', message: `温度 ${reading.temperature}°C，超过 26°C 阈值` });
-  }
-  if (reading.humidity !== null && reading.humidity !== undefined && reading.humidity < 80) {
-    alerts.push({ type: '湿度偏低', level: 'medium', message: `湿度 ${reading.humidity}%，低于 80% 阈值` });
-  }
-  if (reading.co2 !== null && reading.co2 !== undefined && reading.co2 > 800) {
-    alerts.push({ type: 'CO₂ 偏高', level: 'high', message: `CO₂ ${reading.co2} ppm，超过 800 ppm 阈值` });
-  }
-  const insert = db.prepare(`INSERT INTO alerts (base_id, reading_id, alert_type, level, message, status, user_id) VALUES (?, ?, ?, ?, ?, 'open', ?)`);
-  for (const alert of alerts) insert.run(reading.base_id || null, reading.id, alert.type, alert.level, alert.message, reading.user_id || null);
-}
-
-app.get('/api/health', (req, res) => ok(res, { status: 'ok', time: new Date().toISOString() }));
+app.get('/api/health', (req, res) =>
+  ok(res, {
+    status: 'ok',
+    time: new Date().toISOString(),
+    ai_configured: aiService.aiConfigured(),
+    ai_model: aiService.modelName()
+  })
+);
 
 /** ---------- 账号：注册 / 登录 / 登出 / 当前用户 ---------- */
 
@@ -274,6 +274,115 @@ app.put('/api/admin/users/:id/role', requireAuth, requireRole('admin'), (req, re
   }
 });
 
+/** ---------- 大棚硬件设备：设备档案、密钥与在线状态 ---------- */
+
+app.get('/api/devices', requireAuth, requirePermission('devices', 'r'), (req, res) => {
+  try {
+    ok(res, deviceService.listDevices(req.user.id));
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+app.post('/api/devices', requireAuth, requirePermission('devices', 'w'), (req, res) => {
+  try {
+    ok(res, deviceService.createDevice(req.user.id, req.body || {}), '设备已创建，请把编号和密钥填入大棚网关');
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+app.get('/api/devices/:id', requireAuth, requirePermission('devices', 'r'), (req, res) => {
+  try {
+    const device = deviceService.getDevice(req.params.id, req.user.id);
+    if (!device) return fail(res, 404, '设备不存在');
+    ok(res, deviceService.listDevices(req.user.id).find((item) => item.id === device.id));
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+app.put('/api/devices/:id', requireAuth, requirePermission('devices', 'w'), (req, res) => {
+  try {
+    ok(res, deviceService.updateDevice(req.params.id, req.user.id, req.body || {}), '设备已更新');
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+app.delete('/api/devices/:id', requireAuth, requirePermission('devices', 'w'), (req, res) => {
+  try {
+    ok(res, deviceService.deleteDevice(req.params.id, req.user.id), '设备已删除');
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+app.get('/api/devices/:id/secret', requireAuth, requirePermission('devices', 'w'), (req, res) => {
+  try {
+    ok(res, deviceService.revealSecret(req.params.id, req.user.id));
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+app.post('/api/devices/:id/rotate', requireAuth, requirePermission('devices', 'w'), (req, res) => {
+  try {
+    ok(res, deviceService.rotateSecret(req.params.id, req.user.id), '设备密钥已重置，请同步更新硬件配置');
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+/**
+ * ---------- 硬件自动上报入口（设备密钥鉴权，不需要账号登录）----------
+ *
+ * 大棚网关 / 传感器按下面格式定时上报即可，环境数据自动写入数据库并触发阈值预警：
+ *
+ *   curl -X POST http://<后台地址>/api/ingest/readings \
+ *     -H "X-Device-Code: GS-XXXXXX" \
+ *     -H "X-Device-Secret: <设备密钥>" \
+ *     -H "Content-Type: application/json" \
+ *     -d '{"temperature":24.5,"humidity":88,"co2":650,"light":320}'
+ *
+ * 也支持 Authorization: Device <编号>:<密钥>
+ */
+app.post('/api/ingest/readings', (req, res) => {
+  try {
+    const device = deviceService.resolveDevice(req);
+    const result = deviceService.ingestReading(device, req.body || {});
+    ok(res, result, result.alerts.length ? `已保存，自动生成 ${result.alerts.length} 条预警` : '已保存');
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+app.post('/api/ingest/heartbeat', (req, res) => {
+  try {
+    const device = deviceService.resolveDevice(req);
+    ok(res, deviceService.heartbeat(device), '心跳已记录');
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+/** 设备开机自检：读取自己的阈值配置与服务器时间 */
+app.get('/api/ingest/config', (req, res) => {
+  try {
+    const device = deviceService.resolveDevice(req);
+    ok(res, {
+      code: device.code,
+      name: device.name,
+      status: device.status,
+      base_id: device.base_id,
+      thresholds: { temp_max: device.temp_max, humidity_min: device.humidity_min, co2_max: device.co2_max },
+      server_time: new Date().toISOString()
+    });
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
 /** ---------- 图片上传：每个账号单独目录，按账号鉴权 ---------- */
 
 const uploadRoot = path.join(__dirname, '..', 'public', 'uploads');
@@ -302,8 +411,12 @@ app.get('/api/dashboard', requireAuth, requirePermission('dashboard', 'r'), (req
     user: req.user,
     bases: db.prepare('SELECT COUNT(*) AS count FROM bases WHERE user_id = ?').get(uid).count,
     batches: db.prepare('SELECT COUNT(*) AS count FROM batches WHERE user_id = ?').get(uid).count,
-    devices: db
-      .prepare("SELECT COUNT(DISTINCT device_name) AS count FROM readings WHERE user_id = ? AND device_name <> ''")
+    devices: db.prepare('SELECT COUNT(*) AS count FROM devices WHERE user_id = ?').get(uid).count,
+    devicesOnline: db
+      .prepare('SELECT COUNT(*) AS count FROM devices WHERE user_id = ? AND last_seen_at >= ?')
+      .get(uid, new Date(Date.now() - deviceService.ONLINE_WINDOW_MS).toISOString()).count,
+    deviceReadings: db
+      .prepare("SELECT COUNT(*) AS count FROM readings WHERE user_id = ? AND source = 'device'")
       .get(uid).count,
     openAlerts: db.prepare("SELECT COUNT(*) AS count FROM alerts WHERE user_id = ? AND status = 'open'").get(uid).count,
     questions: db.prepare("SELECT COUNT(*) AS count FROM expert_questions WHERE user_id = ? AND status = 'pending'").get(uid).count,
@@ -359,6 +472,32 @@ function rulePriority(title, dueDate) {
   if (days !== null && days <= 3) return { priority: 'medium', reason: '任务将在 3 天内到期' };
   return { priority: 'low', reason: '未发现紧急关键词，截止日期较充足' };
 }
+
+/** ---------- AI 智能问答（专家服务的 AI 接入）---------- */
+
+app.get('/api/ai/status', requireAuth, requirePermission('ai', 'r'), (req, res) =>
+  ok(res, {
+    configured: aiService.aiConfigured(),
+    model: aiService.modelName(),
+    knowledge_entries: aiService.KNOWLEDGE.length,
+    note: aiService.aiConfigured() ? '已接入大模型' : '未配置 AI_API_KEY，当前使用规则知识库'
+  })
+);
+
+app.post('/api/ai/ask', requireAuth, requirePermission('ai', 'r'), async (req, res) => {
+  try {
+    const result = await aiService.answerQuestion({
+      question: text(req.body?.question),
+      userId: req.user.id,
+      baseId: req.body?.base_id || null,
+      category: text(req.body?.category),
+      save: req.body?.save !== false
+    });
+    ok(res, result, result.source === 'ai' ? 'AI 已回答' : '已给出规则知识库答复');
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
 
 app.post('/api/ai/suggest-priority', requireAuth, requirePermission('ai', 'r'), async (req, res) => {
   const title = text(req.body?.title);

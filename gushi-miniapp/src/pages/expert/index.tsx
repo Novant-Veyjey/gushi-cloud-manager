@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Text, View } from '@tarojs/components'
+import { useEffect, useState } from 'react'
+import { Picker, Text, Textarea, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 
 import BrandBar from '@/components/BrandBar'
@@ -8,18 +8,69 @@ import FormSheet from '@/components/FormSheet'
 import StateHint from '@/components/StateHint'
 import { buildFormConfigs, type FormConfig } from '@/config/forms'
 import { baseNameOf, useCloudData } from '@/hooks/useCloudData'
+import { api } from '@/utils/request'
 import { readableTime } from '@/utils/format'
 import { FORM_MODULE, guard } from '@/utils/permission'
+import type { AiAnswer, AiStatus, ExpertQuestion } from '@/types'
+
+const QUICK_QUESTIONS = [
+  '菌棒表面发绿霉是什么原因，应该怎么处理？',
+  '棚内 CO₂ 偏高、菇柄细长应该怎么调整？',
+  '出菇期温度和湿度分别控制在多少合适？',
+  '菌丝生长慢、不吃料如何排查？'
+]
+
+/** 把多行回答按行渲染，避免小程序 Text 不换行 */
+function Multiline({ text, className }: { text: string; className?: string }) {
+  const lines = String(text || '').split('\n')
+  return (
+    <View className={className}>
+      {lines.map((line, index) => (
+        <Text className='line' key={`${index}-${line.slice(0, 8)}`}>
+          {line}
+        </Text>
+      ))}
+    </View>
+  )
+}
+
+function sourceLabel(source?: string) {
+  if (source === 'ai') return 'AI 大模型'
+  if (source === 'rule') return '规则知识库'
+  if (source === 'expert') return '人工专家'
+  return '待回复'
+}
+
+function sourceBadgeClass(source?: string) {
+  if (source === 'ai') return 'badge'
+  if (source === 'rule') return 'badge warn'
+  return 'badge plain'
+}
 
 export default function Expert() {
   const { data, loading, error, reload } = useCloudData()
   const forms = buildFormConfigs(data)
+
   const [activeForm, setActiveForm] = useState<FormConfig | null>(null)
+  const [question, setQuestion] = useState('')
+  const [baseIndex, setBaseIndex] = useState(0) // 0 = 不指定基地
+  const [asking, setAsking] = useState(false)
+  const [answer, setAnswer] = useState<AiAnswer | null>(null)
+  const [aiStatus, setAiStatus] = useState<AiStatus | null>(null)
+
+  // 读取 AI 配置状态（是否已接入大模型）
+  useEffect(() => {
+    api<AiStatus>('/api/ai/status')
+      .then(setAiStatus)
+      .catch(() => setAiStatus(null))
+  }, [])
+
+  const baseOptions = [{ label: '不指定基地', value: '' }, ...data.bases.map((item) => ({ label: item.name, value: String(item.id) }))]
 
   const openForm = (key: string, preset?: Record<string, string>) => {
+    if (!guard(FORM_MODULE[key] || 'questions', 'w')) return
     const config = forms[key]
     if (!config) return
-    if (!guard(FORM_MODULE[key] || 'questions', 'w')) return
     setActiveForm(
       preset
         ? { ...config, fields: config.fields.map((field) => (preset[field.name] !== undefined ? { ...field, defaultValue: preset[field.name] } : field)) }
@@ -27,16 +78,46 @@ export default function Expert() {
     )
   }
 
+  const ask = async () => {
+    if (!guard('ai', 'r')) return
+    const value = question.trim()
+    if (value.length < 4) {
+      Taro.showToast({ title: '请把问题描述得再具体一些', icon: 'none' })
+      return
+    }
+    setAsking(true)
+    try {
+      const result = await api<AiAnswer>('/api/ai/ask', {
+        method: 'POST',
+        data: { question: value, base_id: baseOptions[baseIndex].value || null, save: true }
+      })
+      setAnswer(result)
+      setQuestion('')
+      Taro.showToast({ title: result.source === 'ai' ? 'AI 已回答' : '已给出知识库答复', icon: 'none' })
+      await reload(true)
+    } catch (err) {
+      Taro.showToast({ title: (err as Error).message, icon: 'none' })
+    } finally {
+      setAsking(false)
+    }
+  }
+
+  const questions: ExpertQuestion[] = data.questions
+
   return (
     <View className='page'>
-      <BrandBar title='专家服务' sub='问题与专家回复' onAdd={() => openForm('question')} />
+      <BrandBar
+        title='AI 智能问答'
+        sub={aiStatus?.configured ? `已接入大模型 ${aiStatus.model}` : '未配置大模型时使用规则知识库'}
+        onAdd={() => openForm('question')}
+      />
 
       <View className='toolbar'>
-        <View className='btn primary' onClick={() => openForm('question')}>
-          ＋ 向专家提问
-        </View>
         <View className='btn secondary' onClick={() => Taro.switchTab({ url: '/pages/home/index' })}>
           返回首页
+        </View>
+        <View className='btn secondary' onClick={() => openForm('question')}>
+          转人工专家
         </View>
       </View>
 
@@ -44,52 +125,109 @@ export default function Expert() {
         <StateHint loading={loading} error={error} onRetry={reload} />
       ) : (
         <View>
-          <View className='notice'>
-            问题与回答均保存到后台数据库；AI 只能辅助判断，不能替代专家意见，最终结论以专家回复为准。
+          <View className={`notice${aiStatus?.configured ? ' success' : ''}`}>
+            {aiStatus?.configured
+              ? `已接入大模型（${aiStatus.model}），回答会自动参考本账号最近的批次与环境数据；AI 仅作辅助，重要决策请咨询当地农技专家。`
+              : '后台尚未配置 AI_API_KEY，当前使用内置规则知识库回答；配置后自动切换为大模型回答，无需改小程序。'}
           </View>
 
-          <View className='section-title'>
-            <View>
-              <Text className='section-title-main'>专家问答</Text>
-              <Text className='section-title-sub'>共 {data.questions.length} 条真实记录</Text>
+          <View className='card'>
+            <View className='field'>
+              <Text className='field-label'>问题描述</Text>
+              <Textarea
+                className='field-textarea'
+                value={question}
+                maxlength={1000}
+                placeholder='例如：菌棒表面发绿霉，温度 28℃、湿度 92%，应该怎么处理？'
+                onInput={(event) => setQuestion(event.detail.value)}
+              />
+            </View>
+
+            <View className='field'>
+              <Text className='field-label'>关联基地（可选，用于结合最近数据作答）</Text>
+              <Picker mode='selector' range={baseOptions.map((item) => item.label)} value={baseIndex} onChange={(event) => setBaseIndex(Number(event.detail.value))}>
+                <View className='field-picker filled'>{baseOptions[baseIndex].label}</View>
+              </Picker>
+            </View>
+
+            <View className='btn primary' onClick={ask}>
+              {asking ? 'AI 思考中...' : '向 AI 提问'}
+            </View>
+
+            <View className='preset-icons' style='margin-top:24px'>
+              {QUICK_QUESTIONS.map((item) => (
+                <View className='quick-question' key={item} onClick={() => setQuestion(item)}>
+                  <Text>{item}</Text>
+                </View>
+              ))}
             </View>
           </View>
 
-          {data.questions.length ? (
-            data.questions.map((question) => (
-              <View className='card' key={question.id}>
+          {answer ? (
+            <View className='card'>
+              <View className='row-top'>
+                <Text className='row-title'>AI 回答</Text>
+                <Text className={sourceBadgeClass(answer.source)}>{sourceLabel(answer.source)}</Text>
+              </View>
+              {answer.model ? <Text className='meta'>模型：{answer.model}</Text> : null}
+              {answer.context_summary ? (
+                <View className='notice' style='margin:16px 0'>
+                  <Text>参考的本账号数据：{'\n'}</Text>
+                  <Multiline text={answer.context_summary} />
+                </View>
+              ) : null}
+              <Multiline className='answer' text={answer.answer} />
+              {answer.fallback_reason ? <Text className='meta'>降级原因：{answer.fallback_reason}</Text> : null}
+            </View>
+          ) : null}
+
+          <View className='section-title'>
+            <View>
+              <Text className='section-title-main'>问答记录</Text>
+              <Text className='section-title-sub'>共 {questions.length} 条，AI 与人工专家的回答都会存档</Text>
+            </View>
+          </View>
+
+          {questions.length ? (
+            questions.map((item) => (
+              <View className='card' key={item.id}>
                 <View className='row-top'>
                   <View>
-                    <Text className='row-title'>{question.title}</Text>
+                    <Text className='row-title'>{item.title}</Text>
                     <Text className='row-desc'>
-                      {baseNameOf(data.bases, question.base_id)} · {question.category || '未分类'} ·{' '}
-                      {readableTime(question.created_at)}
+                      {baseNameOf(data.bases, item.base_id)} · {readableTime(item.created_at)}
                     </Text>
                   </View>
-                  <Text className={`badge${question.status === 'answered' ? '' : ' warn'}`}>
-                    {question.status === 'answered' ? '已回复' : '待回复'}
-                  </Text>
+                  <Text className={sourceBadgeClass(item.answer_source)}>{sourceLabel(item.answer_source)}</Text>
                 </View>
-                <Text className='meta'>{question.content}</Text>
-                {question.answer ? (
-                  <View className='notice success' style='margin:20px 0 0'>
-                    专家回复（{readableTime(question.answered_at)}）：{question.answer}
+
+                <Multiline className='meta' text={item.content} />
+
+                {item.answer ? (
+                  <View className='notice success' style='margin:18px 0 0'>
+                    <Text>回答（{item.answer_source === 'ai' ? `${item.ai_model || 'AI'} 生成` : sourceLabel(item.answer_source)}，{readableTime(item.answered_at)}）：</Text>
+                    <Multiline text={item.answer} />
                   </View>
-                ) : null}
+                ) : (
+                  <View className='notice' style='margin:18px 0 0'>
+                    等待人工专家回复
+                  </View>
+                )}
+
                 <View className='toolbar' style='margin-bottom:0'>
-                  <View className='btn secondary' onClick={() => openForm('reply', { id: String(question.id) })}>
-                    {question.answer ? '补充回复' : '专家回复'}
+                  <View className='btn secondary' onClick={() => openForm('reply', { id: String(item.id) })}>
+                    人工补充回复
                   </View>
                 </View>
               </View>
             ))
           ) : (
-            <EmptyState title='暂无专家问题' text='点击向专家提问，保存真实问题。' />
+            <EmptyState title='暂无问答记录' text='在上方输入问题，AI 会立即回答并存档，便于后续专家复核。' />
           )}
         </View>
       )}
 
-      <FormSheet visible={!!activeForm} config={activeForm} onClose={() => setActiveForm(null)} onSaved={reload} />
+      <FormSheet visible={!!activeForm} config={activeForm} onClose={() => setActiveForm(null)} onSaved={() => reload(true)} />
     </View>
   )
 }

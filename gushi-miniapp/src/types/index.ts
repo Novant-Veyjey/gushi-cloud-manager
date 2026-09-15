@@ -33,6 +33,7 @@ export interface Batch {
 export interface Reading {
   id: number
   base_id: number | null
+  device_id?: number | null
   device_name: string
   temperature: number | null
   humidity: number | null
@@ -41,7 +42,36 @@ export interface Reading {
   recorded_at: string
   notes: string
   created_at: string
+  /** manual = 手动补录，device = 大棚硬件自动上报 */
+  source?: 'manual' | 'device' | string
   base_name?: string
+}
+
+/** 大棚硬件设备（传感器网关） */
+export interface Device {
+  id: number
+  base_id: number | null
+  base_name: string
+  name: string
+  code: string
+  secret?: string
+  secret_masked?: string
+  model: string
+  status: string
+  temp_max: number
+  humidity_min: number
+  co2_max: number
+  last_seen_at: string
+  last_values: {
+    temperature?: number | null
+    humidity?: number | null
+    co2?: number | null
+    light?: number | null
+    recorded_at?: string
+  } | null
+  notes: string
+  online: boolean
+  created_at: string
 }
 
 export interface Alert {
@@ -79,7 +109,27 @@ export interface ExpertQuestion {
   status: 'pending' | 'answered' | string
   created_at: string
   answered_at: string
+  /** ai = 大模型回答，rule = 规则知识库，expert = 人工专家 */
+  answer_source?: 'ai' | 'rule' | 'expert' | string
+  ai_model?: string
   base_name?: string
+}
+
+/** AI 问答返回结果 */
+export interface AiAnswer {
+  answer: string
+  source: 'ai' | 'rule' | string
+  model: string
+  context_summary: string
+  fallback_reason: string
+  question_id: number | null
+}
+
+export interface AiStatus {
+  configured: boolean
+  model: string
+  knowledge_entries: number
+  note: string
 }
 
 export interface Product {
@@ -144,6 +194,8 @@ export interface Dashboard {
   bases: number
   batches: number
   devices: number
+  devicesOnline?: number
+  deviceReadings?: number
   openAlerts: number
   questions: number
   products: number
@@ -164,6 +216,7 @@ export interface CloudData {
   dashboard: Dashboard
   bases: Base[]
   batches: Batch[]
+  devices: Device[]
   readings: Reading[]
   alerts: Alert[]
   questions: ExpertQuestion[]

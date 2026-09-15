@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: '专家服务'
+  navigationBarTitleText: 'AI 智能问答'
 })

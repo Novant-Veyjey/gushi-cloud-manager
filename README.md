@@ -17,9 +17,9 @@
 |---|---|---|
 | FR-01 | 基地管理 | 基地档案新增/查询/修改 |
 | FR-02 | 批次管理 | 批次与菌棒信息，批次编号唯一 |
-| FR-03 | 环境录入 | 温度、湿度、CO₂、光照与记录时间 |
-| FR-04 | 自动预警 | 超过阈值自动生成预警并可处理 |
-| FR-05 | 专家问答 | 提问、专家回复、知识沉淀 |
+| FR-03 | 环境录入 | **大棚硬件自动上报**温湿度/CO₂/光照（设备密钥鉴权），断网时可手动补录 |
+| FR-04 | 自动预警 | 上报数据超过阈值自动生成预警，阈值可按设备单独配置 |
+| FR-05 | 专家问答 | **AI 智能问答**（OpenAI 兼容接口，自动带入本账号实时数据），未配置时降级规则知识库，人工专家可补充 |
 | FR-06 | 质量溯源 | 批次事件时间线 + 公开查询（扫码/编号） |
 | FR-07 | 供应信息 | 产品、数量、价格、日期、图标、批次 |
 | FR-08 | 采购需求 | 采购方、产品、数量与联系要求 |
@@ -35,7 +35,18 @@
 ```bash
 cd 后台
 npm install
+copy .env.example .env    # 填入 AI_API_KEY 等配置（可选，不填则 AI 用规则知识库，见下）
 npm start                 # http://localhost:3000
+```
+
+`.env` 可选配置（不填也能跑）：
+
+```text
+AI_BASE_URL=https://api.deepseek.com/v1     # AI 问答（OpenAI 兼容接口）
+AI_API_KEY=你的密钥
+AI_MODEL=deepseek-chat
+WX_APPID=                                    # 微信一键登录（可选）
+WX_SECRET=
 ```
 
 可选：写入演示数据（演示账号 `demo` / `demo123456`，数据均带“演示”标记）
@@ -67,6 +78,29 @@ npm run build:h5 && npm run preview:h5    # http://localhost:5173
 ```
 
 **方式 C：后台自带手机风格原型**：后台启动后直接打开 http://localhost:3000
+
+## 大棚硬件接入（数据自动上报）
+
+环境数据由大棚里的检测设备自动上报，无需人工录入：
+
+```bash
+# 1) 创建接入设备（后台或小程序里操作，返回设备编号与密钥）
+curl -X POST http://localhost:3000/api/devices \
+  -H "Authorization: Bearer <JWT>" -H "Content-Type: application/json" \
+  -d '{"name":"1 号棚温湿度网关","base_id":1,"temp_max":26,"humidity_min":80,"co2_max":800}'
+
+# 2) 硬件端定时上报（设备密钥鉴权，不需要账号登录）
+curl -X POST http://localhost:3000/api/ingest/readings \
+  -H "X-Device-Code: GS-XXXXXX" -H "X-Device-Secret: <设备密钥>" \
+  -H "Content-Type: application/json" \
+  -d '{"temperature":24.5,"humidity":88,"co2":650,"light":320}'
+```
+
+上报即入库并按阈值自动预警；超过 10 分钟无上报，小程序显示设备离线。另有 `POST /api/ingest/heartbeat`（心跳）与 `GET /api/ingest/config`（设备自检阈值）。
+
+## AI 智能问答
+
+`POST /api/ai/ask` 调用大模型回答种植问题，并自动把该账号最近的基地、批次、环境数据作为上下文。回答会标注来源：`ai`（大模型）/ `rule`（未配置密钥或调用失败时降级为内置规则知识库）/ 人工专家补充。AI 仅作辅助，重要决策请咨询当地农技专家。
 
 ## 账号与权限
 

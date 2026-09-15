@@ -11,7 +11,8 @@ interface Props {
   visible: boolean
   config: FormConfig | null
   onClose: () => void
-  onSaved: () => void | Promise<void>
+  /** 保存成功后回调，参数是后台返回的记录（例如新建设备时可用于展示设备密钥） */
+  onSaved: (result?: any) => void | Promise<void>
 }
 
 /**
@@ -71,9 +72,9 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
       })
       const finalPayload = config.transform ? config.transform(payload, values) : payload
       const endpoint = typeof config.endpoint === 'function' ? config.endpoint(finalPayload, values) : config.endpoint
-      await api(endpoint, { method: config.method || 'POST', data: finalPayload })
+      const saved = await api(endpoint, { method: config.method || 'POST', data: finalPayload })
       Taro.showToast({ title: '已保存到后台', icon: 'success' })
-      await onSaved()
+      await onSaved(saved)
       onClose()
     } catch (error) {
       Taro.showToast({ title: (error as Error).message, icon: 'none' })
