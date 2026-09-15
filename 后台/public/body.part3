@@ -1,0 +1,74 @@
+function options(items,valueKey,labelKey,placeholder='请选择'){
+ return `<option value="">${esc(placeholder)}</option>`+items.map(item=>`<option value="${esc(item[valueKey])}">${esc(item[labelKey])}</option>`).join('')
+}
+const formConfigs={
+ base:{title:'新增基地',desc:'保存真实基地信息',endpoint:'/api/bases',fields:[
+  {name:'name',label:'基地名称',required:true,full:true},{name:'township',label:'所属乡镇'},{name:'area_mu',label:'面积（亩）',type:'number'},{name:'address',label:'详细地址',full:true},{name:'contact_name',label:'联系人'},{name:'contact_phone',label:'联系电话'},{name:'notes',label:'备注',type:'textarea',full:true}
+ ]},
+ batch:{title:'新增生产批次',desc:'批次编号必须唯一',endpoint:'/api/batches',fields:[
+  {name:'code',label:'批次编号',required:true},{name:'base_id',label:'所属基地',type:'select',options:()=>options(state.data.bases,'id','name','请选择基地'),required:true},{name:'mushroom_type',label:'菌菇种类',required:true},{name:'variety',label:'品种'},{name:'quantity',label:'菌棒数量',type:'number',required:true},{name:'stage',label:'当前阶段',type:'select',options:()=>['接种期','养菌期','催蕾期','出菇期','采摘期','已完成'].map(v=>`<option>${v}</option>`).join('')},{name:'start_date',label:'入库日期',type:'date',required:true,value:today()},{name:'expected_harvest_date',label:'预计出菇日期',type:'date'},{name:'notes',label:'备注',type:'textarea',full:true}
+ ]},
+ reading:{title:'录入环境数据',desc:'超过阈值时后台自动生成预警',endpoint:'/api/readings',fields:[
+  {name:'base_id',label:'所属基地',type:'select',options:()=>options(state.data.bases,'id','name','请选择基地'),required:true},{name:'device_name',label:'设备名称',required:true},{name:'temperature',label:'温度（°C）',type:'number',step:'0.1'},{name:'humidity',label:'湿度（%）',type:'number',step:'0.1'},{name:'co2',label:'CO₂（ppm）',type:'number',step:'1'},{name:'light',label:'光照（lux）',type:'number',step:'1'},{name:'recorded_at',label:'记录时间',type:'datetime-local',value:nowLocal(),required:true,full:true},{name:'notes',label:'备注',type:'textarea',full:true}
+ ]},
+ question:{title:'向专家提问',desc:'问题将保存并等待专家回复',endpoint:'/api/questions',fields:[
+  {name:'base_id',label:'所属基地',type:'select',options:()=>options(state.data.bases,'id','name','不关联基地')},{name:'title',label:'问题标题',required:true,full:true},{name:'category',label:'问题类型',type:'select',options:()=>['病虫害防治','环境调控','生产流程','设备使用','市场销售'].map(v=>`<option>${v}</option>`).join('')},{name:'content',label:'问题描述',type:'textarea',required:true,full:true}
+ ]},
+ 'trace-event':{title:'新增溯源事件',desc:'溯源事件会绑定到具体批次',endpoint:'/api/trace-events',fields:[
+  {name:'batch_id',label:'所属批次',type:'select',options:()=>options(state.data.batches,'id','code','请选择批次'),required:true,full:true},{name:'event_type',label:'事件类型',type:'select',options:()=>['入库','接种','养菌','转房','催蕾','出菇','采摘','质检','出库','运输'].map(v=>`<option>${v}</option>`).join('')},{name:'title',label:'事件标题',required:true},{name:'event_date',label:'事件日期',type:'date',value:today(),required:true},{name:'operator',label:'操作人'},{name:'description',label:'事件说明',type:'textarea',full:true}
+ ]},
+ product:{title:'发布供应信息',desc:'供应信息必须关联真实批次',endpoint:'/api/products',fields:[
+  {name:'batch_id',label:'所属批次',type:'select',options:()=>options(state.data.batches,'id','code','请选择批次'),required:true,full:true},{name:'name',label:'产品名称',required:true},{name:'icon',label:'产品图标',type:'select',options:()=>['🍄','🌿','🌱','🥬','🫘','🍲','📦','🏷️'].map(v=>`<option value="${v}">${v}</option>`).join('')},{name:'quantity',label:'数量',type:'number',required:true},{name:'unit',label:'单位',type:'select',options:()=>['kg','500g','棒','箱','吨'].map(v=>`<option>${v}</option>`).join('')},{name:'price',label:'参考价格',type:'number',step:'0.01'},{name:'available_date',label:'可售日期',type:'date'},{name:'icon_file',label:'上传产品图标（可选，最大 4MB）',type:'file',full:true},{name:'description',label:'产品说明',type:'textarea',full:true}
+ ]},
+ demand:{title:'发布采购需求',desc:'采购需求将保存到数据库',endpoint:'/api/demands',fields:[
+  {name:'buyer_name',label:'采购方名称',required:true},{name:'product_name',label:'采购产品',required:true},{name:'quantity',label:'采购数量',type:'number',required:true},{name:'unit',label:'单位',type:'select',options:()=>['kg','500g','棒','箱','吨'].map(v=>`<option>${v}</option>`).join('')},{name:'price',label:'意向价格',type:'number',step:'0.01'},{name:'contact',label:'联系方式'},{name:'requirements',label:'具体要求',type:'textarea',full:true}
+ ]},
+ task:{title:'新增生产任务',desc:'可保存任务并调用优先级建议',endpoint:'/api/tasks',fields:[
+  {name:'title',label:'任务标题',required:true,full:true},{name:'description',label:'任务说明',type:'textarea',full:true},{name:'batch_id',label:'关联批次',type:'select',options:()=>options(state.data.batches,'id','code','不关联批次')},{name:'due_date',label:'截止日期',type:'date'},{name:'priority',label:'优先级',type:'select',options:()=>['high','medium','low'].map(v=>`<option value="${v}">${v}</option>`).join('')}
+ ]},
+ partner:{title:'新增合作方',desc:'保存真实合作单位或专家团队',endpoint:'/api/partners',fields:[{name:'name',label:'合作方名称',required:true,full:true},{name:'role',label:'合作角色'},{name:'contact',label:'联系方式'}]}
+};
+const menuTypes=[['base','基地'],['batch','生产批次'],['reading','环境数据'],['question','专家问题'],['trace-event','溯源事件'],['product','供应信息'],['demand','采购需求'],['task','生产任务'],['partner','合作方']];
+function fieldHtml(field){
+ const required=field.required?'required':'';
+ const full=field.full?'full':'';
+ const value=field.value??'';
+ if(field.type==='textarea')return `<div class="field ${full}"><label>${esc(field.label)}</label><textarea name="${field.name}" ${required}>${esc(value)}</textarea></div>`;
+ if(field.type==='select')return `<div class="field ${full}"><label>${esc(field.label)}</label><select name="${field.name}" ${required}>${field.options?field.options():''}</select></div>`;
+ if(field.type==='file')return `<div class="field ${full}"><label>${esc(field.label)}</label><input type="file" name="${field.name}" accept="image/jpeg,image/png,image/webp,image/gif"></div>`;
+ return `<div class="field ${full}"><label>${esc(field.label)}</label><input type="${field.type||'text'}" name="${field.name}" value="${esc(value)}" ${field.step?`step="${field.step}"`:''} ${required}></div>`;
+}
+function openSheet(type){
+ const config=formConfigs[type];
+ const sheetBody=$('#sheetBody');
+ if(type==='menu'){
+  $('#sheetTitle').textContent='新增数据';$('#sheetDesc').textContent='选择要保存到后台数据库的记录类型';
+  sheetBody.innerHTML=`<div class="form-grid">${menuTypes.map(([key,label])=>`<button class="secondary" data-form="${key}">${label}</button>`).join('')}</div><div class="sheet-actions"><button class="secondary" data-close-sheet>取消</button></div>`;
+ }else if(config){
+  if(['batch','reading'].includes(type)&&!state.data.bases.length){toast('请先新增基地',true);return}
+  if(['trace-event','product'].includes(type)&&!state.data.batches.length){toast('请先新增生产批次',true);return}
+  $('#sheetTitle').textContent=config.title;$('#sheetDesc').textContent=config.desc;
+  sheetBody.innerHTML=`<form id="recordForm"><div class="form-grid">${config.fields.map(fieldHtml).join('')}</div><div class="sheet-actions"><button type="button" class="secondary" data-close-sheet>取消</button><button type="submit" class="primary">保存到后台</button></div></form>`;
+  $('#recordForm').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='保存中...';try{const payload=Object.fromEntries(new FormData(form).entries());const file=form.querySelector('input[type="file"]')?.files?.[0];delete payload.icon_file;if(file)payload.icon=await uploadImage(file);await api(config.endpoint,{method:'POST',body:JSON.stringify(payload)});closeSheet();toast('保存成功');await loadAll()}catch(error){toast(error.message,true);submit.disabled=false;submit.textContent='保存到后台'}});
+ }
+ $('#sheetMask').classList.add('open');
+}
+function closeSheet(){$('#sheetMask').classList.remove('open')}
+function go(page){state.page=page;closeSheet();render();$('#app').scrollTop=0}
+function uploadImage(file){return new Promise((resolve,reject)=>{if(file.size>4*1024*1024)return reject(new Error('图片不能超过 4MB'));const reader=new FileReader();reader.onerror=()=>reject(new Error('图片读取失败'));reader.onload=async()=>{try{const result=await api('/api/uploads',{method:'POST',body:JSON.stringify({data:reader.result})});resolve(result.url)}catch(error){reject(error)}};reader.readAsDataURL(file)})}
+function iconHtml(icon,alt='产品图标'){return icon?(icon.startsWith('http')||icon.startsWith('/')?`<img src="${esc(icon)}" alt="${esc(alt)}">`:esc(icon)):'🍄'}
+function openIconEditor(id){const product=state.data.products.find(item=>item.id===Number(id));if(!product)return;const presets=['🍄','🌿','🌱','🥬','🫘','🍲','📦','🏷️'];let selected=product.icon||'🍄';$('#sheetTitle').textContent='更换产品图标';$('#sheetDesc').textContent='选择预设图标，或上传自己的图片，保存后写入后台。';$('#sheetBody').innerHTML=`<div class="icon-preview" id="iconPreview">${iconHtml(selected,product.name)}</div><div class="preset-icons">${presets.map(icon=>`<button type="button" data-icon-choice="${icon}" class="${icon===selected?'active':''}">${icon}</button>`).join('')}</div><div class="field" style="margin-top:14px"><label>上传图片</label><input id="iconFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></div><div class="sheet-actions"><button type="button" class="secondary" data-close-sheet>取消</button><button type="button" class="primary" id="saveIcon">保存图标</button></div>`;$('#sheetMask').classList.add('open');$$('[data-icon-choice]').forEach(button=>button.addEventListener('click',()=>{selected=button.dataset.iconChoice;$$('[data-icon-choice]').forEach(item=>item.classList.toggle('active',item===button));$('#iconPreview').innerHTML=iconHtml(selected,product.name)}));$('#iconFile').addEventListener('change',event=>{const file=event.target.files?.[0];if(file){const url=URL.createObjectURL(file);$('#iconPreview').innerHTML=`<img src="${url}" alt="预览">`}});$('#saveIcon').addEventListener('click',async()=>{const button=$('#saveIcon');button.disabled=true;button.textContent='保存中...';try{const file=$('#iconFile').files?.[0];const icon=file?await uploadImage(file):selected;await api(`/api/products/${product.id}`,{method:'PUT',body:JSON.stringify({icon})});closeSheet();toast('产品图标已更新');await loadAll()}catch(error){toast(error.message,true);button.disabled=false;button.textContent='保存图标'}})}
+document.addEventListener('click',async event=>{
+ const pageButton=event.target.closest('[data-page]');if(pageButton){go(pageButton.dataset.page);return}
+ const formButton=event.target.closest('[data-form]');if(formButton){openSheet(formButton.dataset.form);return}
+ const iconButton=event.target.closest('[data-edit-icon]');if(iconButton){openIconEditor(iconButton.dataset.editIcon);return}
+ if(event.target.closest('[data-close-sheet]')||event.target===$('#sheetMask')){closeSheet();return}
+ const ack=event.target.closest('[data-ack]');if(ack){try{await api(`/api/alerts/${ack.dataset.ack}/ack`,{method:'POST',body:'{}'});toast('预警已处理');await loadAll()}catch(error){toast(error.message,true)}return}
+ const search=event.target.closest('[data-trace-search]');if(search){const code=$('#traceCode').value.trim();if(!code){toast('请输入批次编号',true);return}try{state.traceCode=code;state.traceResult=await api(`/api/trace/${encodeURIComponent(code)}`);render();toast('查询成功')}catch(error){state.traceResult=null;render();toast(error.message,true)}return}
+});
+$('#addButton').addEventListener('click',()=>openSheet('menu'));
+setInterval(()=>{$('#clock').textContent=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})},1000);$('#clock').textContent=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false});
+loadAll();
+</script>
+</body>
+</html>

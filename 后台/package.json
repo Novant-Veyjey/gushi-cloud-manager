@@ -1,0 +1,20 @@
+{
+  "name": "gushi-cloud-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "菇事云管家小程序风格 HTML + Express + better-sqlite3 可保存原型",
+  "main": "server/app.js",
+  "scripts": {
+    "start": "node server/app.js",
+    "start:env": "node --env-file=.env server/app.js",
+    "dev": "node --watch server/app.js",
+    "seed:demo": "node server/seed-demo.js",
+    "backup": "node server/backup.js",
+    "make:admin": "node server/make-admin.js",
+    "test": "node server/test-api.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.2.0",
+    "express": "^4.21.2"
+  }
+}

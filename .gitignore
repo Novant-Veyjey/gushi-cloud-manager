@@ -1,0 +1,31 @@
+# ---------- 依赖 ----------
+node_modules/
+**/node_modules/
+
+# ---------- 构建产物 ----------
+gushi-miniapp/dist/
+gushi-miniapp/dist-h5/
+dist/
+dist-h5/
+
+# ---------- 运行期数据（数据库、JWT 密钥、备份、上传图片）----------
+# 数据库可通过 `cd 后台 && npm run seed:demo` 重新生成演示数据
+后台/server/data/
+后台/public/uploads/
+**/server/data/
+**/public/uploads/
+
+# ---------- 环境变量与密钥 ----------
+.env
+**/.env
+*secret*
+!**/jwt.example*
+
+# ---------- 日志与临时文件 ----------
+*.log
+*.out.log
+*.err.log
+~$*
+.DS_Store
+Thumbs.db
+*.tmp

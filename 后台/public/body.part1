@@ -1,0 +1,60 @@
+<div class="phone">
+  <div class="statusbar"><span id="clock">09:41</span><span class="status-icons">●●● ▮</span></div>
+  <header class="navbar">
+    <div class="nav-left"><div class="nav-logo"><img src="/assets/logo.png" alt="菇事云管家"></div><div><div class="nav-title" id="navTitle">菇事云管家</div><div class="nav-sub" id="navSub">真实业务数据管理</div></div></div>
+    <button class="nav-action" id="addButton" aria-label="新增数据">＋</button>
+  </header>
+  <main id="app"><div class="loading">正在连接后台并读取数据...</div></main>
+  <nav class="tabbar">
+    <button class="active" data-page="home"><i>⌂</i><span>首页</span></button>
+    <button data-page="production"><i>▤</i><span>生产</span></button>
+    <button data-page="monitor"><i>◉</i><span>监测</span></button>
+    <button data-page="trace"><i>⌕</i><span>溯源</span></button>
+    <button data-page="market"><i>🛒</i><span>市场</span></button>
+  </nav>
+  <div class="sheet-mask" id="sheetMask">
+    <div class="sheet">
+      <h3 id="sheetTitle">新增数据</h3>
+      <p id="sheetDesc">保存后会写入后台数据库，并立即刷新页面。</p>
+      <div id="sheetBody"></div>
+    </div>
+  </div>
+  <div class="toast" id="toast">已完成</div>
+</div>
+<script>
+const state={page:'home',loading:true,error:'',data:{dashboard:null,bases:[],batches:[],readings:[],alerts:[],questions:[],products:[],demands:[],tasks:[]}};
+const $=(selector,root=document)=>root.querySelector(selector);
+const $$=(selector,root=document)=>Array.from(root.querySelectorAll(selector));
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const num=value=>Number(value||0);
+const money=value=>num(value).toFixed(2).replace(/\.00$/,'');
+const dateOnly=value=>value?String(value).slice(0,10):'';
+const nowLocal=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)};
+const today=()=>new Date().toISOString().slice(0,10);
+async function api(path,options={}){
+  const response=await fetch(path,{headers:{'Content-Type':'application/json'},...options});
+  let payload;
+  try{payload=await response.json()}catch{throw new Error('后台返回格式错误')}
+  if(!response.ok||payload.code!==0)throw new Error(payload.message||`请求失败：${response.status}`);
+  return payload.data;
+}
+async function loadAll(){
+  state.loading=true;state.error='';render();
+  try{
+    const [dashboard,bases,batches,readings,alerts,questions,products,demands,tasks]=await Promise.all([
+      api('/api/dashboard'),api('/api/bases'),api('/api/batches'),api('/api/readings?limit=100'),api('/api/alerts?limit=100'),api('/api/questions'),api('/api/products'),api('/api/demands'),api('/api/tasks')
+    ]);
+    state.data={dashboard,bases,batches,readings,alerts,questions,products,demands,tasks};
+  }catch(error){state.error=error.message}
+  state.loading=false;render();
+}
+function toast(message,error=false){
+  const el=$('#toast');el.textContent=message;el.style.background=error?'#8f3434':'#173d2d';el.classList.add('show');
+  clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.classList.remove('show'),2200);
+}
+function baseName(id){return state.data.bases.find(item=>item.id===Number(id))?.name||'未关联基地'}
+function batchCode(id){return state.data.batches.find(item=>item.id===Number(id))?.code||'未关联批次'}
+function empty(title='暂无真实数据',text='请点击右上角“＋”录入。系统不会自动生成真实业务数据。'){return `<div class="empty"><b>${esc(title)}</b>${esc(text)}</div>`}
+function stat(label,value,unit,foot,soft='#e7f4ea'){return `<div class="stat" style="--soft:${soft}"><label>${esc(label)}</label><strong>${esc(value)}<small> ${esc(unit||'')}</small></strong><p>${esc(foot||'')}</p></div>`}
+function pageHead(title,desc,button=''){return `<div class="section-title"><div><h2>${esc(title)}</h2><p>${esc(desc)}</p></div>${button}</div>`}
+function badge(text,type=''){return `<span class="badge ${type}">${esc(text)}</span>`}

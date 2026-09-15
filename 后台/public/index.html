@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f6a4a">
+<link rel="icon" type="image/png" href="/assets/logo-source.jpg"><title>菇事云管家 · 小程序风格原型</title>
+<style>
+:root{--g900:#174f39;--g800:#1f6a4a;--g700:#27845a;--g600:#38a169;--g100:#e7f4ea;--lime:#9ccb4b;--cream:#f6f8f4;--ink:#17291f;--muted:#718077;--line:#e5ece7;--orange:#ef9d3c;--red:#df5b5b;--shadow:0 18px 50px rgba(18,67,46,.14);--r:20px}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;color:var(--ink);background:radial-gradient(circle at 15% 10%,rgba(156,203,75,.22),transparent 24%),radial-gradient(circle at 88% 88%,rgba(56,161,105,.18),transparent 26%),#eaf0e8}
+body::before{content:"小程序交互原型 · 数据后台可保存";position:fixed;left:50%;top:22px;transform:translateX(-50%);font-size:12px;color:#6d806f;letter-spacing:2px;white-space:nowrap}
+button,input{font:inherit}button{cursor:pointer}.phone{width:430px;height:900px;margin:56px auto 30px;position:relative;background:var(--cream);border:8px solid #1b2921;border-radius:42px;overflow:hidden;box-shadow:0 35px 80px rgba(16,52,36,.26)}
+.phone::before{content:"";position:absolute;top:7px;left:50%;transform:translateX(-50%);width:118px;height:22px;background:#1b2921;border-radius:0 0 15px 15px;z-index:80}
+.statusbar{height:38px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;color:#254534;background:#fff;position:relative;z-index:60}.status-icons{letter-spacing:1px}.navbar{height:52px;padding:0 17px;display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid #edf1ee;position:relative;z-index:50}
+.nav-left{display:flex;align-items:center;gap:10px}.nav-logo{width:31px;height:31px;border-radius:11px;background:linear-gradient(145deg,#b8dc6d,#62ad55);display:grid;place-items:center;box-shadow:0 6px 14px rgba(50,120,72,.18)}.nav-logo span{font-size:17px}.nav-title{font-size:15px;font-weight:900}.nav-sub{font-size:9px;color:var(--muted);margin-top:2px}.nav-action{width:33px;height:33px;border:0;border-radius:11px;background:#f1f7f2;color:var(--g800);display:grid;place-items:center;font-size:15px}
+#app{height:calc(100% - 38px - 52px - 72px);overflow-y:auto;scroll-behavior:smooth;background:var(--cream)}#app::-webkit-scrollbar{display:none}.page{display:none;padding:14px 15px 24px}.page.active{display:block;animation:enter .25s ease}@keyframes enter{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.hero{position:relative;overflow:hidden;min-height:178px;border-radius:24px;padding:23px 20px;color:#fff;background:radial-gradient(circle at 80% 15%,rgba(183,221,109,.26),transparent 28%),linear-gradient(135deg,#123d2d,#1f6a4a 62%,#31865d);box-shadow:0 18px 35px rgba(23,79,57,.22)}.hero:after{content:"";position:absolute;width:150px;height:150px;right:-55px;bottom:-75px;border-radius:50%;background:rgba(183,221,109,.14);border:22px solid rgba(255,255,255,.05)}.hero small{font-size:9px;letter-spacing:1.3px;color:#dff0b8;font-weight:800}.hero h1{font-size:22px;line-height:1.35;margin:9px 0 0;position:relative;z-index:1}.hero h1 em{font-style:normal;color:#dff0b8}.hero p{font-size:10px;line-height:1.7;color:rgba(255,255,255,.72);margin:10px 0 0;max-width:265px;position:relative;z-index:1}.hero-foot{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;position:relative;z-index:1}.hero-tag{font-size:9px;padding:6px 8px;border-radius:99px;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.13)}.mushroom-art{position:absolute;right:8px;bottom:-7px;width:130px;height:112px}.mushroom-art i{position:absolute;display:block}.mushroom-art .cap{width:64px;height:38px;border-radius:50% 50% 45% 45%;background:linear-gradient(145deg,#c9e68a,#e8d18d)}.mushroom-art .stem{width:24px;height:40px;left:20px;top:29px;border-radius:0 0 12px 12px;background:#fff4d6}.mushroom-art .m1{left:6px;top:30px}.mushroom-art .m2{left:53px;top:12px;transform:scale(1.18)}.mushroom-art .m3{left:92px;top:36px;transform:scale(.82)}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:13px}.quick button{border:0;background:#fff;border-radius:17px;padding:11px 4px;box-shadow:0 8px 20px rgba(27,73,52,.07);color:#4d6356}.quick i{display:grid;place-items:center;width:34px;height:34px;margin:0 auto 7px;border-radius:12px;background:var(--g100);font-size:16px;font-style:normal}.quick span{font-size:9px;font-weight:800}.quick button:active{transform:scale(.96)}
+.section-title{display:flex;align-items:end;justify-content:space-between;margin:19px 2px 9px}.section-title h2{font-size:15px;margin:0}.section-title p{font-size:9px;color:var(--muted);margin:3px 0 0}.section-title button{border:0;background:none;color:var(--g700);font-size:10px;font-weight:800;padding:3px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stat{background:#fff;border:1px solid #edf2ee;border-radius:18px;padding:14px;box-shadow:0 8px 20px rgba(26,73,51,.06);position:relative;overflow:hidden}.stat:after{content:"";position:absolute;right:-20px;top:-21px;width:66px;height:66px;border-radius:50%;background:var(--soft,#e7f4ea)}.stat label{font-size:9px;color:var(--muted);font-weight:800;position:relative;z-index:1}.stat strong{display:block;font-size:23px;margin-top:7px;position:relative;z-index:1}.stat small{font-size:9px;color:var(--muted)}.stat p{font-size:9px;color:var(--g700);margin:7px 0 0;position:relative;z-index:1}
+.env-card,.card{background:#fff;border:1px solid #edf2ee;border-radius:var(--r);box-shadow:0 9px 24px rgba(25,70,49,.06)}.env-card{padding:15px}.env-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:12px}.env-item{background:#f8faf8;border:1px solid #edf2ee;border-radius:14px;padding:11px;display:flex;align-items:center;gap:10px}.ring{--p:80;--c:var(--g600);width:43px;height:43px;border-radius:50%;display:grid;place-items:center;position:relative;background:conic-gradient(var(--c) calc(var(--p)*1%),#e7eee9 0);flex:0 0 auto}.ring:before{content:"";position:absolute;inset:5px;border-radius:50%;background:#fff}.ring b{position:relative;z-index:1;font-size:8px;color:var(--g900)}.env-item strong{display:block;font-size:11px}.env-item span{display:block;color:var(--muted);font-size:8px;margin-top:3px}
+.todo{padding:0 15px}.todo-row{display:flex;gap:10px;padding:12px 0;border-bottom:1px solid #eef2ef}.todo-row:last-child{border-bottom:0}.todo-icon{width:31px;height:31px;border-radius:11px;display:grid;place-items:center;background:#fff0d8;color:#ae6814;font-weight:900;font-size:11px;flex:0 0 auto}.todo-icon.red{background:#ffeded;color:#bf4545}.todo-icon.green{background:var(--g100);color:var(--g700)}.todo-copy{flex:1}.todo-copy strong{font-size:11px}.todo-copy p{font-size:9px;line-height:1.55;color:var(--muted);margin:4px 0 0}.todo-time{font-size:8px;color:#9ba89f;white-space:nowrap}
+.segment{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px}.segment button{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:99px;padding:7px 12px;font-size:10px;white-space:nowrap}.segment button.active{background:var(--g800);color:#fff;border-color:var(--g800);font-weight:800}
+.batch-card{padding:15px;margin-bottom:10px}.batch-top{display:flex;justify-content:space-between;gap:10px}.batch-code{font-size:13px;font-weight:900}.batch-stage{font-size:9px;padding:5px 8px;border-radius:99px;background:var(--g100);color:var(--g800);font-weight:800}.batch-meta{font-size:9px;color:var(--muted);margin-top:6px;line-height:1.5}.progress{height:7px;border-radius:8px;background:#e9efeb;overflow:hidden;margin-top:13px}.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--g600),var(--lime));border-radius:inherit}.batch-foot{display:flex;justify-content:space-between;margin-top:8px;color:var(--muted);font-size:9px}.batch-foot strong{color:var(--g800)}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.metric{padding:14px;background:#fff;border:1px solid #edf2ee;border-radius:17px;box-shadow:0 8px 20px rgba(25,70,49,.05)}.metric label{font-size:9px;color:var(--muted)}.metric strong{display:block;font-size:20px;margin-top:6px}.metric span{font-size:8px;color:var(--g700)}
+.device{padding:14px;margin-bottom:10px}.device-head{display:flex;justify-content:space-between;align-items:flex-start}.device-head strong{font-size:11px}.device-head p{font-size:8px;color:var(--muted);margin:4px 0 0}.online{font-size:8px;color:var(--g700);font-weight:800}.online.warn{color:#bd741d}.device-values{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}.device-values div{background:#f7faf7;border-radius:11px;padding:9px}.device-values span{display:block;font-size:8px;color:var(--muted)}.device-values b{display:block;font-size:12px;margin-top:4px}
+.search{height:42px;background:#fff;border:1px solid var(--line);border-radius:14px;display:flex;align-items:center;gap:9px;padding:0 13px;color:#8b9990;box-shadow:0 8px 20px rgba(25,70,49,.05)}.search input{border:0;outline:0;background:transparent;width:100%;font-size:11px;color:var(--ink)}.primary{height:43px;border:0;border-radius:14px;background:linear-gradient(135deg,var(--g700),var(--g800));color:#fff;font-size:12px;font-weight:900;box-shadow:0 10px 20px rgba(39,132,90,.18)}.primary.full{width:100%;margin-top:10px}
+.trace-product{padding:15px;margin-top:13px}.trace-product h3{font-size:15px;margin:0}.trace-product p{font-size:9px;color:var(--muted);margin:6px 0 0}.verified{display:inline-flex;align-items:center;gap:5px;margin-top:11px;font-size:9px;color:var(--g800);background:var(--g100);padding:6px 8px;border-radius:99px;font-weight:800}.timeline{margin-top:15px}.event{display:grid;grid-template-columns:25px 1fr auto;gap:9px;padding-bottom:16px;position:relative}.event:not(:last-child):after{content:"";position:absolute;left:12px;top:24px;bottom:0;width:1px;background:#dce7df}.dot{width:24px;height:24px;border-radius:50%;background:var(--g100);color:var(--g800);display:grid;place-items:center;font-size:9px;font-weight:900;z-index:1}.dot.done{background:var(--g700);color:#fff}.event strong{font-size:10px}.event p{font-size:8px;color:var(--muted);margin:4px 0 0}.event time{font-size:8px;color:#9ba89f}
+.qr{width:132px;height:132px;padding:9px;border:1px solid #e4ece6;border-radius:16px;margin:14px auto 0;background:#fff}.qr-grid{display:grid;grid-template-columns:repeat(21,1fr);grid-template-rows:repeat(21,1fr);width:100%;height:100%;gap:1px}.qr-grid i{background:#e9efea}.qr-grid i.on{background:#173d2d}
+.product{margin-bottom:10px;overflow:hidden}.product-art{height:100px;background:linear-gradient(135deg,#edf6e8,#d7ebcf);display:grid;place-items:center;position:relative}.product-art span{position:absolute;left:10px;top:10px;font-size:8px;background:rgba(255,255,255,.86);color:var(--g800);border-radius:99px;padding:5px 7px;font-weight:800}.product-art b{font-size:42px}.product-body{padding:13px}.product-body h3{font-size:12px;margin:0}.product-body p{font-size:8px;color:var(--muted);margin:5px 0 0}.price{display:flex;align-items:baseline;gap:4px;margin-top:9px;color:var(--g900);font-size:18px;font-weight:900}.price small{font-size:8px;color:var(--muted)}.product-foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px;font-size:8px;color:var(--muted)}.product-foot button{border:0;background:var(--g100);color:var(--g800);font-size:9px;font-weight:800;padding:7px 9px;border-radius:10px}
+.demand{padding:13px 0;border-bottom:1px solid #eef2ef}.demand:last-child{border-bottom:0}.demand strong{font-size:10px}.demand p{font-size:8px;color:var(--muted);margin:5px 0 0}.demand b{display:block;font-size:11px;color:var(--g800);margin-top:7px}
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:72px;padding:7px 9px 10px;background:rgba(255,255,255,.96);border-top:1px solid #e8eee9;display:grid;grid-template-columns:repeat(5,1fr);backdrop-filter:blur(16px);z-index:70}.tabbar button{border:0;background:transparent;color:#8b9990;display:grid;place-items:center;gap:2px;font-size:8px;font-weight:800;border-radius:14px}.tabbar i{font-size:18px;font-style:normal}.tabbar button.active{background:#eef6ef;color:var(--g800)}
+.sheet-mask{position:absolute;inset:0;background:rgba(12,38,26,.42);z-index:100;opacity:0;pointer-events:none;transition:.2s}.sheet-mask.open{opacity:1;pointer-events:auto}.sheet{position:absolute;left:0;right:0;bottom:0;z-index:101;background:#fff;border-radius:24px 24px 0 0;padding:20px 18px 24px;transform:translateY(105%);transition:.25s}.sheet-mask.open .sheet{transform:none}.sheet h3{margin:0;font-size:15px}.sheet p{font-size:10px;color:var(--muted);margin:6px 0 16px}.sheet label{display:block;font-size:9px;color:var(--muted);font-weight:800;margin:11px 0 6px}.sheet input,.sheet select{width:100%;height:42px;border:1px solid #dfe9e2;border-radius:12px;padding:0 11px;background:#fafcfa;outline:0;font-size:11px}.toast{position:absolute;left:50%;bottom:93px;z-index:120;transform:translate(-50%,15px);opacity:0;pointer-events:none;background:#173d2d;color:#fff;padding:10px 14px;border-radius:12px;font-size:10px;white-space:nowrap;transition:.22s}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:520px){body::before{display:none}.phone{width:100%;height:100vh;margin:0;border:0;border-radius:0;box-shadow:none}.phone:before{display:none}.statusbar{padding-top:env(safe-area-inset-top);height:calc(38px + env(safe-area-inset-top))}.tabbar{padding-bottom:calc(10px + env(safe-area-inset-bottom))}}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.form-grid .full{grid-column:1/-1}.field label{display:block;font-size:9px;color:var(--muted);font-weight:800;margin:0 0 5px}.field input,.field select,.field textarea{width:100%;border:1px solid #dfe9e2;border-radius:12px;padding:10px 11px;background:#fafcfa;outline:0;font-size:11px;color:var(--ink)}.field textarea{min-height:80px;resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--g600);box-shadow:0 0 0 3px rgba(56,161,105,.1)}.sheet{max-height:88%;overflow:auto}.sheet-actions{display:flex;gap:8px;margin-top:16px}.sheet-actions button{flex:1}.secondary{height:43px;border:1px solid var(--line);border-radius:14px;background:#f5f8f6;color:#53685c;font-size:12px;font-weight:800}.toolbar{display:flex;gap:8px;align-items:center;margin:12px 0}.toolbar .search{flex:1}.toolbar .primary{width:auto;padding:0 14px;margin:0}.empty{padding:34px 18px;text-align:center;color:var(--muted);background:#fff;border:1px dashed #dbe6de;border-radius:18px;font-size:10px;line-height:1.8}.empty b{display:block;color:var(--ink);font-size:13px;margin-bottom:6px}.list-card{padding:14px;margin-bottom:10px}.row-top{display:flex;justify-content:space-between;gap:10px}.row-top h3{font-size:12px;margin:0}.row-top p{font-size:9px;color:var(--muted);margin:5px 0 0;line-height:1.5}.badge{font-size:8px;padding:5px 7px;border-radius:99px;background:var(--g100);color:var(--g800);white-space:nowrap;font-weight:800}.badge.warn{background:#fff0d8;color:#a9691a}.badge.red{background:#ffeded;color:#b94242}.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:8px;color:#87958d}.metric-line{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:11px}.metric-line div{background:#f7faf7;border-radius:11px;padding:8px}.metric-line span{display:block;font-size:8px;color:var(--muted)}.metric-line b{display:block;font-size:11px;margin-top:4px}.action-row{display:flex;gap:8px;margin-top:11px}.action-row button{flex:1;border:0;border-radius:11px;padding:9px;background:var(--g100);color:var(--g800);font-size:9px;font-weight:800}.action-row button.plain{background:#f2f5f3;color:#5e7065}.loading{padding:50px 20px;text-align:center;color:var(--muted);font-size:10px}.error{padding:24px 18px;border-radius:18px;background:#fff0f0;color:#a33f3f;font-size:10px;line-height:1.7}.notice{padding:11px 12px;border-radius:13px;background:#fff8e9;border:1px solid #f3dfb9;color:#8f6421;font-size:9px;line-height:1.6;margin-bottom:10px}.success{background:#edf7f0;border-color:#d4e8d9;color:#31704b}.inline-select{height:38px;border:1px solid var(--line);border-radius:11px;background:#fff;padding:0 9px;font-size:10px;color:var(--ink)}@media(max-width:520px){.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:auto}}
+.nav-logo{width:40px;height:40px;border-radius:12px;overflow:hidden;background:#fff;padding:2px;border:1px solid #eadfca}.nav-logo img{width:100%;height:100%;object-fit:contain;border-radius:9px}.product-icon{width:48px;height:48px;border-radius:15px;background:#eef6ef;display:grid;place-items:center;overflow:hidden;flex:0 0 auto;font-size:24px}.product-icon img{width:100%;height:100%;object-fit:cover}.product-row{display:flex;gap:11px;align-items:flex-start}.preset-icons{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.preset-icons button{width:43px;height:43px;border:1px solid var(--line);border-radius:13px;background:#fff;font-size:21px}.preset-icons button.active{border-color:var(--g600);background:#eef6ef;box-shadow:0 0 0 3px rgba(56,161,105,.1)}.icon-preview{width:80px;height:80px;border-radius:22px;background:#eef6ef;display:grid;place-items:center;overflow:hidden;margin:5px auto 14px;font-size:42px}.icon-preview img{width:100%;height:100%;object-fit:cover}
+
+.nav-actions{display:flex;gap:8px}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="statusbar"><span id="clock">09:41</span><span class="status-icons">●●● ▮</span></div>
+  <header class="navbar">
+    <div class="nav-left"><div class="nav-logo"><img src="/assets/logo-source.jpg" alt="菇事云管家"></div><div><div class="nav-title" id="navTitle">菇事云管家</div><div class="nav-sub" id="navSub">真实业务数据管理</div></div></div>
+    <div class="nav-actions"><button class="nav-action" id="accountButton" aria-label="当前账号">👤</button><button class="nav-action" id="addButton" aria-label="新增数据">＋</button></div>
+  </header>
+  <main id="app"><div class="loading">正在连接后台并读取数据...</div></main>
+  <nav class="tabbar">
+    <button class="active" data-page="home"><i>⌂</i><span>首页</span></button>
+    <button data-page="production"><i>▤</i><span>生产</span></button>
+    <button data-page="monitor"><i>◉</i><span>监测</span></button>
+    <button data-page="trace"><i>⌕</i><span>溯源</span></button>
+    <button data-page="market"><i>🛒</i><span>市场</span></button>
+  </nav>
+  <div class="sheet-mask" id="sheetMask">
+    <div class="sheet">
+      <h3 id="sheetTitle">新增数据</h3>
+      <p id="sheetDesc">保存后会写入后台数据库，并立即刷新页面。</p>
+      <div id="sheetBody"></div>
+    </div>
+  </div>
+  <div class="toast" id="toast">已完成</div>
+</div>
+<script>
+const state={page:'home',loading:true,error:'',token:localStorage.getItem('gushi_token')||'',user:JSON.parse(localStorage.getItem('gushi_user')||'null'),data:{dashboard:null,bases:[],batches:[],readings:[],alerts:[],questions:[],products:[],demands:[],tasks:[]}};
+const $=(selector,root=document)=>root.querySelector(selector);
+const $$=(selector,root=document)=>Array.from(root.querySelectorAll(selector));
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const num=value=>Number(value||0);
+const money=value=>num(value).toFixed(2).replace(/\.00$/,'');
+const dateOnly=value=>value?String(value).slice(0,10):'';
+const nowLocal=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)};
+const today=()=>new Date().toISOString().slice(0,10);
+async function api(path,options={}){
+  const headers={'Content-Type':'application/json',...(state.token?{Authorization:'Bearer '+state.token}:{})};
+  const response=await fetch(path,{headers,...options});
+  let payload;
+  try{payload=await response.json()}catch{throw new Error('后台返回格式错误')}
+  // 未登录或登录过期：回到登录页，不展示任何编造数据
+  if(response.status===401){clearAuth();renderLogin();throw new Error(payload.message||'请先登录账号')}
+  if(!response.ok||payload.code!==0)throw new Error(payload.message||`请求失败：${response.status}`);
+  return payload.data;
+}
+async function loadAll(){
+  state.loading=true;state.error='';render();
+  try{
+    const [dashboard,bases,batches,readings,alerts,questions,products,demands,tasks]=await Promise.all([
+      api('/api/dashboard'),api('/api/bases'),api('/api/batches'),api('/api/readings?limit=100'),api('/api/alerts?limit=100'),api('/api/questions'),api('/api/products'),api('/api/demands'),api('/api/tasks')
+    ]);
+    state.data={dashboard,bases,batches,readings,alerts,questions,products,demands,tasks};
+  }catch(error){state.error=error.message}
+  state.loading=false;render();
+}
+function toast(message,error=false){
+  const el=$('#toast');el.textContent=message;el.style.background=error?'#8f3434':'#173d2d';el.classList.add('show');
+  clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.classList.remove('show'),2200);
+}
+function baseName(id){return state.data.bases.find(item=>item.id===Number(id))?.name||'未关联基地'}
+function batchCode(id){return state.data.batches.find(item=>item.id===Number(id))?.code||'未关联批次'}
+function empty(title='暂无真实数据',text='请点击右上角“＋”录入。系统不会自动生成真实业务数据。'){return `<div class="empty"><b>${esc(title)}</b>${esc(text)}</div>`}
+function stat(label,value,unit,foot,soft='#e7f4ea'){return `<div class="stat" style="--soft:${soft}"><label>${esc(label)}</label><strong>${esc(value)}<small> ${esc(unit||'')}</small></strong><p>${esc(foot||'')}</p></div>`}
+function pageHead(title,desc,button=''){return `<div class="section-title"><div><h2>${esc(title)}</h2><p>${esc(desc)}</p></div>${button}</div>`}
+function badge(text,type=''){return `<span class="badge ${type}">${esc(text)}</span>`}
+const pageMeta={home:['菇事云管家','真实业务数据管理'],production:['生产批次','菌棒与生产记录'],monitor:['环境监测','设备数据与自动预警'],trace:['质量溯源','按真实批次查看全过程'],market:['产销对接','真实供应与采购需求'],expert:['专家服务','问题与专家回复']};
+function renderHome(){
+ const d=state.data.dashboard||{};
+ const readings=(d.latestReadings||[]).slice(0,4);
+ const alerts=(d.alerts||[]).slice(0,4);
+ const tasks=state.data.tasks.slice(0,4);
+ return `<section class="page">
+  <div class="hero"><small>GU SHI CLOUD · 真实数据可保存</small><h1>生产有记录<br><em>数据能追溯，后台能保存</em></h1><p>所有数字均来自后台数据库。没有录入数据时，系统会显示空状态，不会编造业务数据。</p><div class="hero-foot"><span class="hero-tag">基地</span><span class="hero-tag">批次</span><span class="hero-tag">监测</span><span class="hero-tag">溯源</span></div></div>
+  <div class="quick"><button data-form="base"><i>＋</i><span>新增基地</span></button><button data-form="batch"><i>▤</i><span>新增批次</span></button><button data-form="reading"><i>🌡</i><span>录入环境</span></button><button data-page="expert"><i>👩‍🌾</i><span>专家服务</span></button></div>
+  ${pageHead('今日数据','来自后台数据库的实时汇总')}
+  <div class="stats">${stat('生产基地',d.bases??0,'处','已保存基地')}${stat('生产批次',d.batches??0,'批','已保存批次','#eff7db')}${stat('监测设备',d.devices??0,'台','按设备名称统计','#e7f0f8')}${stat('待处理预警',d.openAlerts??0,'条','自动规则生成','#fff1db')}</div>
+  ${pageHead('最新环境记录','只展示已保存的真实记录',`<button data-form="reading">录入</button>`)}
+  <div class="card todo">${readings.length?readings.map(reading=>`<div class="todo-row"><div class="todo-icon green">🌡</div><div class="todo-copy"><strong>${esc(reading.base_name||baseName(reading.base_id))}</strong><p>${esc(reading.device_name||'未命名设备')} · ${esc(reading.temperature??'--')}°C · 湿度 ${esc(reading.humidity??'--')}% · CO₂ ${esc(reading.co2??'--')}ppm</p></div><span class="todo-time">${esc(dateOnly(reading.recorded_at))}</span></div>`).join(''):empty('暂无环境记录','请先新增基地，再录入环境数据。')}</div>
+  ${pageHead('待处理预警','环境数据保存后自动按阈值生成',`<button data-page="monitor">全部</button>`)}
+  <div class="card todo">${alerts.length?alerts.map(alert=>`<div class="todo-row"><div class="todo-icon ${alert.level==='high'?'red':''}">!</div><div class="todo-copy"><strong>${esc(alert.message)}</strong><p>${esc(alert.base_name||baseName(alert.base_id))} · ${esc(alert.alert_type)}</p></div><button class="action-link" data-ack="${alert.id}">处理</button></div>`).join(''):empty('暂无待处理预警','录入环境数据后，超过阈值的记录会自动生成预警。')}</div>
+  ${pageHead('生产任务','任务建议由规则引擎或 AI 生成',`<button data-form="task">新增任务</button>`)}
+  <div class="card todo">${tasks.length?tasks.map(task=>`<div class="todo-row"><div class="todo-icon ${task.priority==='high'?'red':''}">${task.priority==='high'?'!':'✓'}</div><div class="todo-copy"><strong>${esc(task.title)}</strong><p>${esc(task.description||'无补充说明')} · 截止 ${esc(dateOnly(task.due_date)||'未设置')}</p></div><span class="todo-time">${esc(task.priority)}</span></div>`).join(''):empty('暂无生产任务','点击新增任务，可调用优先级建议接口。')}</div>
+ </section>`
+}
+function renderProduction(){
+ const batches=state.data.batches;
+ const cards=batches.map(batch=>`<div class="card batch-card"><div class="batch-top"><div><div class="batch-code">${esc(batch.code)}</div><div class="batch-meta">${esc(baseName(batch.base_id))}<br>${esc(batch.mushroom_type)}${batch.variety?' · '+esc(batch.variety):''} · ${esc(batch.quantity)} 棒</div></div>${badge(batch.stage)}</div><div class="metric-line"><div><span>入库日期</span><b>${esc(dateOnly(batch.start_date)||'--')}</b></div><div><span>预计出菇</span><b>${esc(dateOnly(batch.expected_harvest_date)||'--')}</b></div><div><span>状态</span><b>${esc(batch.status)}</b></div></div></div>`).join('');
+ return `<section class="page"><div class="toolbar"><button class="primary" data-form="batch">＋ 新增批次</button><button class="secondary" data-form="base">新增基地</button></div>${pageHead('生产批次台账','批次是生产、监测、溯源与销售的共同主线')}${batches.length?cards:empty('暂无生产批次','请先新增基地，再录入真实批次编号、菌种、数量和日期。')}</section>`
+}
+function renderMonitor(){
+ const readings=state.data.readings.slice(0,20);
+ const alerts=state.data.alerts.filter(a=>a.status==='open');
+ return `<section class="page"><div class="toolbar"><button class="primary" data-form="reading">＋ 录入环境数据</button></div>${pageHead('环境数据','保存后自动判断温度、湿度和 CO₂ 阈值')}${readings.length?readings.map(r=>`<div class="card list-card"><div class="row-top"><div><h3>${esc(r.device_name||'未命名设备')}</h3><p>${esc(baseName(r.base_id))}<br>${esc(new Date(r.recorded_at).toLocaleString('zh-CN'))}</p></div>${badge('已保存')}</div><div class="metric-line"><div><span>温度</span><b>${esc(r.temperature??'--')}°C</b></div><div><span>湿度</span><b>${esc(r.humidity??'--')}%</b></div><div><span>CO₂</span><b>${esc(r.co2??'--')} ppm</b></div></div></div>`).join(''):empty('暂无环境数据','请先新增基地，再录入设备名称和环境指标。')}
+ ${pageHead('待处理预警','预警由后台规则自动生成，可点击处理')}${alerts.length?`<div class="card todo">${alerts.map(a=>`<div class="todo-row"><div class="todo-icon ${a.level==='high'?'red':''}">!</div><div class="todo-copy"><strong>${esc(a.message)}</strong><p>${esc(a.base_name||baseName(a.base_id))}</p></div><button class="action-link" data-ack="${a.id}">处理</button></div>`).join('')}</div>`:empty('暂无待处理预警','环境数据超过阈值后会自动生成预警。')}</section>`
+}
+function renderTrace(){
+ const result=state.traceResult;
+ let body='<div class="notice">输入真实批次编号后查询。批次、基地、生产事件和产品信息均来自后台数据库。</div>';
+ if(result){
+  const events=result.events||[],products=result.products||[],batch=result.batch;
+  body=`<div class="card trace-product"><div class="row-top"><div><h3>${esc(batch.mushroom_type)} · ${esc(batch.code)}</h3><p>${esc(batch.base_name||'未关联基地')} · ${esc(batch.base_address||'')}</p></div>${badge('数据库记录')}</div><div class="timeline">${events.length?events.map(e=>`<div class="event"><div class="dot done">✓</div><div><strong>${esc(e.title)}</strong><p>${esc(e.description||e.event_type)}</p></div><time>${esc(dateOnly(e.event_date))}</time></div>`).join(''):'<div class="empty">该批次暂无溯源事件</div>'}</div>${products.length?products.map(p=>`<div class="demand"><strong>${esc(p.name)}</strong><p>${esc(p.quantity)} ${esc(p.unit)} · ¥${money(p.price)}/${esc(p.unit)}</p></div>`).join(''):''}</div>`;
+ }
+ return `<section class="page"><div class="toolbar"><div class="search">⌕ <input id="traceCode" placeholder="输入批次编号，例如 DEMO-20260901-01" value="${esc(state.traceCode||'')}"> </div><button class="primary" data-trace-search>查询</button></div><button class="primary full" data-form="trace-event">＋ 新增溯源事件</button>${pageHead('质量溯源','每个批次对应一条可核查的数据链')}${body}</section>`
+}
+function renderMarket(){
+ const products=state.data.products,demands=state.data.demands;
+ return `<section class="page"><div class="toolbar"><button class="primary" data-form="product">＋ 发布供应</button><button class="secondary" data-form="demand">发布采购需求</button></div>${pageHead('供应信息','只展示后台已保存的真实供应数据')}${products.length?products.map(p=>`<div class="card list-card"><div class="row-top"><div class="product-row"><div class="product-icon">${p.icon?(p.icon.startsWith('http')||p.icon.startsWith('/')?`<img src="${esc(p.icon)}" alt="${esc(p.name)}">`:esc(p.icon)):'🍄'}</div><div><h3>${esc(p.name)}</h3><p>批次：${esc(batchCode(p.batch_id))} · 可售日期：${esc(dateOnly(p.available_date)||'未设置')}</p></div></div>${badge(p.status==='available'?'可供应':'已下架')}</div><div class="metric-line"><div><span>数量</span><b>${esc(p.quantity)} ${esc(p.unit)}</b></div><div><span>价格</span><b>¥${money(p.price)}</b></div><div><span>单位</span><b>${esc(p.unit)}</b></div></div><p class="meta">${esc(p.description||'暂无说明')}</p><div class="action-row"><button data-edit-icon="${p.id}">更换产品图标</button></div></div>`).join(''):empty('暂无供应信息','点击发布供应，保存真实产品、数量、价格和批次。')}
+ ${pageHead('采购需求','采购商通过表单录入并保存到数据库')}${demands.length?demands.map(d=>`<div class="card list-card"><div class="row-top"><div><h3>${esc(d.buyer_name)}</h3><p>${esc(d.product_name)} · ${esc(d.quantity)} ${esc(d.unit)}</p></div>${badge('¥'+money(d.price))}</div><p class="meta">${esc(d.requirements||'暂无补充要求')}</p></div>`).join(''):empty('暂无采购需求','点击发布采购需求，保存真实采购方和产品需求。')}</section>`
+}
+function renderExpert(){
+ const qs=state.data.questions;
+ return `<section class="page"><div class="toolbar"><button class="primary" data-form="question">＋ 向专家提问</button><button class="secondary" data-page="home">返回首页</button></div>${pageHead('专家问答','问题与回答均保存到后台数据库')}${qs.length?qs.map(q=>`<div class="card list-card"><div class="row-top"><div><h3>${esc(q.title)}</h3><p>${esc(baseName(q.base_id))} · ${esc(q.category||'未分类')}</p></div>${badge(q.status==='answered'?'已回复':'待回复')}</div><p class="meta">${esc(q.content)}</p>${q.answer?`<div class="notice success" style="margin:10px 0 0">专家回复：${esc(q.answer)}</div>`:''}</div>`).join(''):empty('暂无专家问题','点击向专家提问，保存真实问题。')}</section>`
+}
+function render(){
+ if(!state.token){renderLogin();return}
+ const titles=pageMeta[state.page]||pageMeta.home;
+ $('#navTitle').textContent=titles[0];$('#navSub').textContent=titles[1];
+ $$('.tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.page===state.page));
+ if(state.loading){$('#app').innerHTML='<div class="loading">正在读取后台数据...</div>';return}
+ if(state.error){$('#app').innerHTML=`<section class="page"><div class="error"><b>后台连接失败</b><br>${esc(state.error)}<br><br>请在项目目录运行：<code>npm start</code>，然后访问 http://localhost:3000。</div></section>`;return}
+ const renderers={home:renderHome,production:renderProduction,monitor:renderMonitor,trace:renderTrace,market:renderMarket,expert:renderExpert};
+ $('#app').innerHTML=(renderers[state.page]||renderHome)();const renderedPage=$('#app .page');if(renderedPage)renderedPage.classList.add('active');
+}
+function options(items,valueKey,labelKey,placeholder='请选择'){
+ return `<option value="">${esc(placeholder)}</option>`+items.map(item=>`<option value="${esc(item[valueKey])}">${esc(item[labelKey])}</option>`).join('')
+}
+const formConfigs={
+ base:{title:'新增基地',desc:'保存真实基地信息',endpoint:'/api/bases',fields:[
+  {name:'name',label:'基地名称',required:true,full:true},{name:'township',label:'所属乡镇'},{name:'area_mu',label:'面积（亩）',type:'number'},{name:'address',label:'详细地址',full:true},{name:'contact_name',label:'联系人'},{name:'contact_phone',label:'联系电话'},{name:'notes',label:'备注',type:'textarea',full:true}
+ ]},
+ batch:{title:'新增生产批次',desc:'批次编号必须唯一',endpoint:'/api/batches',fields:[
+  {name:'code',label:'批次编号',required:true},{name:'base_id',label:'所属基地',type:'select',options:()=>options(state.data.bases,'id','name','请选择基地'),required:true},{name:'mushroom_type',label:'菌菇种类',required:true},{name:'variety',label:'品种'},{name:'quantity',label:'菌棒数量',type:'number',required:true},{name:'stage',label:'当前阶段',type:'select',options:()=>['接种期','养菌期','催蕾期','出菇期','采摘期','已完成'].map(v=>`<option>${v}</option>`).join('')},{name:'start_date',label:'入库日期',type:'date',required:true,value:today()},{name:'expected_harvest_date',label:'预计出菇日期',type:'date'},{name:'notes',label:'备注',type:'textarea',full:true}
+ ]},
+ reading:{title:'录入环境数据',desc:'超过阈值时后台自动生成预警',endpoint:'/api/readings',fields:[
+  {name:'base_id',label:'所属基地',type:'select',options:()=>options(state.data.bases,'id','name','请选择基地'),required:true},{name:'device_name',label:'设备名称',required:true},{name:'temperature',label:'温度（°C）',type:'number',step:'0.1'},{name:'humidity',label:'湿度（%）',type:'number',step:'0.1'},{name:'co2',label:'CO₂（ppm）',type:'number',step:'1'},{name:'light',label:'光照（lux）',type:'number',step:'1'},{name:'recorded_at',label:'记录时间',type:'datetime-local',value:nowLocal(),required:true,full:true},{name:'notes',label:'备注',type:'textarea',full:true}
+ ]},
+ question:{title:'向专家提问',desc:'问题将保存并等待专家回复',endpoint:'/api/questions',fields:[
+  {name:'base_id',label:'所属基地',type:'select',options:()=>options(state.data.bases,'id','name','不关联基地')},{name:'title',label:'问题标题',required:true,full:true},{name:'category',label:'问题类型',type:'select',options:()=>['病虫害防治','环境调控','生产流程','设备使用','市场销售'].map(v=>`<option>${v}</option>`).join('')},{name:'content',label:'问题描述',type:'textarea',required:true,full:true}
+ ]},
+ 'trace-event':{title:'新增溯源事件',desc:'溯源事件会绑定到具体批次',endpoint:'/api/trace-events',fields:[
+  {name:'batch_id',label:'所属批次',type:'select',options:()=>options(state.data.batches,'id','code','请选择批次'),required:true,full:true},{name:'event_type',label:'事件类型',type:'select',options:()=>['入库','接种','养菌','转房','催蕾','出菇','采摘','质检','出库','运输'].map(v=>`<option>${v}</option>`).join('')},{name:'title',label:'事件标题',required:true},{name:'event_date',label:'事件日期',type:'date',value:today(),required:true},{name:'operator',label:'操作人'},{name:'description',label:'事件说明',type:'textarea',full:true}
+ ]},
+ product:{title:'发布供应信息',desc:'供应信息必须关联真实批次',endpoint:'/api/products',fields:[
+  {name:'batch_id',label:'所属批次',type:'select',options:()=>options(state.data.batches,'id','code','请选择批次'),required:true,full:true},{name:'name',label:'产品名称',required:true},{name:'icon',label:'产品图标',type:'select',options:()=>['🍄','🌿','🌱','🥬','🫘','🍲','📦','🏷️'].map(v=>`<option value="${v}">${v}</option>`).join('')},{name:'quantity',label:'数量',type:'number',required:true},{name:'unit',label:'单位',type:'select',options:()=>['kg','500g','棒','箱','吨'].map(v=>`<option>${v}</option>`).join('')},{name:'price',label:'参考价格',type:'number',step:'0.01'},{name:'available_date',label:'可售日期',type:'date'},{name:'icon_file',label:'上传产品图标（可选，最大 4MB）',type:'file',full:true},{name:'description',label:'产品说明',type:'textarea',full:true}
+ ]},
+ demand:{title:'发布采购需求',desc:'采购需求将保存到数据库',endpoint:'/api/demands',fields:[
+  {name:'buyer_name',label:'采购方名称',required:true},{name:'product_name',label:'采购产品',required:true},{name:'quantity',label:'采购数量',type:'number',required:true},{name:'unit',label:'单位',type:'select',options:()=>['kg','500g','棒','箱','吨'].map(v=>`<option>${v}</option>`).join('')},{name:'price',label:'意向价格',type:'number',step:'0.01'},{name:'contact',label:'联系方式'},{name:'requirements',label:'具体要求',type:'textarea',full:true}
+ ]},
+ task:{title:'新增生产任务',desc:'可保存任务并调用优先级建议',endpoint:'/api/tasks',fields:[
+  {name:'title',label:'任务标题',required:true,full:true},{name:'description',label:'任务说明',type:'textarea',full:true},{name:'batch_id',label:'关联批次',type:'select',options:()=>options(state.data.batches,'id','code','不关联批次')},{name:'due_date',label:'截止日期',type:'date'},{name:'priority',label:'优先级',type:'select',options:()=>['high','medium','low'].map(v=>`<option value="${v}">${v}</option>`).join('')}
+ ]},
+ partner:{title:'新增合作方',desc:'保存真实合作单位或专家团队',endpoint:'/api/partners',fields:[{name:'name',label:'合作方名称',required:true,full:true},{name:'role',label:'合作角色'},{name:'contact',label:'联系方式'}]}
+};
+const menuTypes=[['base','基地'],['batch','生产批次'],['reading','环境数据'],['question','专家问题'],['trace-event','溯源事件'],['product','供应信息'],['demand','采购需求'],['task','生产任务'],['partner','合作方']];
+function fieldHtml(field){
+ const required=field.required?'required':'';
+ const full=field.full?'full':'';
+ const value=field.value??'';
+ if(field.type==='textarea')return `<div class="field ${full}"><label>${esc(field.label)}</label><textarea name="${field.name}" ${required}>${esc(value)}</textarea></div>`;
+ if(field.type==='select')return `<div class="field ${full}"><label>${esc(field.label)}</label><select name="${field.name}" ${required}>${field.options?field.options():''}</select></div>`;
+ if(field.type==='file')return `<div class="field ${full}"><label>${esc(field.label)}</label><input type="file" name="${field.name}" accept="image/jpeg,image/png,image/webp,image/gif"></div>`;
+ return `<div class="field ${full}"><label>${esc(field.label)}</label><input type="${field.type||'text'}" name="${field.name}" value="${esc(value)}" ${field.step?`step="${field.step}"`:''} ${required}></div>`;
+}
+function openSheet(type){
+ const config=formConfigs[type];
+ const sheetBody=$('#sheetBody');
+ if(type==='menu'){
+  $('#sheetTitle').textContent='新增数据';$('#sheetDesc').textContent='选择要保存到后台数据库的记录类型';
+  sheetBody.innerHTML=`<div class="form-grid">${menuTypes.map(([key,label])=>`<button class="secondary" data-form="${key}">${label}</button>`).join('')}</div><div class="sheet-actions"><button class="secondary" data-close-sheet>取消</button></div>`;
+ }else if(config){
+  if(['batch','reading'].includes(type)&&!state.data.bases.length){toast('请先新增基地',true);return}
+  if(['trace-event','product'].includes(type)&&!state.data.batches.length){toast('请先新增生产批次',true);return}
+  $('#sheetTitle').textContent=config.title;$('#sheetDesc').textContent=config.desc;
+  sheetBody.innerHTML=`<form id="recordForm"><div class="form-grid">${config.fields.map(fieldHtml).join('')}</div><div class="sheet-actions"><button type="button" class="secondary" data-close-sheet>取消</button><button type="submit" class="primary">保存到后台</button></div></form>`;
+  $('#recordForm').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='保存中...';try{const payload=Object.fromEntries(new FormData(form).entries());const file=form.querySelector('input[type="file"]')?.files?.[0];delete payload.icon_file;if(file)payload.icon=await uploadImage(file);await api(config.endpoint,{method:'POST',body:JSON.stringify(payload)});closeSheet();toast('保存成功');await loadAll()}catch(error){toast(error.message,true);submit.disabled=false;submit.textContent='保存到后台'}});
+ }
+ $('#sheetMask').classList.add('open');
+}
+function closeSheet(){$('#sheetMask').classList.remove('open')}
+function go(page){if(!state.token){toast('请先登录账号',true);renderLogin();return}state.page=page;closeSheet();render();$('#app').scrollTop=0}
+function uploadImage(file){return new Promise((resolve,reject)=>{if(file.size>4*1024*1024)return reject(new Error('图片不能超过 4MB'));const reader=new FileReader();reader.onerror=()=>reject(new Error('图片读取失败'));reader.onload=async()=>{try{const result=await api('/api/uploads',{method:'POST',body:JSON.stringify({data:reader.result})});resolve(result.url)}catch(error){reject(error)}};reader.readAsDataURL(file)})}
+function iconHtml(icon,alt='产品图标'){return icon?(icon.startsWith('http')||icon.startsWith('/')?`<img src="${esc(icon)}" alt="${esc(alt)}">`:esc(icon)):'🍄'}
+function openIconEditor(id){const product=state.data.products.find(item=>item.id===Number(id));if(!product)return;const presets=['🍄','🌿','🌱','🥬','🫘','🍲','📦','🏷️'];let selected=product.icon||'🍄';$('#sheetTitle').textContent='更换产品图标';$('#sheetDesc').textContent='选择预设图标，或上传自己的图片，保存后写入后台。';$('#sheetBody').innerHTML=`<div class="icon-preview" id="iconPreview">${iconHtml(selected,product.name)}</div><div class="preset-icons">${presets.map(icon=>`<button type="button" data-icon-choice="${icon}" class="${icon===selected?'active':''}">${icon}</button>`).join('')}</div><div class="field" style="margin-top:14px"><label>上传图片</label><input id="iconFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></div><div class="sheet-actions"><button type="button" class="secondary" data-close-sheet>取消</button><button type="button" class="primary" id="saveIcon">保存图标</button></div>`;$('#sheetMask').classList.add('open');$$('[data-icon-choice]').forEach(button=>button.addEventListener('click',()=>{selected=button.dataset.iconChoice;$$('[data-icon-choice]').forEach(item=>item.classList.toggle('active',item===button));$('#iconPreview').innerHTML=iconHtml(selected,product.name)}));$('#iconFile').addEventListener('change',event=>{const file=event.target.files?.[0];if(file){const url=URL.createObjectURL(file);$('#iconPreview').innerHTML=`<img src="${url}" alt="预览">`}});$('#saveIcon').addEventListener('click',async()=>{const button=$('#saveIcon');button.disabled=true;button.textContent='保存中...';try{const file=$('#iconFile').files?.[0];const icon=file?await uploadImage(file):selected;await api(`/api/products/${product.id}`,{method:'PUT',body:JSON.stringify({icon})});closeSheet();toast('产品图标已更新');await loadAll()}catch(error){toast(error.message,true);button.disabled=false;button.textContent='保存图标'}})}
+document.addEventListener('click',async event=>{
+ const pageButton=event.target.closest('[data-page]');if(pageButton){go(pageButton.dataset.page);return}
+ const formButton=event.target.closest('[data-form]');if(formButton){openSheet(formButton.dataset.form);return}
+ const iconButton=event.target.closest('[data-edit-icon]');if(iconButton){openIconEditor(iconButton.dataset.editIcon);return}
+ if(event.target.closest('[data-close-sheet]')||event.target===$('#sheetMask')){closeSheet();return}
+ const ack=event.target.closest('[data-ack]');if(ack){try{await api(`/api/alerts/${ack.dataset.ack}/ack`,{method:'POST',body:'{}'});toast('预警已处理');await loadAll()}catch(error){toast(error.message,true)}return}
+ const search=event.target.closest('[data-trace-search]');if(search){const code=$('#traceCode').value.trim();if(!code){toast('请输入批次编号',true);return}try{state.traceCode=code;state.traceResult=await api(`/api/trace/${encodeURIComponent(code)}`);render();toast('查询成功')}catch(error){state.traceResult=null;render();toast(error.message,true)}return}
+});
+$('#addButton').addEventListener('click',()=>openSheet('menu'));
+setInterval(()=>{$('#clock').textContent=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})},1000);$('#clock').textContent=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false});
+/* ---------- 账号：登录 / 注册 / 退出 ---------- */
+function saveAuth(data){state.token=data.token;state.user=data.user;localStorage.setItem('gushi_token',data.token);localStorage.setItem('gushi_user',JSON.stringify(data.user))}
+function clearAuth(){state.token='';state.user=null;localStorage.removeItem('gushi_token');localStorage.removeItem('gushi_user')}
+function renderLogin(mode='login'){
+  state.page='login';
+  $('#navTitle').textContent=mode==='login'?'账号登录':'注册账号';
+  $('#navSub').textContent='每个账号的数据独立保存';
+  $('#app').innerHTML=`<section class="page active">
+  <div class="hero" style="min-height:auto"><small>GU SHI CLOUD · 数据可保存</small><h1>登录后<em>数据只属于你的账号</em></h1><p>基地、批次、环境、溯源、供应和采购记录都保存在后台数据库，服务重启不会丢失，其他账号看不到。</p></div>
+  <div class="card" style="padding:16px;margin-top:14px">
+    <div style="font-size:15px;font-weight:900">${mode==='login'?'账号登录':'注册新账号'}</div>
+    <p style="font-size:9px;color:var(--muted);margin:6px 0 14px">${mode==='login'?'还没有账号？点击下方“注册新账号”。':'注册成功后自动登录，数据只保存在这个账号下。'}</p>
+    <form id="authForm" class="form-grid">
+      <div class="field full"><label>账号</label><input name="username" autocomplete="username" placeholder="3-32 位字母、数字、下划线或中文"></div>
+      <div class="field full"><label>密码</label><input type="password" name="password" autocomplete="current-password" placeholder="至少 6 位"></div>
+      ${mode==='register'?'<div class="field full"><label>称呼（可选）</label><input name="display_name" placeholder="例如：王师傅 / 德安基地"></div><div class="field full"><label>角色</label><select name="role"><option value="farmer">菇农</option><option value="base">合作社/基地管理员</option><option value="expert">专家</option><option value="buyer">采购商</option><option value="government">政府/服务机构</option></select></div>':''}
+    </form>
+    <button class="primary full" id="authSubmit">${mode==='login'?'登录':'注册并登录'}</button>
+    <div class="sheet-actions"><button class="secondary" id="authSwitch">${mode==='login'?'注册新账号':'返回登录'}</button></div>
+  </div></section>`;
+  $('#authSwitch').addEventListener('click',()=>renderLogin(mode==='login'?'register':'login'));
+  $('#authSubmit').addEventListener('click',async()=>{
+    const payload=Object.fromEntries(new FormData($('#authForm')).entries());
+    if(!payload.username||!payload.password){toast('请填写账号和密码',true);return}
+    const button=$('#authSubmit');button.disabled=true;button.textContent='提交中...';
+    try{
+      const data=await api(mode==='login'?'/api/auth/login':'/api/auth/register',{method:'POST',body:JSON.stringify(payload)});
+      saveAuth(data);toast(mode==='login'?'登录成功':'注册成功');await loadAll();
+    }catch(error){toast(error.message,true);button.disabled=false;button.textContent=mode==='login'?'登录':'注册并登录'}
+  });
+}
+function openAccount(){
+  $('#sheetTitle').textContent='当前账号';
+  $('#sheetDesc').textContent=state.user?`${state.user.display_name||state.user.username}（${state.user.username}）`:'未登录';
+  $('#sheetBody').innerHTML=`<div class="notice success">该账号的基地、批次、环境、溯源、供应和采购记录都保存在后台 SQLite 数据库（server/data/gushi.sqlite），服务重启不会丢失，其他账号看不到。</div><div class="sheet-actions"><button class="secondary" data-close-sheet>关闭</button><button class="primary" data-logout>退出登录</button></div>`;
+  $('#sheetMask').classList.add('open');
+}
+document.addEventListener('click',async event=>{
+  if(event.target.closest('#accountButton')){openAccount();return}
+  if(event.target.closest('[data-logout]')){
+    try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch(error){}
+    clearAuth();closeSheet();renderLogin();toast('已退出登录');
+  }
+});
+if(state.token){loadAll()}else{renderLogin()}
+</script>
+</body>
+</html>
