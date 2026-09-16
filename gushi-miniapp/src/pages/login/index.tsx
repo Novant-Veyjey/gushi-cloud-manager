@@ -5,7 +5,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import eyeClosed from '@/assets/icons/eye-closed.png'
 import eyeOpen from '@/assets/icons/eye-open.png'
 import logo from '@/assets/logo.jpg'
-import { fetchCurrentUser, login, register, wechatLogin } from '@/utils/auth'
+import { fetchCurrentUser, login, REGISTER_ROLE_OPTIONS, register, wechatLogin } from '@/utils/auth'
 import { clearAuth, getToken } from '@/utils/storage'
 
 type Mode = 'login' | 'register'
@@ -16,6 +16,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [displayName, setDisplayName] = useState('')
+  const [registerIndex, setRegisterIndex] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [checking, setChecking] = useState(true)
 
@@ -53,7 +54,8 @@ export default function Login() {
         await register({
           username: name,
           password,
-          display_name: displayName.trim()
+          display_name: displayName.trim(),
+          role: REGISTER_ROLE_OPTIONS[registerIndex].value
         })
         Taro.showToast({ title: '注册成功', icon: 'success' })
       }
@@ -176,6 +178,25 @@ export default function Login() {
           </View>
         ) : null}
 
+        {mode === 'register' ? (
+          <View className='field'>
+            <Text className='field-label'>注册身份（点选其中一个）</Text>
+            <View className='role-options'>
+              {REGISTER_ROLE_OPTIONS.map((item, index) => (
+                <View
+                  key={item.value}
+                  className={`role-option${registerIndex === index ? ' active' : ''}`}
+                  onClick={() => setRegisterIndex(index)}
+                >
+                  <Text>{item.label}</Text>
+                </View>
+              ))}
+            </View>
+            <Text className='field-hint'>{REGISTER_ROLE_OPTIONS[registerIndex].desc}</Text>
+            <Text className='field-hint'>「政府/服务机构」「专家」「平台管理员」不可自选，注册后由平台管理员分配</Text>
+          </View>
+        ) : null}
+
         <View className='btn primary' onClick={handleSubmit}>
           {submitting ? '提交中...' : mode === 'login' ? '登录' : '注册并登录'}
         </View>
@@ -195,7 +216,7 @@ export default function Login() {
 
         <View className='notice' style='margin:24px 0 0'>
           演示账号：demo / demo123456（数据带“演示”标记，可直接删除）。<br />
-          新注册账号均为普通菇农，专家、采购商等角色由平台管理员在后台分配。
+          注册时可选择菇农 / 基地管理员 / 采购商；「政府/服务机构」「专家」「平台管理员」不可自选，由平台管理员分配。
           <br />
           微信一键登录需后台配置 WX_APPID / WX_SECRET（见 后台/.env.example），未配置时会提示并改用账号密码登录。
         </View>

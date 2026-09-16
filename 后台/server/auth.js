@@ -24,6 +24,13 @@ const SELF_REGISTER_ROLE = 'farmer';
 const SELF_REGISTER_ROLES = ROLES.filter((item) => item.value === SELF_REGISTER_ROLE);
 
 /**
+ * 注册身份选择：注册时可自选的身份，仅限「菇农 / 基地管理员 / 采购商」。
+ * 「政府/服务机构」「专家」「平台管理员」不可自选，仍只能由平台管理员分配；
+ * 未传 role 或传了不允许的角色时，一律落到普通菇农。
+ */
+const REGISTRATION_ROLE_VALUES = ['farmer', 'base', 'buyer'];
+
+/**
  * 角色权限矩阵（RBAC）：
  *   'r'  只读
  *   'rw' 可读可写
@@ -213,8 +220,10 @@ function validateCredentials(username, password) {
 function register(payload = {}) {
   const { name, secret } = validateCredentials(payload.username, payload.password);
   const displayName = String(payload.display_name || '').trim().slice(0, 32);
-  // 忽略客户端传来的 role：自助注册一律是普通菇农，其它角色只能由平台管理员分配
-  const role = SELF_REGISTER_ROLE;
+  // 注册身份可自选，但仅限 REGISTRATION_ROLE_VALUES 里的角色（专家与管理员不可自选）；
+  // 传了其它值或没传时一律按普通菇农处理
+  const requested = String(payload.role || '').trim();
+  const role = REGISTRATION_ROLE_VALUES.includes(requested) ? requested : SELF_REGISTER_ROLE;
 
   if (db.prepare('SELECT id FROM users WHERE username = ?').get(name)) {
     const error = new Error('该账号已存在，请直接登录');
@@ -337,6 +346,33 @@ function updateUserRole(id, role) {
   return sanitizeUser(db.prepare('SELECT * FROM users WHERE id = ?').get(Number(id)));
 }
 
+/**
+ * 平台管理员：按「目标账号 + 目标账号密码」给指定账号分配职务。
+ * 管理员在分配时输入对方的账号与密码做身份核验，避免把职务分给输错的同名账号。
+ */
+function assignRoleByCredentials(payload = {}) {
+  const name = String(payload.username || '').trim();
+  const secret = String(payload.password || '');
+  const role = String(payload.role || '').trim();
+  if (!roleValues().includes(role)) {
+    const error = new Error('角色不合法');
+    error.status = 400;
+    throw error;
+  }
+  const row = db.prepare('SELECT * FROM users WHERE username = ?').get(name);
+  if (!row) {
+    const error = new Error('该账号尚未注册，无法分配职务');
+    error.status = 404;
+    throw error;
+  }
+  if (!verifyPassword(secret, row.password_salt, row.password_hash)) {
+    const error = new Error('该账号的密码不正确，请核对后再分配');
+    error.status = 401;
+    throw error;
+  }
+  return updateUserRole(row.id, role);
+}
+
 module.exports = {
   TOKEN_TTL_SECONDS,
   ROLES,
@@ -359,5 +395,6 @@ module.exports = {
   login,
   wechatLogin,
   listUsers,
-  updateUserRole
+  updateUserRole,
+  assignRoleByCredentials
 };

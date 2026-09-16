@@ -13,7 +13,7 @@ button,input{font:inherit}button{cursor:pointer}.phone{width:430px;height:900px;
 .phone::before{content:"";position:absolute;top:7px;left:50%;transform:translateX(-50%);width:118px;height:22px;background:#1b2921;border-radius:0 0 15px 15px;z-index:80}
 .statusbar{height:38px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;color:#254534;background:#fff;position:relative;z-index:60}.status-icons{letter-spacing:1px}.navbar{height:52px;padding:0 17px;display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid #edf1ee;position:relative;z-index:50}
 .nav-left{display:flex;align-items:center;gap:10px}.nav-logo{width:31px;height:31px;border-radius:11px;background:linear-gradient(145deg,#b8dc6d,#62ad55);display:grid;place-items:center;box-shadow:0 6px 14px rgba(50,120,72,.18)}.nav-logo span{font-size:17px}.nav-title{font-size:15px;font-weight:900}.nav-sub{font-size:9px;color:var(--muted);margin-top:2px}.nav-action{width:33px;height:33px;border:0;border-radius:11px;background:#f1f7f2;color:var(--g800);display:grid;place-items:center;font-size:15px}
-#app{height:calc(100% - 38px - 52px - 72px);overflow-y:auto;scroll-behavior:smooth;background:var(--cream)}#app::-webkit-scrollbar{display:none}.page{display:none;padding:14px 15px 24px}.page.active{display:block;animation:enter .25s ease}@keyframes enter{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+#app{height:calc(100% - 38px - 52px - 72px);overflow-y:auto;scroll-behavior:smooth;background:var(--cream)}#app::-webkit-scrollbar{display:none}.page{display:none;padding:14px 15px 24px}.page.active{display:block;animation:enter .25s ease}@keyframes enter{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}body.on-login #app{height:calc(100% - 38px - 52px)}body.on-login .tabbar{display:none}body.on-login .nav-actions{display:none}
 .hero{position:relative;overflow:hidden;min-height:178px;border-radius:24px;padding:23px 20px;color:#fff;background:radial-gradient(circle at 80% 15%,rgba(183,221,109,.26),transparent 28%),linear-gradient(135deg,#123d2d,#1f6a4a 62%,#31865d);box-shadow:0 18px 35px rgba(23,79,57,.22)}.hero:after{content:"";position:absolute;width:150px;height:150px;right:-55px;bottom:-75px;border-radius:50%;background:rgba(183,221,109,.14);border:22px solid rgba(255,255,255,.05)}.hero small{font-size:9px;letter-spacing:1.3px;color:#dff0b8;font-weight:800}.hero h1{font-size:22px;line-height:1.35;margin:9px 0 0;position:relative;z-index:1}.hero h1 em{font-style:normal;color:#dff0b8}.hero p{font-size:10px;line-height:1.7;color:rgba(255,255,255,.72);margin:10px 0 0;max-width:265px;position:relative;z-index:1}.hero-foot{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;position:relative;z-index:1}.hero-tag{font-size:9px;padding:6px 8px;border-radius:99px;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.13)}.mushroom-art{position:absolute;right:8px;bottom:-7px;width:130px;height:112px}.mushroom-art i{position:absolute;display:block}.mushroom-art .cap{width:64px;height:38px;border-radius:50% 50% 45% 45%;background:linear-gradient(145deg,#c9e68a,#e8d18d)}.mushroom-art .stem{width:24px;height:40px;left:20px;top:29px;border-radius:0 0 12px 12px;background:#fff4d6}.mushroom-art .m1{left:6px;top:30px}.mushroom-art .m2{left:53px;top:12px;transform:scale(1.18)}.mushroom-art .m3{left:92px;top:36px;transform:scale(.82)}
 .quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:13px}.quick button{border:0;background:#fff;border-radius:17px;padding:11px 4px;box-shadow:0 8px 20px rgba(27,73,52,.07);color:#4d6356}.quick i{display:grid;place-items:center;width:34px;height:34px;margin:0 auto 7px;border-radius:12px;background:var(--g100);font-size:16px;font-style:normal}.quick span{font-size:9px;font-weight:800}.quick button:active{transform:scale(.96)}
 .section-title{display:flex;align-items:end;justify-content:space-between;margin:19px 2px 9px}.section-title h2{font-size:15px;margin:0}.section-title p{font-size:9px;color:var(--muted);margin:3px 0 0}.section-title button{border:0;background:none;color:var(--g700);font-size:10px;font-weight:800;padding:3px}
@@ -36,6 +36,17 @@ button,input{font:inherit}button{cursor:pointer}.phone{width:430px;height:900px;
 .nav-logo{width:40px;height:40px;border-radius:12px;overflow:hidden;background:#fff;padding:2px;border:1px solid #eadfca}.nav-logo img{width:100%;height:100%;object-fit:contain;border-radius:9px}.product-icon{width:48px;height:48px;border-radius:15px;background:#eef6ef;display:grid;place-items:center;overflow:hidden;flex:0 0 auto;font-size:24px}.product-icon img{width:100%;height:100%;object-fit:cover}.product-row{display:flex;gap:11px;align-items:flex-start}.preset-icons{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.preset-icons button{width:43px;height:43px;border:1px solid var(--line);border-radius:13px;background:#fff;font-size:21px}.preset-icons button.active{border-color:var(--g600);background:#eef6ef;box-shadow:0 0 0 3px rgba(56,161,105,.1)}.icon-preview{width:80px;height:80px;border-radius:22px;background:#eef6ef;display:grid;place-items:center;overflow:hidden;margin:5px auto 14px;font-size:42px}.icon-preview img{width:100%;height:100%;object-fit:cover}
 
 .nav-actions{display:flex;gap:8px}
+/* 职位选择芯片：注册与分配职务共用，两列布局，选中为绿色 */
+.role-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.role-option{height:38px;display:flex;align-items:center;justify-content:center;border:1px solid #dfe9e2;border-radius:12px;background:#fafcfa;font-size:11px;color:#53685c;cursor:pointer;text-align:center}
+.role-option.active{background:linear-gradient(135deg,var(--g700),var(--g800));border-color:var(--g800);color:#fff;font-weight:800}
+.field-hint{display:block;font-size:9px;color:#a3b1a8;margin-top:5px;line-height:1.5}
+/* 密码显示/隐藏切换：隐藏时闭眼图标，明文时睁眼图标（内联 SVG） */
+.pwd-wrap{position:relative}
+.pwd-wrap input{padding-right:40px}
+.pwd-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);cursor:pointer;height:30px;padding:0 6px;display:flex;align-items:center;justify-content:center}
+/* 删除按钮：红色文字，带确认提醒 */
+.action-link.danger{color:#bf4545}
 </style>
 </head>
 <body>
@@ -43,7 +54,7 @@ button,input{font:inherit}button{cursor:pointer}.phone{width:430px;height:900px;
   <div class="statusbar"><span id="clock">09:41</span><span class="status-icons">●●● ▮</span></div>
   <header class="navbar">
     <div class="nav-left"><div class="nav-logo"><img src="/assets/logo-source.jpg" alt="菇事云管家"></div><div><div class="nav-title" id="navTitle">菇事云管家</div><div class="nav-sub" id="navSub">真实业务数据管理</div></div></div>
-    <div class="nav-actions"><button class="nav-action" id="accountButton" aria-label="当前账号">👤</button><button class="nav-action" id="addButton" aria-label="新增数据">＋</button></div>
+    <div class="nav-actions"><button class="nav-action" id="accountButton" aria-label="当前账号">👤</button><button class="nav-action" id="roleButton" aria-label="职位分配" style="width:auto;padding:0 10px;font-size:11px">职位分配</button><button class="nav-action" id="addButton" aria-label="新增数据">＋</button></div>
   </header>
   <main id="app"><div class="loading">正在连接后台并读取数据...</div></main>
   <nav class="tabbar">
@@ -118,18 +129,18 @@ function renderHome(){
   ${pageHead('待处理预警','环境数据保存后自动按阈值生成',`<button data-page="monitor">全部</button>`)}
   <div class="card todo">${alerts.length?alerts.map(alert=>`<div class="todo-row"><div class="todo-icon ${alert.level==='high'?'red':''}">!</div><div class="todo-copy"><strong>${esc(alert.message)}</strong><p>${esc(alert.base_name||baseName(alert.base_id))} · ${esc(alert.alert_type)}</p></div><button class="action-link" data-ack="${alert.id}">处理</button></div>`).join(''):empty('暂无待处理预警','录入环境数据后，超过阈值的记录会自动生成预警。')}</div>
   ${pageHead('生产任务','任务建议由规则引擎或 AI 生成',`<button data-form="task">新增任务</button>`)}
-  <div class="card todo">${tasks.length?tasks.map(task=>`<div class="todo-row"><div class="todo-icon ${task.priority==='high'?'red':''}">${task.priority==='high'?'!':'✓'}</div><div class="todo-copy"><strong>${esc(task.title)}</strong><p>${esc(task.description||'无补充说明')} · 截止 ${esc(dateOnly(task.due_date)||'未设置')}</p></div><span class="todo-time">${esc(task.priority)}</span></div>`).join(''):empty('暂无生产任务','点击新增任务，可调用优先级建议接口。')}</div>
+  <div class="card todo">${tasks.length?tasks.map(task=>`<div class="todo-row"><div class="todo-icon ${task.priority==='high'?'red':''}">${task.priority==='high'?'!':'✓'}</div><div class="todo-copy"><strong>${esc(task.title)}</strong><p>${esc(task.description||'无补充说明')} · 截止 ${esc(dateOnly(task.due_date)||'未设置')}</p></div><span class="todo-time">${esc(task.priority)}</span><button class="action-link danger" data-del="tasks:${task.id}">删除</button></div>`).join(''):empty('暂无生产任务','点击新增任务，可调用优先级建议接口。')}</div>
  </section>`
 }
 function renderProduction(){
  const batches=state.data.batches;
- const cards=batches.map(batch=>`<div class="card batch-card"><div class="batch-top"><div><div class="batch-code">${esc(batch.code)}</div><div class="batch-meta">${esc(baseName(batch.base_id))}<br>${esc(batch.mushroom_type)}${batch.variety?' · '+esc(batch.variety):''} · ${esc(batch.quantity)} 棒</div></div>${badge(batch.stage)}</div><div class="metric-line"><div><span>入库日期</span><b>${esc(dateOnly(batch.start_date)||'--')}</b></div><div><span>预计出菇</span><b>${esc(dateOnly(batch.expected_harvest_date)||'--')}</b></div><div><span>状态</span><b>${esc(batch.status)}</b></div></div></div>`).join('');
+ const cards=batches.map(batch=>`<div class="card batch-card"><div class="batch-top"><div><div class="batch-code">${esc(batch.code)}</div><div class="batch-meta">${esc(baseName(batch.base_id))}<br>${esc(batch.mushroom_type)}${batch.variety?' · '+esc(batch.variety):''} · ${esc(batch.quantity)} 棒</div></div>${badge(batch.stage)}</div><div class="metric-line"><div><span>入库日期</span><b>${esc(dateOnly(batch.start_date)||'--')}</b></div><div><span>预计出菇</span><b>${esc(dateOnly(batch.expected_harvest_date)||'--')}</b></div><div><span>状态</span><b>${esc(batch.status)}</b></div></div><div class="action-row"><button class="action-link danger" data-del="batches:${batch.id}">删除</button></div></div>`).join('');
  return `<section class="page"><div class="toolbar"><button class="primary" data-form="batch">＋ 新增批次</button><button class="secondary" data-form="base">新增基地</button></div>${pageHead('生产批次台账','批次是生产、监测、溯源与销售的共同主线')}${batches.length?cards:empty('暂无生产批次','请先新增基地，再录入真实批次编号、菌种、数量和日期。')}</section>`
 }
 function renderMonitor(){
  const readings=state.data.readings.slice(0,20);
  const alerts=state.data.alerts.filter(a=>a.status==='open');
- return `<section class="page"><div class="toolbar"><button class="primary" data-form="reading">＋ 录入环境数据</button></div>${pageHead('环境数据','保存后自动判断温度、湿度和 CO₂ 阈值')}${readings.length?readings.map(r=>`<div class="card list-card"><div class="row-top"><div><h3>${esc(r.device_name||'未命名设备')}</h3><p>${esc(baseName(r.base_id))}<br>${esc(new Date(r.recorded_at).toLocaleString('zh-CN'))}</p></div>${badge('已保存')}</div><div class="metric-line"><div><span>温度</span><b>${esc(r.temperature??'--')}°C</b></div><div><span>湿度</span><b>${esc(r.humidity??'--')}%</b></div><div><span>CO₂</span><b>${esc(r.co2??'--')} ppm</b></div></div></div>`).join(''):empty('暂无环境数据','请先新增基地，再录入设备名称和环境指标。')}
+ return `<section class="page"><div class="toolbar"><button class="primary" data-form="reading">＋ 录入环境数据</button></div>${pageHead('环境数据','保存后自动判断温度、湿度和 CO₂ 阈值')}${readings.length?readings.map(r=>`<div class="card list-card"><div class="row-top"><div><h3>${esc(r.device_name||'未命名设备')}</h3><p>${esc(baseName(r.base_id))}<br>${esc(new Date(r.recorded_at).toLocaleString('zh-CN'))}</p></div>${badge('已保存')}</div><div class="metric-line"><div><span>温度</span><b>${esc(r.temperature??'--')}°C</b></div><div><span>湿度</span><b>${esc(r.humidity??'--')}%</b></div><div><span>CO₂</span><b>${esc(r.co2??'--')} ppm</b></div></div><div class="action-row"><button class="action-link danger" data-del="readings:${r.id}">删除</button></div></div>`).join(''):empty('暂无环境数据','请先新增基地，再录入设备名称和环境指标。')}
  ${pageHead('待处理预警','预警由后台规则自动生成，可点击处理')}${alerts.length?`<div class="card todo">${alerts.map(a=>`<div class="todo-row"><div class="todo-icon ${a.level==='high'?'red':''}">!</div><div class="todo-copy"><strong>${esc(a.message)}</strong><p>${esc(a.base_name||baseName(a.base_id))}</p></div><button class="action-link" data-ack="${a.id}">处理</button></div>`).join('')}</div>`:empty('暂无待处理预警','环境数据超过阈值后会自动生成预警。')}</section>`
 }
 function renderTrace(){
@@ -137,21 +148,36 @@ function renderTrace(){
  let body='<div class="notice">输入真实批次编号后查询。批次、基地、生产事件和产品信息均来自后台数据库。</div>';
  if(result){
   const events=result.events||[],products=result.products||[],batch=result.batch;
-  body=`<div class="card trace-product"><div class="row-top"><div><h3>${esc(batch.mushroom_type)} · ${esc(batch.code)}</h3><p>${esc(batch.base_name||'未关联基地')} · ${esc(batch.base_address||'')}</p></div>${badge('数据库记录')}</div><div class="timeline">${events.length?events.map(e=>`<div class="event"><div class="dot done">✓</div><div><strong>${esc(e.title)}</strong><p>${esc(e.description||e.event_type)}</p></div><time>${esc(dateOnly(e.event_date))}</time></div>`).join(''):'<div class="empty">该批次暂无溯源事件</div>'}</div>${products.length?products.map(p=>`<div class="demand"><strong>${esc(p.name)}</strong><p>${esc(p.quantity)} ${esc(p.unit)} · ¥${money(p.price)}/${esc(p.unit)}</p></div>`).join(''):''}</div>`;
+  body=`<div class="card trace-product"><div class="row-top"><div><h3>${esc(batch.mushroom_type)} · ${esc(batch.code)}</h3><p>${esc(batch.base_name||'未关联基地')} · ${esc(batch.base_address||'')}</p></div>${badge('数据库记录')}</div><div class="timeline">${events.length?events.map(e=>`<div class="event"><div class="dot done">✓</div><div><strong>${esc(e.title)}</strong><p>${esc(e.description||e.event_type)}</p></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><time>${esc(dateOnly(e.event_date))}</time><button class="action-link danger" data-del="trace-events:${e.id}">删除</button></div></div>`).join(''):'<div class="empty">该批次暂无溯源事件</div>'}</div>${products.length?products.map(p=>`<div class="demand"><strong>${esc(p.name)}</strong><p>${esc(p.quantity)} ${esc(p.unit)} · ¥${money(p.price)}/${esc(p.unit)}</p></div>`).join(''):''}</div>`;
  }
  return `<section class="page"><div class="toolbar"><div class="search">⌕ <input id="traceCode" placeholder="输入批次编号，例如 DEMO-20260901-01" value="${esc(state.traceCode||'')}"> </div><button class="primary" data-trace-search>查询</button></div><button class="primary full" data-form="trace-event">＋ 新增溯源事件</button>${pageHead('质量溯源','每个批次对应一条可核查的数据链')}${body}</section>`
 }
 function renderMarket(){
  const products=state.data.products,demands=state.data.demands;
- return `<section class="page"><div class="toolbar"><button class="primary" data-form="product">＋ 发布供应</button><button class="secondary" data-form="demand">发布采购需求</button></div>${pageHead('供应信息','只展示后台已保存的真实供应数据')}${products.length?products.map(p=>`<div class="card list-card"><div class="row-top"><div class="product-row"><div class="product-icon">${p.icon?(p.icon.startsWith('http')||p.icon.startsWith('/')?`<img src="${esc(p.icon)}" alt="${esc(p.name)}">`:esc(p.icon)):'🍄'}</div><div><h3>${esc(p.name)}</h3><p>批次：${esc(batchCode(p.batch_id))} · 可售日期：${esc(dateOnly(p.available_date)||'未设置')}</p></div></div>${badge(p.status==='available'?'可供应':'已下架')}</div><div class="metric-line"><div><span>数量</span><b>${esc(p.quantity)} ${esc(p.unit)}</b></div><div><span>价格</span><b>¥${money(p.price)}</b></div><div><span>单位</span><b>${esc(p.unit)}</b></div></div><p class="meta">${esc(p.description||'暂无说明')}</p><div class="action-row"><button data-edit-icon="${p.id}">更换产品图标</button></div></div>`).join(''):empty('暂无供应信息','点击发布供应，保存真实产品、数量、价格和批次。')}
- ${pageHead('采购需求','采购商通过表单录入并保存到数据库')}${demands.length?demands.map(d=>`<div class="card list-card"><div class="row-top"><div><h3>${esc(d.buyer_name)}</h3><p>${esc(d.product_name)} · ${esc(d.quantity)} ${esc(d.unit)}</p></div>${badge('¥'+money(d.price))}</div><p class="meta">${esc(d.requirements||'暂无补充要求')}</p></div>`).join(''):empty('暂无采购需求','点击发布采购需求，保存真实采购方和产品需求。')}</section>`
+ return `<section class="page"><div class="toolbar"><button class="primary" data-form="product">＋ 发布供应</button><button class="secondary" data-form="demand">发布采购需求</button></div>${pageHead('供应信息','只展示后台已保存的真实供应数据')}${products.length?products.map(p=>`<div class="card list-card"><div class="row-top"><div class="product-row"><div class="product-icon">${p.icon?(p.icon.startsWith('http')||p.icon.startsWith('/')?`<img src="${esc(p.icon)}" alt="${esc(p.name)}">`:esc(p.icon)):'🍄'}</div><div><h3>${esc(p.name)}</h3><p>批次：${esc(batchCode(p.batch_id))} · 可售日期：${esc(dateOnly(p.available_date)||'未设置')}</p></div></div>${badge(p.status==='available'?'可供应':'已下架')}</div><div class="metric-line"><div><span>数量</span><b>${esc(p.quantity)} ${esc(p.unit)}</b></div><div><span>价格</span><b>¥${money(p.price)}</b></div><div><span>单位</span><b>${esc(p.unit)}</b></div></div><p class="meta">${esc(p.description||'暂无说明')}</p><div class="action-row"><button data-edit-icon="${p.id}">更换产品图标</button><button class="action-link danger" data-del="products:${p.id}">删除</button></div></div>`).join(''):empty('暂无供应信息','点击发布供应，保存真实产品、数量、价格和批次。')}
+ ${pageHead('采购需求','采购商通过表单录入并保存到数据库')}${demands.length?demands.map(d=>`<div class="card list-card"><div class="row-top"><div><h3>${esc(d.buyer_name)}</h3><p>${esc(d.product_name)} · ${esc(d.quantity)} ${esc(d.unit)}</p></div>${badge('¥'+money(d.price))}</div><p class="meta">${esc(d.requirements||'暂无补充要求')}</p><div class="action-row"><button class="action-link danger" data-del="demands:${d.id}">删除</button></div></div>`).join(''):empty('暂无采购需求','点击发布采购需求，保存真实采购方和产品需求。')}</section>`
 }
 function renderExpert(){
  const qs=state.data.questions;
- return `<section class="page"><div class="toolbar"><button class="primary" data-form="question">＋ 向专家提问</button><button class="secondary" data-page="home">返回首页</button></div>${pageHead('专家问答','问题与回答均保存到后台数据库')}${qs.length?qs.map(q=>`<div class="card list-card"><div class="row-top"><div><h3>${esc(q.title)}</h3><p>${esc(baseName(q.base_id))} · ${esc(q.category||'未分类')}</p></div>${badge(q.status==='answered'?'已回复':'待回复')}</div><p class="meta">${esc(q.content)}</p>${q.answer?`<div class="notice success" style="margin:10px 0 0">专家回复：${esc(q.answer)}</div>`:''}</div>`).join(''):empty('暂无专家问题','点击向专家提问，保存真实问题。')}</section>`
+ const baseOptions=['<option value="">不关联基地</option>'].concat(state.data.bases.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`)).join('');
+ const categoryOptions=['病虫害防治','环境调控','生产流程','设备使用','市场销售'].map(v=>`<option>${v}</option>`).join('');
+ return `<section class="page"><div class="toolbar"><button class="secondary" data-page="home">返回首页</button></div>
+ ${pageHead('专家问答','提问直接保存在数据库，AI 立即自动作答，专家可补充回复')}
+ <div class="card" style="padding:16px">
+  <div class="form-grid">
+   <div class="field full"><label>问题标题</label><input id="askTitle" placeholder="例如：菌棒表面发绿霉怎么办？"></div>
+   <div class="field"><label>问题类型</label><select id="askCategory">${categoryOptions}</select></div>
+   <div class="field"><label>关联基地（可选）</label><select id="askBase">${baseOptions}</select></div>
+   <div class="field full"><label>问题描述</label><textarea id="askContent" placeholder="补充温度、湿度等环境情况，AI 会结合你的数据作答"></textarea></div>
+  </div>
+  <button class="primary full" id="askSubmit" style="margin-top:12px">提交提问（AI 自动作答）</button>
+ </div>
+ ${pageHead('问答记录','每次提问都会存档，便于专家复核')}
+ ${qs.length?qs.map(q=>`<div class="card list-card"><div class="row-top"><div><h3>${esc(q.title)}</h3><p>${esc(baseName(q.base_id))} · ${esc(q.category||'未分类')}</p></div>${badge(q.status==='answered'?'已回复':'待回复')}</div><p class="meta">${esc(q.content)}</p><div class="action-row"><button class="action-link danger" data-del="questions:${q.id}">删除</button></div>${q.answer?`<div class="notice success" style="margin:10px 0 0">专家回复：${esc(q.answer)}</div>`:''}</div>`).join(''):empty('暂无问答记录','在上方输入问题提交即可，AI 会立即回答并存档。')}</section>`
 }
 function render(){
  if(!state.token){renderLogin();return}
+ document.body.classList.remove('on-login');
  const titles=pageMeta[state.page]||pageMeta.home;
  $('#navTitle').textContent=titles[0];$('#navSub').textContent=titles[1];
  $$('.tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.page===state.page));
@@ -225,16 +251,123 @@ document.addEventListener('click',async event=>{
  const formButton=event.target.closest('[data-form]');if(formButton){openSheet(formButton.dataset.form);return}
  const iconButton=event.target.closest('[data-edit-icon]');if(iconButton){openIconEditor(iconButton.dataset.editIcon);return}
  if(event.target.closest('[data-close-sheet]')||event.target===$('#sheetMask')){closeSheet();return}
+ /* 密码显示/隐藏切换：隐藏时闭眼图标，明文时睁眼图标 */
+ const eye=event.target.closest('[data-pwd]');
+ if(eye){const input=document.getElementById(eye.dataset.pwd);if(input){const show=input.type==='password';input.type=show?'text':'password';eye.innerHTML=show?EYE_OPEN:EYE_CLOSED}return}
+ /* 点击账号右侧的职位徽章：展开/收起该账号的职位芯片，点选后确认修改 */
+ const roleBadge=event.target.closest('[data-edit-role]');
+ if(roleBadge){const panel=document.getElementById('roleEdit_'+roleBadge.dataset.editRole);if(panel)panel.style.display=panel.style.display==='none'?'grid':'none';return}
+ const setRole=event.target.closest('[data-set-role]');
+ if(setRole){
+  const parts=setRole.dataset.setRole.split(':');
+  const label=(ALL_ROLES.find(r=>r.value===parts[1])||{}).label||parts[1];
+  if(!window.confirm('职位分配提醒：确定把该账号的职务改为「'+label+'」吗？对方重新登录后生效。'))return;
+  try{await api('/api/admin/users/'+parts[0]+'/role',{method:'PUT',body:JSON.stringify({role:parts[1]})});toast('角色已更新，对方重新登录后生效');await loadUsers()}
+  catch(error){toast(error.message,true)}
+  return
+ }
+ if(event.target.closest('#askSubmit')){
+  const title=$('#askTitle').value.trim(),content=$('#askContent').value.trim();
+  if(!title||!content){toast('请填写问题标题和问题描述',true);return}
+  try{
+   await api('/api/questions',{method:'POST',body:JSON.stringify({title,content,category:$('#askCategory').value,base_id:$('#askBase').value||null})});
+   toast('提问成功，AI 已自动作答');await loadAll();
+  }catch(error){toast(error.message,true)}
+  return
+ }
+ const del=event.target.closest('[data-del]');if(del){const parts=del.dataset.del.split(':');if(!window.confirm('删除提醒：确定删除这条记录吗？删除后不可恢复。'))return;try{await api(`/api/${parts[0]}/${parts[1]}`,{method:'DELETE'});toast('已删除');await loadAll()}catch(error){toast(error.message,true)}return}
  const ack=event.target.closest('[data-ack]');if(ack){try{await api(`/api/alerts/${ack.dataset.ack}/ack`,{method:'POST',body:'{}'});toast('预警已处理');await loadAll()}catch(error){toast(error.message,true)}return}
  const search=event.target.closest('[data-trace-search]');if(search){const code=$('#traceCode').value.trim();if(!code){toast('请输入批次编号',true);return}try{state.traceCode=code;state.traceResult=await api(`/api/trace/${encodeURIComponent(code)}`);render();toast('查询成功')}catch(error){state.traceResult=null;render();toast(error.message,true)}return}
 });
 $('#addButton').addEventListener('click',()=>openSheet('menu'));
+$('#roleButton').addEventListener('click',()=>{
+ if(!state.token){toast('请先登录账号',true);return}
+ if(state.user&&state.user.role==='admin'){openUserManage()}else{openAdminLogin()}
+});
 setInterval(()=>{$('#clock').textContent=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})},1000);$('#clock').textContent=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false});
 /* ---------- 账号：登录 / 注册 / 退出 ---------- */
 function saveAuth(data){state.token=data.token;state.user=data.user;localStorage.setItem('gushi_token',data.token);localStorage.setItem('gushi_user',JSON.stringify(data.user))}
 function clearAuth(){state.token='';state.user=null;localStorage.removeItem('gushi_token');localStorage.removeItem('gushi_user')}
+/* 注册可自选的身份（政府/服务机构、专家、平台管理员不可自选，与后台 REGISTRATION_ROLE_VALUES 一致） */
+const REGISTER_ROLES=[
+ {value:'farmer',label:'菇农（普通用户）',desc:'可录入基地、批次、环境、溯源、任务、设备；供应与采购仅可浏览，不能回复提问'},
+ {value:'base',label:'合作社/基地管理员',desc:'业务数据全部可录，可发布供应与采购需求；不能回复提问'},
+ {value:'buyer',label:'采购商',desc:'可发布采购需求；基地、批次、溯源、供应仅可浏览，不能回复提问'}
+];
+/* 分配职务时可选的全部职位 */
+const ALL_ROLES=[{value:'farmer',label:'菇农'},{value:'base',label:'基地管理员'},{value:'expert',label:'专家'},{value:'buyer',label:'采购商'},{value:'government',label:'政府/服务机构'},{value:'admin',label:'平台管理员'}];
+/* 密码显隐图标：睁眼=明文可见，闭眼=密码隐藏 */
+const EYE_OPEN='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12s3.5-6.2 9.5-6.2S21.5 12 21.5 12s-3.5 6.2-9.5 6.2S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.7"/></svg>';
+const EYE_CLOSED='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5c2.4 3 5.2 4.5 8.5 4.5s6.1-1.5 8.5-4.5"/><path d="M5.8 14.3l-1.9 2.6M12 16.2v3.2M18.2 14.3l1.9 2.6"/></svg>';
+/* 职位芯片：渲染后返回“读取当前选中职位”的函数 */
+function roleChips(containerId){
+ const el=$(containerId);
+ el.innerHTML=ALL_ROLES.map((r,i)=>`<div class="role-option${i===0?' active':''}" data-role-index="${i}">${r.label}</div>`).join('');
+ let idx=0;
+ el.addEventListener('click',ev=>{const chip=ev.target.closest('.role-option');if(!chip)return;idx=Number(chip.dataset.roleIndex);el.querySelectorAll('.role-option').forEach(c=>c.classList.toggle('active',c===chip))});
+ return()=>ALL_ROLES[idx].value;
+}
+function openUserManage(){
+ $('#sheetTitle').textContent='账号管理 · 分配职务';
+ $('#sheetDesc').textContent='方式一：输入对方账号和它的密码，核验后直接分配职务；分配后对方重新登录生效。';
+ $('#sheetBody').innerHTML=`
+  <div class="notice success">仅平台管理员可以分配职务。下方列表可核对每个账号的当前身份。</div>
+  <div class="field" style="margin-top:10px"><label>目标账号</label><input id="assignUser" placeholder="对方的登录账号"></div>
+  <div class="field"><label>目标账号密码</label><div class="pwd-wrap"><input id="assignPwd" type="password" placeholder="该账号的登录密码"><button type="button" class="pwd-toggle" data-pwd="assignPwd" aria-label="显示或隐藏密码">${EYE_CLOSED}</button></div></div>
+  <div class="field"><label>分配职务（点选其中一个）</label><div class="role-options" id="assignRoles"></div></div>
+  <button class="primary full" id="assignSubmit" style="margin-top:12px">核验并分配</button>
+  <div style="font-size:13px;font-weight:900;margin:18px 0 6px">全部账号</div>
+  <div id="userList"><div class="loading">正在读取账号列表...</div></div>
+  <div class="sheet-actions"><button class="secondary" data-close-sheet>关闭</button></div>`;
+ $('#sheetMask').classList.add('open');
+ const getRole=roleChips('#assignRoles');
+ $('#assignSubmit').addEventListener('click',async()=>{
+  const username=$('#assignUser').value.trim(),password=$('#assignPwd').value;
+  if(!username||!password){toast('请填写目标账号和它的密码',true);return}
+  try{
+   await api('/api/admin/users/assign',{method:'POST',body:JSON.stringify({username,password,role:getRole()})});
+   toast('角色已更新，对方重新登录后生效');await loadUsers();
+  }catch(error){toast(error.message,true)}
+ });
+ loadUsers();
+}
+async function loadUsers(){
+ try{
+  const users=await api('/api/admin/users');
+  $('#userList').innerHTML=users.map(u=>{
+   const chips=ALL_ROLES.map(r=>`<div class="role-option${u.role===r.value?' active':''}" data-set-role="${u.id}:${r.value}">${r.label}</div>`).join('');
+   return `<div style="padding:10px 0;border-bottom:1px solid #eef2ef">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+     <div><b style="font-size:11px">${esc(u.username)}${state.user&&u.id===state.user.id?'（我）':''}</b><p style="font-size:9px;color:var(--muted);margin:3px 0 0">${esc(u.display_name||'未填称呼')} · 当前：${esc(u.role_label||u.role)}</p></div>
+     <span class="badge" data-edit-role="${u.id}" style="cursor:pointer" title="点击修改职务">${esc(u.role_label||u.role)}</span>
+    </div>
+    <div class="role-options" id="roleEdit_${u.id}" style="display:none;margin-top:10px">${chips}</div>
+   </div>`
+  }).join('');
+ }catch(error){$('#userList').innerHTML=`<div class="notice">${esc(error.message)}</div>`}
+}
+function openAdminLogin(){
+ $('#sheetTitle').textContent='管理员登录 · 分配职务';
+ $('#sheetDesc').textContent='分配职务需要平台管理员身份：输入管理员的账号与密码，验证通过后自动切换登录并打开账号管理。当前登录会被替换。';
+ $('#sheetBody').innerHTML=`
+  <div class="field"><label>管理员账号</label><input id="adminUser" placeholder="例如：demo"></div>
+  <div class="field"><label>管理员密码</label><div class="pwd-wrap"><input id="adminPwd" type="password" placeholder="至少 6 位"><button type="button" class="pwd-toggle" data-pwd="adminPwd" aria-label="显示或隐藏密码">${EYE_CLOSED}</button></div></div>
+  <div class="notice">还没有管理员？在电脑上进入「后台」目录执行：npm run make:admin -- 账号。自助注册的账号不是管理员。</div>
+  <div class="sheet-actions"><button class="secondary" data-close-sheet>取消</button><button class="primary" id="adminLoginSubmit">登录并分配</button></div>`;
+ $('#sheetMask').classList.add('open');
+ $('#adminLoginSubmit').addEventListener('click',async()=>{
+  const username=$('#adminUser').value.trim(),password=$('#adminPwd').value;
+  if(!username||!password){toast('请填写管理员账号和密码',true);return}
+  try{
+   const data=await api('/api/auth/login',{method:'POST',body:JSON.stringify({username,password})});
+   if(data.user.role!=='admin'){toast('该账号是「'+(data.user.role_label||data.user.role)+'」，不是平台管理员',true);return}
+   saveAuth(data);closeSheet();toast('已切换为管理员账号');await loadAll();openUserManage();
+  }catch(error){toast(error.message,true)}
+ });
+}
 function renderLogin(mode='login'){
   state.page='login';
+  document.body.classList.add('on-login');
   $('#navTitle').textContent=mode==='login'?'账号登录':'注册账号';
   $('#navSub').textContent='每个账号的数据独立保存';
   $('#app').innerHTML=`<section class="page active">
@@ -244,15 +377,19 @@ function renderLogin(mode='login'){
     <p style="font-size:9px;color:var(--muted);margin:6px 0 14px">${mode==='login'?'还没有账号？点击下方“注册新账号”。':'注册成功后自动登录，数据只保存在这个账号下。'}</p>
     <form id="authForm" class="form-grid">
       <div class="field full"><label>账号</label><input name="username" autocomplete="username" placeholder="3-32 位字母、数字、下划线或中文"></div>
-      <div class="field full"><label>密码</label><input type="password" name="password" autocomplete="current-password" placeholder="至少 6 位"></div>
+      <div class="field full"><label>密码</label><div class="pwd-wrap"><input type="password" name="password" id="authPwd" autocomplete="current-password" placeholder="至少 6 位"><button type="button" class="pwd-toggle" data-pwd="authPwd" aria-label="显示或隐藏密码">${EYE_CLOSED}</button></div></div>
       ${mode==='register'?'<div class="field full"><label>称呼（可选）</label><input name="display_name" placeholder="例如：王师傅 / 德安基地"></div>':''}
+      ${mode==='register'?`<div class="field full"><label>注册身份（点选）</label><div class="role-options" id="registerRoles">${REGISTER_ROLES.map((r,i)=>`<div class="role-option${i===0?' active':''}" data-role-index="${i}">${r.label}</div>`).join('')}</div><span class="field-hint" id="registerRoleDesc">${REGISTER_ROLES[0].desc}</span><span class="field-hint">「政府/服务机构」「专家」「平台管理员」不可自选，注册后由平台管理员分配</span></div>`:''}
     </form>
     <button class="primary full" id="authSubmit">${mode==='login'?'登录':'注册并登录'}</button>
     <div class="sheet-actions"><button class="secondary" id="authSwitch">${mode==='login'?'注册新账号':'返回登录'}</button></div>
   </div></section>`;
+  let registerIdx=0;
+  if(mode==='register'){$$('#registerRoles .role-option').forEach(chip=>chip.addEventListener('click',()=>{registerIdx=Number(chip.dataset.roleIndex);$$('#registerRoles .role-option').forEach(c=>c.classList.toggle('active',c===chip));$('#registerRoleDesc').textContent=REGISTER_ROLES[registerIdx].desc}))}
   $('#authSwitch').addEventListener('click',()=>renderLogin(mode==='login'?'register':'login'));
   $('#authSubmit').addEventListener('click',async()=>{
     const payload=Object.fromEntries(new FormData($('#authForm')).entries());
+    if(mode==='register')payload.role=REGISTER_ROLES[registerIdx].value;
     if(!payload.username||!payload.password){toast('请填写账号和密码',true);return}
     const button=$('#authSubmit');button.disabled=true;button.textContent='提交中...';
     try{

@@ -8,7 +8,7 @@ import FormSheet from '@/components/FormSheet'
 import StateHint from '@/components/StateHint'
 import { buildFormConfigs, type FormConfig } from '@/config/forms'
 import { batchCodeOf, useCloudData } from '@/hooks/useCloudData'
-import { FORM_MODULE, guard } from '@/utils/permission'
+import { FORM_MODULE, can, guard } from '@/utils/permission'
 import { assetUrl } from '@/utils/request'
 import { dateOnly, money } from '@/utils/format'
 
@@ -101,14 +101,17 @@ export default function Market() {
                   </View>
                 </View>
                 <Text className='meta'>{product.description || '暂无说明'}</Text>
-                <View className='toolbar' style='margin-bottom:0'>
-                  <View
-                    className='btn secondary'
-                    onClick={() => openForm('icon', { id: String(product.id), icon: product.icon || '🍄' })}
-                  >
-                    更换产品图标
+                {/* 仅基地管理员与平台管理员可修改保存产品图标（后端同样校验 products 写权限） */}
+                {can('products', 'w') ? (
+                  <View className='toolbar' style='margin-bottom:0'>
+                    <View
+                      className='btn secondary'
+                      onClick={() => openForm('icon', { id: String(product.id), icon: product.icon || '🍄' })}
+                    >
+                      更换产品图标
+                    </View>
                   </View>
-                </View>
+                ) : null}
               </View>
             ))
           ) : (

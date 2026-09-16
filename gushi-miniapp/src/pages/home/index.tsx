@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Picker, ScrollView, Text, View } from '@tarojs/components'
+import { Input, Picker, ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 
 import BrandBar from '@/components/BrandBar'
@@ -10,10 +10,10 @@ import { buildFormConfigs, RECORD_MENU, type FormConfig } from '@/config/forms'
 import { baseNameOf, useCloudData } from '@/hooks/useCloudData'
 import { logout, ROLE_OPTIONS, roleLabel } from '@/utils/auth'
 import { FORM_MODULE, can, guard } from '@/utils/permission'
-import { getUser } from '@/utils/storage'
+import { getUser, saveAuth } from '@/utils/storage'
 import { api } from '@/utils/request'
 import { dateOnly, readableTime } from '@/utils/format'
-import type { AuthUser } from '@/types'
+import type { AuthSession, AuthUser } from '@/types'
 
 /** 角色列表复用 utils/auth 的 ROLE_OPTIONS（与后台 server/auth.js 的 ROLES 保持一致） */
 
@@ -26,6 +26,15 @@ export default function Home() {
   const [userSheet, setUserSheet] = useState(false)
   const [users, setUsers] = useState<any[]>([])
   const [usersLoading, setUsersLoading] = useState(false)
+  const [adminSheet, setAdminSheet] = useState(false)
+  const [adminUser, setAdminUser] = useState('')
+  const [adminPwd, setAdminPwd] = useState('')
+  const [adminSubmitting, setAdminSubmitting] = useState(false)
+  const [assignUser, setAssignUser] = useState('')
+  const [assignPwd, setAssignPwd] = useState('')
+  const [assignRoleIndex, setAssignRoleIndex] = useState(0)
+  const [assigning, setAssigning] = useState(false)
+  const [permSheet, setPermSheet] = useState(false)
 
   const openForm = (key: string) => {
     const config = forms[key]
@@ -94,6 +103,67 @@ export default function Home() {
     }
   }
 
+  /**
+   * 按账号密码分配：输入目标账号及其密码，核验通过后直接为该账号指定职务。
+   * 与下方列表方式并存：列表适合浏览全量账号，输账号密码适合精确指定某个账号。
+   */
+  const handleAssignByCredentials = async () => {
+    if (assigning) return
+    const name = assignUser.trim()
+    if (!name || !assignPwd) {
+      Taro.showToast({ title: '请填写目标账号和它的密码', icon: 'none' })
+      return
+    }
+    setAssigning(true)
+    try {
+      await api('/api/admin/users/assign', {
+        method: 'POST',
+        data: { username: name, password: assignPwd, role: ROLE_OPTIONS[assignRoleIndex].value },
+        successText: '角色已更新，对方重新登录后生效'
+      })
+      setAssignUser('')
+      setAssignPwd('')
+      const list = await api<any[]>('/api/admin/users')
+      setUsers(list || [])
+      await reload()
+    } catch (err) {
+      Taro.showToast({ title: (err as Error).message, icon: 'none' })
+    } finally {
+      setAssigning(false)
+    }
+  }
+
+  /**
+   * 管理员登录：输入管理员账号密码，验证通过后切换为管理员身份并直接打开账号管理。
+   * 非管理员账号验证通过也不切换登录，当前登录状态不受影响。
+   */
+  const handleAdminLogin = async () => {
+    if (adminSubmitting) return
+    const name = adminUser.trim()
+    if (!name || !adminPwd) {
+      Taro.showToast({ title: '请填写管理员账号和密码', icon: 'none' })
+      return
+    }
+    setAdminSubmitting(true)
+    try {
+      const session = await api<AuthSession>('/api/auth/login', { method: 'POST', data: { username: name, password: adminPwd } })
+      if (session.user.role !== 'admin') {
+        Taro.showToast({ title: `该账号是「${session.user.role_label || roleLabel(session.user.role)}」，不是平台管理员`, icon: 'none' })
+        return
+      }
+      saveAuth(session.token, session.user)
+      setAdminSheet(false)
+      setAdminPwd('')
+      Taro.showToast({ title: '已切换为管理员账号', icon: 'success' })
+      await reload()
+      await openUserSheet()
+    } catch (err) {
+      Taro.showToast({ title: (err as Error).message, icon: 'none' })
+    } finally {
+      setAdminSubmitting(false)
+    }
+  }
+
   const handleAck = async (id: number) => {
     if (!guard('alerts', 'w')) return
     try {
@@ -151,12 +221,19 @@ export default function Home() {
             </View>
           </View>
 
-          {/* 平台管理员专属：给注册账号分配职务 */}
-          {can('users', 'w') ? (
-            <View className='btn secondary' style='margin-top:20px' onClick={openUserSheet}>
+          {/* 账号管理入口永远显示：管理员直接打开分配；
+              其他角色点击后先输入管理员账号密码，验证通过自动进入分配界面 */}
+          <View className='toolbar' style='margin-top:20px'>
+            <View
+              className='btn secondary'
+              onClick={() => (can('users', 'w') ? openUserSheet() : setAdminSheet(true))}
+            >
               账号管理 · 分配职务
             </View>
-          ) : null}
+            <View className='btn secondary' onClick={() => setPermSheet(true)}>
+              角色权限说明
+            </View>
+          </View>
 
           <View className='section-title'>
             <View>
@@ -354,6 +431,52 @@ export default function Home() {
             <Text className='sheet-title'>账号管理</Text>
             <Text className='sheet-desc'>点「分配职务」给注册账号设置身份，保存后对方重新登录生效。</Text>
             <ScrollView className='sheet-body' scrollY>
+              {/* 按账号密码分配：输入目标账号与密码，核验后直接指定职务 */}
+              <View className='notice success'>
+                按账号密码分配：填入目标账号和它的密码，核验通过后即为该账号设置所选职务。
+              </View>
+              <View className='field' style='margin-top:20px'>
+                <Text className='field-label'>目标账号</Text>
+                <Input
+                  className='field-input'
+                  value={assignUser}
+                  placeholder='例如：wangshiren'
+                  onInput={(event) => setAssignUser(event.detail.value)}
+                />
+              </View>
+              <View className='field'>
+                <Text className='field-label'>目标账号密码</Text>
+                <Input
+                  className='field-input'
+                  password
+                  value={assignPwd}
+                  placeholder='该账号的登录密码'
+                  onInput={(event) => setAssignPwd(event.detail.value)}
+                />
+              </View>
+              <View className='field'>
+                <Text className='field-label'>分配职务（点选其中一个）</Text>
+                <View className='role-options'>
+                  {ROLE_OPTIONS.map((item, index) => (
+                    <View
+                      key={item.value}
+                      className={`role-option${assignRoleIndex === index ? ' active' : ''}`}
+                      onClick={() => setAssignRoleIndex(index)}
+                    >
+                      <Text>{item.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+              <View className='btn primary' onClick={handleAssignByCredentials}>
+                {assigning ? '分配中...' : '核验并分配'}
+              </View>
+              <View className='section-title'>
+                <View>
+                  <Text className='section-title-main'>全部账号</Text>
+                  <Text className='section-title-sub'>也可以在列表里直接点「分配职务」</Text>
+                </View>
+              </View>
               {usersLoading ? (
                 <Text className='user-sub'>加载中...</Text>
               ) : (
@@ -380,6 +503,82 @@ export default function Home() {
               )}
               <View className='sheet-actions'>
                 <View className='btn secondary' onClick={() => setUserSheet(false)}>
+                  关闭
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      ) : null}
+
+      {adminSheet ? (
+        <View className='sheet-mask' onClick={() => setAdminSheet(false)}>
+          <View className='sheet' onClick={(event) => event.stopPropagation()}>
+            <Text className='sheet-title'>管理员登录 · 分配职务</Text>
+            <Text className='sheet-desc'>输入平台管理员的账号与密码，验证通过后自动切换为管理员身份并打开账号管理。当前登录状态会被替换为该管理员。</Text>
+            <ScrollView className='sheet-body' scrollY>
+              <View className='field'>
+                <Text className='field-label'>管理员账号</Text>
+                <Input
+                  className='field-input'
+                  value={adminUser}
+                  placeholder='例如：demo'
+                  onInput={(event) => setAdminUser(event.detail.value)}
+                />
+              </View>
+              <View className='field'>
+                <Text className='field-label'>密码</Text>
+                <Input
+                  className='field-input'
+                  password
+                  value={adminPwd}
+                  placeholder='至少 6 位'
+                  onInput={(event) => setAdminPwd(event.detail.value)}
+                />
+              </View>
+              <View className='btn primary' onClick={handleAdminLogin}>
+                {adminSubmitting ? '验证中...' : '登录并分配职务'}
+              </View>
+              <View className='notice' style='margin-top:20px'>
+                还没有管理员账号？在电脑上进入「后台」目录执行：npm run make:admin -- 账号，即可把任意注册账号提升为平台管理员。
+                自助注册的账号一律是普通菇农，无法自行成为管理员。
+              </View>
+              <View className='sheet-actions'>
+                <View className='btn secondary' onClick={() => setAdminSheet(false)}>
+                  取消
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      ) : null}
+
+      {permSheet ? (
+        <View className='sheet-mask' onClick={() => setPermSheet(false)}>
+          <View className='sheet' onClick={(event) => event.stopPropagation()}>
+            <Text className='sheet-title'>角色权限说明</Text>
+            <Text className='sheet-desc'>权限由后端强制校验，越权一律返回 403；所有业务数据按账号隔离，互不可见。</Text>
+            <ScrollView className='sheet-body' scrollY>
+              <View className='notice success'>
+                平台管理员：全部模块可读可写（含供应与采购发布）；唯一可以查看全部账号并分配职务；与专家一样可以回复用户提问。
+              </View>
+              <View className='notice'>
+                合作社/基地管理员：基地、批次、环境监测、预警、溯源事件、生产任务、大棚设备、供应、采购需求、合作方全部可录；账号列表只读；只能提问，不能回复。
+              </View>
+              <View className='notice'>
+                菇农（注册默认）：基地、批次、环境、预警、溯源、任务、设备可录；供应信息与采购需求只能浏览，不能发布采购需求；只能提问，不能回复他人提问。
+              </View>
+              <View className='notice'>
+                专家：业务数据全部只读；提问模块可写（用于回复用户提问）；不能修改生产与设备数据。
+              </View>
+              <View className='notice'>
+                采购商：基地、批次、溯源、供应信息只读；采购需求可发布；可提问。
+              </View>
+              <View className='notice'>
+                政府/服务机构：全部业务数据只读，用于监管与统计查看，不能录入任何数据。
+              </View>
+              <View className='sheet-actions'>
+                <View className='btn secondary' onClick={() => setPermSheet(false)}>
                   关闭
                 </View>
               </View>

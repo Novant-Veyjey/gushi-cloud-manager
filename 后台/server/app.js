@@ -306,6 +306,15 @@ app.put('/api/admin/users/:id/role', requireAuth, requireRole('admin'), (req, re
   }
 });
 
+/** 按目标账号 + 密码分配职务：管理员输入对方账号密码核验后直接指定角色 */
+app.post('/api/admin/users/assign', requireAuth, requireRole('admin'), (req, res) => {
+  try {
+    ok(res, auth.assignRoleByCredentials(req.body || {}), '角色已更新，对方重新登录后生效');
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
 /** ---------- 大棚硬件设备：设备档案、密钥与在线状态 ---------- */
 
 app.get('/api/devices', requireAuth, requirePermission('devices', 'r'), (req, res) => {
