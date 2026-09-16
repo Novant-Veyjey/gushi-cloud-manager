@@ -1,11 +1,5 @@
 # -*- coding: utf-8 -*-
-"""生成密码框的显示/隐藏切换图标：灰色圆形底 + 白色圆环（对齐设计稿样式）
-
-- eye-open.png   密码隐藏时显示：圆环 + 中心点，点击查看明文
-- eye-closed.png 密码可见时显示：圆环 + 斜线，点击隐藏
-
-用法（需要 Pillow）：python scripts/gen-eye-icons.py
-"""
+"""生成密码框的小眼睛图标（睁眼 / 闭眼），风格与 TabBar 图标一致"""
 import os
 from PIL import Image, ImageDraw
 
@@ -13,31 +7,27 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src', 'ass
 OUT = os.path.abspath(OUT)
 os.makedirs(OUT, exist_ok=True)
 
-S = 4                        # 4 倍超采样后缩小，边缘平滑
+S = 4               # 4 倍超采样后缩小，边缘平滑
 SIZE = 64 * S
-GREY = (146, 151, 147, 255)  # 中性灰圆底，与设计稿一致
-WHITE = (255, 255, 255, 255)
-W = 16                       # 圆环 / 斜线线宽
+W = 18              # 线宽
+GREEN = (39, 132, 90, 255)   # #27845a 与主题 --g700 一致
 
 
-def badge(color_base, color_mark, crossed):
+def eye(color, closed):
     img = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    # 灰色圆形底
-    d.ellipse([14, 14, 242, 242], fill=color_base)
-    # 白色圆环
-    d.ellipse([80, 80, 176, 176], outline=color_mark, width=W)
-    if crossed:
-        # 斜线划过圆环 = 当前明文可见，点击隐藏
-        d.line([(66, 190), (190, 66)], fill=color_mark, width=W)
-    else:
-        # 圆环中心点 = 当前密文，点击显示
-        d.ellipse([112, 112, 144, 144], fill=color_mark)
+    # 眼眶：扁椭圆
+    d.ellipse([26, 78, 230, 178], outline=color, width=W)
+    # 瞳孔：实心圆
+    d.ellipse([92, 92, 164, 164], fill=color)
+    if closed:
+        # 斜杠划过眼睛 = 已隐藏 / 点击切换
+        d.line([(38, 238), (218, 18)], fill=color, width=W)
     return img
 
 
-for name, crossed in (('eye-open', False), ('eye-closed', True)):
-    small = badge(GREY, WHITE, crossed).resize((64, 64), Image.LANCZOS)
+for name, closed in (('eye-open', False), ('eye-closed', True)):
+    small = eye(GREEN, closed).resize((64, 64), Image.LANCZOS)
     target = os.path.join(OUT, f'{name}.png')
     small.save(target, 'PNG')
     print('生成', os.path.basename(target), small.size, os.path.getsize(target), 'bytes')
