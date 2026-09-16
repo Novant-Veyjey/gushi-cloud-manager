@@ -811,12 +811,19 @@ page {
 .sheet {
   width: 100%;
   max-height: 86vh;
+  /**
+   * 手机浏览器的 100vh 包含地址栏/工具栏，只用 vh 会让弹层底部（含「取消/保存」）
+   * 落到可视区之外；dvh 是动态视口高度，地址栏收起时同步变化。
+   * 不支持的浏览器会忽略第二条、回退到上面的 86vh。
+   */
+  max-height: min(86vh, calc(100dvh - 16px));
   /* flex 纵向布局：标题固定、内容区滚动、底部按钮固定 */
   display: flex;
   flex-direction: column;
   background: #ffffff;
   border-radius: 40px 40px 0 0;
-  padding: 40px 34px 40px;
+  /* 底部额外留出 iPhone 安全区，避免「取消 / 保存」被底部横条压住 */
+  padding: 40px 34px calc(40px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
 }
 
@@ -834,13 +841,17 @@ page {
 }
 
 .sheet-body::-webkit-scrollbar {
-  width: 8px;
-  border-radius: 4px;
+  width: 6px;
+  border-radius: 3px;
 }
 
 .sheet-body::-webkit-scrollbar-thumb {
-  background: #c3d2c8;
-  border-radius: 4px;
+  background: rgba(39, 132, 90, 0.38);
+  border-radius: 3px;
+}
+
+.sheet-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(39, 132, 90, 0.6);
 }
 
 .sheet-body::-webkit-scrollbar-track {
@@ -889,6 +900,58 @@ page {
   background: linear-gradient(135deg, var(--g700), var(--g800));
   color: #ffffff;
   text-align: center;
+}
+
+/* ---------- 溯源二维码 ---------- */
+.qr-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 26px;
+}
+
+.qr-img {
+  width: 240px;
+  height: 240px;
+  padding: 12px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+
+.qr-tip {
+  font-size: 20px;
+  color: var(--muted);
+  margin-top: 12px;
+}
+
+/* 记录卡片里的轻量文字操作（删除等），不抢主操作视觉 */
+.link-danger {
+  color: #bf4545;
+  font-size: 22px;
+  font-weight: 800;
+  padding: 6px 8px;
+}
+
+/* 记录卡片底部的操作行：右对齐放「删除」这类次要操作 */
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 12px;
+}
+
+/* 列表项右侧区域：日期 + 删除，上下排列 */
+.todo-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.todo-side .link-danger {
+  margin-top: 6px;
 }
 
 /* ---------- 账号管理（平台管理员）---------- */

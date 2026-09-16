@@ -9,6 +9,7 @@ import StateHint from '@/components/StateHint'
 import { buildFormConfigs, RECORD_MENU, type FormConfig } from '@/config/forms'
 import { baseNameOf, useCloudData } from '@/hooks/useCloudData'
 import { logout, ROLE_OPTIONS, roleLabel } from '@/utils/auth'
+import { deleteRecord } from '@/utils/deleteRecord'
 import { FORM_MODULE, can, guard } from '@/utils/permission'
 import { getUser, saveAuth } from '@/utils/storage'
 import { api } from '@/utils/request'
@@ -274,17 +275,20 @@ export default function Home() {
             </View>
           </View>
 
-          {/* 账号管理入口永远显示：管理员直接打开分配；
-              其他角色点击后先输入管理员账号密码，验证通过自动进入分配界面 */}
+          {/* 常用入口集中在一排：账号管理（管理员直接打开分配，其他角色先验证管理员身份）、
+              溯源查询、退出登录 */}
           <View className='toolbar' style='margin-top:20px'>
             <View
               className='btn secondary'
               onClick={() => (can('users', 'w') ? openUserSheet() : setAdminSheet(true))}
             >
-              账号管理 · 分配职务
+              账号管理
             </View>
-            <View className='btn secondary' onClick={() => setPermSheet(true)}>
-              角色权限说明
+            <View className='btn secondary' onClick={() => Taro.switchTab({ url: '/pages/trace/index' })}>
+              溯源查询
+            </View>
+            <View className='btn secondary' onClick={handleLogout}>
+              退出登录
             </View>
           </View>
 
@@ -354,7 +358,23 @@ export default function Home() {
                       {reading.co2 ?? '--'}ppm · {reading.source === 'device' ? '硬件自动' : '手动补录'}
                     </Text>
                   </View>
-                  <Text className='todo-action'>{dateOnly(reading.recorded_at)}</Text>
+                  <View className='todo-side'>
+                    <Text className='todo-action'>{dateOnly(reading.recorded_at)}</Text>
+                    <Text
+                      className='link-danger'
+                      onClick={() =>
+                        deleteRecord({
+                          module: 'readings',
+                          resource: 'readings',
+                          id: reading.id,
+                          label: '环境记录',
+                          onDone: reload
+                        })
+                      }
+                    >
+                      删除
+                    </Text>
+                  </View>
                 </View>
               ))
             ) : (
@@ -443,8 +463,8 @@ export default function Home() {
               <Text className='badge'>数据独立保存</Text>
             </View>
             <View className='toolbar' style='margin-bottom:0'>
-              <View className='btn secondary' onClick={handleLogout}>
-                退出登录
+              <View className='btn secondary' onClick={() => setPermSheet(true)}>
+                角色权限说明
               </View>
             </View>
           </View>

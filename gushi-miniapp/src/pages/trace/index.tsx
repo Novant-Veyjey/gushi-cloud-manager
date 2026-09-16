@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Input, Text, View } from '@tarojs/components'
+import { Image, Input, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 
 import BrandBar from '@/components/BrandBar'
@@ -9,6 +9,7 @@ import StateHint from '@/components/StateHint'
 import { buildFormConfigs, type FormConfig } from '@/config/forms'
 import { useCloudData } from '@/hooks/useCloudData'
 import { FORM_MODULE, guard } from '@/utils/permission'
+import { qrDataUrlOf, tracePageUrl } from '@/utils/qrcode'
 import { api } from '@/utils/request'
 import { dateOnly, money } from '@/utils/format'
 import type { TraceResult } from '@/types'
@@ -19,6 +20,7 @@ export default function Trace() {
 
   const [keyword, setKeyword] = useState('')
   const [result, setResult] = useState<TraceResult | null>(null)
+  const [qrUrl, setQrUrl] = useState('')
   const [querying, setQuerying] = useState(false)
   const [activeForm, setActiveForm] = useState<FormConfig | null>(null)
 
@@ -42,9 +44,12 @@ export default function Trace() {
       const detail = await api<TraceResult>(`/api/trace/${encodeURIComponent(value)}`)
       setResult(detail)
       setKeyword(value)
+      // 生成扫码即看的公开溯源页二维码（买家扫一下就能核对来源）
+      setQrUrl(qrDataUrlOf(tracePageUrl(detail.batch.code)))
       Taro.showToast({ title: '查询成功', icon: 'success' })
     } catch (err) {
       setResult(null)
+      setQrUrl('')
       Taro.showToast({ title: (err as Error).message, icon: 'none' })
     } finally {
       setQuerying(false)
@@ -159,6 +164,14 @@ export default function Trace() {
                       </View>
                     </View>
                   ))}
+                </View>
+              ) : null}
+
+              {/* 溯源二维码：扫码打开公开溯源页，买家无需登录即可核对来源 */}
+              {qrUrl ? (
+                <View className='qr-box'>
+                  <Image className='qr-img' src={qrUrl} mode='aspectFit' />
+                  <Text className='qr-tip'>扫码查看该批次公开溯源信息</Text>
                 </View>
               ) : null}
             </View>

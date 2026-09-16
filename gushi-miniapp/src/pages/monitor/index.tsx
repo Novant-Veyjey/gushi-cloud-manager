@@ -12,6 +12,7 @@ import { baseNameOf, useCloudData } from '@/hooks/useCloudData'
 import { api } from '@/utils/request'
 import { readableTime } from '@/utils/format'
 import { FORM_MODULE, guard } from '@/utils/permission'
+import { deleteRecord } from '@/utils/deleteRecord'
 import type { Device, DeviceSeries } from '@/types'
 
 /** 设备近 24 小时温度趋势（等长分桶的平均值柱状图） */
@@ -278,6 +279,22 @@ export default function Monitor() {
                   </View>
                 </View>
                 {reading.light !== null && reading.light !== undefined ? <Text className='meta'>光照：{reading.light} lux</Text> : null}
+                <View className='row-actions'>
+                  <Text
+                    className='link-danger'
+                    onClick={() =>
+                      deleteRecord({
+                        module: 'readings',
+                        resource: 'readings',
+                        id: reading.id,
+                        label: '环境记录',
+                        onDone: reload
+                      })
+                    }
+                  >
+                    删除记录
+                  </Text>
+                </View>
               </View>
             ))
           ) : (

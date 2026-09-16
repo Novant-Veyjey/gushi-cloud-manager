@@ -291,7 +291,8 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
         {config.notice ? <View className='notice'>{config.notice}</View> : null}
         {/* 字段放在可滚动区域里，底部「取消 / 保存到后台」不会被内容顶出屏幕。
             用 ScrollView 而不是 View + overflow：小程序端 view 不支持内部滚动，ScrollView 两端通用 */}
-        <ScrollView className='sheet-body' scrollY>
+        {/* enhanced + showScrollbar：小程序端也显示滚动条，提示还能往下滑 */}
+        <ScrollView className='sheet-body' scrollY enhanced showScrollbar>
           {visibleFields.map(renderField)}
         </ScrollView>
         <View className='sheet-actions'>
