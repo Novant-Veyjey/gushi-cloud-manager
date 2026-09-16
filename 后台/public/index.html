@@ -262,10 +262,10 @@ function fieldHtml(field){
  const required=field.required?'required':'';
  const full=field.full?'full':'';
  const value=field.value??'';
- if(field.type==='textarea')return `<div class="field ${full}"><label>${esc(field.label)}</label><textarea name="${field.name}" ${required}>${esc(value)}</textarea></div>`;
+ if(field.type==='textarea')return `<div class="field ${full}"><label>${esc(field.label)}</label><textarea name="${field.name}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${required}>${esc(value)}</textarea></div>`;
  if(field.type==='select')return `<div class="field ${full}"><label>${esc(field.label)}</label><select name="${field.name}" ${required}>${selectHtml(field,value)}</select></div>`;
  if(field.type==='file')return `<div class="field ${full}"><label>${esc(field.label)}</label><input type="file" name="${field.name}" accept="image/jpeg,image/png,image/webp,image/gif"></div>`;
- return `<div class="field ${full}"><label>${esc(field.label)}</label><input type="${field.type||'text'}" name="${field.name}" value="${esc(value)}" ${field.step?`step="${field.step}"`:''} ${required}></div>`;
+ return `<div class="field ${full}"><label>${esc(field.label)}</label><input type="${field.type||'text'}" name="${field.name}" value="${esc(value)}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ${field.step?`step="${field.step}"`:''} ${required}></div>`;
 }
 /* 修改回显：日期只保留年月日，避免 date 输入框不认带时间的字符串 */
 function recordFieldValue(field,record){
@@ -306,6 +306,20 @@ function go(page){if(!state.token){toast('请先登录账号',true);renderLogin(
 function uploadImage(file){return new Promise((resolve,reject)=>{if(file.size>4*1024*1024)return reject(new Error('图片不能超过 4MB'));const reader=new FileReader();reader.onerror=()=>reject(new Error('图片读取失败'));reader.onload=async()=>{try{const result=await api('/api/uploads',{method:'POST',body:JSON.stringify({data:reader.result})});resolve(result.url)}catch(error){reject(error)}};reader.readAsDataURL(file)})}
 function iconHtml(icon,alt='产品图标'){return icon?(icon.startsWith('http')||icon.startsWith('/')?`<img src="${esc(icon)}" alt="${esc(alt)}">`:esc(icon)):'🍄'}
 function openIconEditor(id){const product=state.data.products.find(item=>item.id===Number(id));if(!product)return;const presets=['🍄','🌿','🌱','🥬','🫘','🍲','📦','🏷️'];let selected=product.icon||'🍄';$('#sheetTitle').textContent='更换产品图标';$('#sheetDesc').textContent='选择预设图标，或上传自己的图片，保存后写入后台。';$('#sheetBody').innerHTML=`<div class="icon-preview" id="iconPreview">${iconHtml(selected,product.name)}</div><div class="preset-icons">${presets.map(icon=>`<button type="button" data-icon-choice="${icon}" class="${icon===selected?'active':''}">${icon}</button>`).join('')}</div><div class="field" style="margin-top:14px"><label>上传图片</label><input id="iconFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></div><div class="sheet-actions"><button type="button" class="secondary" data-close-sheet>取消</button><button type="button" class="primary" id="saveIcon">保存图标</button></div>`;$('#sheetMask').classList.add('open');$$('[data-icon-choice]').forEach(button=>button.addEventListener('click',()=>{selected=button.dataset.iconChoice;$$('[data-icon-choice]').forEach(item=>item.classList.toggle('active',item===button));$('#iconPreview').innerHTML=iconHtml(selected,product.name)}));$('#iconFile').addEventListener('change',event=>{const file=event.target.files?.[0];if(file){const url=URL.createObjectURL(file);$('#iconPreview').innerHTML=`<img src="${url}" alt="预览">`}});$('#saveIcon').addEventListener('click',async()=>{const button=$('#saveIcon');button.disabled=true;button.textContent='保存中...';try{const file=$('#iconFile').files?.[0];const icon=file?await uploadImage(file):selected;await api(`/api/products/${product.id}`,{method:'PUT',body:JSON.stringify({icon})});closeSheet();toast('产品图标已更新');await loadAll()}catch(error){toast(error.message,true);button.disabled=false;button.textContent='保存图标'}})}
+/* 页面内确认框：Cloud Studio 预览等 iframe(sandbox) 环境会拦截 window.confirm，
+   原生确认框直接返回 false，表现为「点了没有任何反应」。这里改用自绘弹层，保证操作可用。 */
+function askConfirm(message,confirmText='确定'){
+ return new Promise(resolve=>{
+  const mask=document.createElement('div');
+  mask.style.cssText='position:fixed;inset:0;z-index:400;background:rgba(12,38,26,.45);display:flex;align-items:center;justify-content:center;padding:24px';
+  mask.innerHTML=`<div style="width:100%;max-width:300px;background:#fff;border-radius:18px;padding:18px 16px 16px"><div style="font-size:13px;font-weight:900;margin-bottom:8px">请确认</div><div style="font-size:11px;line-height:1.7;color:#4d6356">${esc(message)}</div><div style="display:flex;gap:8px;margin-top:16px"><button type="button" data-cancel style="flex:1;height:40px;border:1px solid #dfe9e2;border-radius:12px;background:#f5f8f6;color:#53685c;font-size:12px;font-weight:800">取消</button><button type="button" data-ok style="flex:1;height:40px;border:0;border-radius:12px;background:linear-gradient(135deg,var(--g700),var(--g800));color:#fff;font-size:12px;font-weight:800">${esc(confirmText)}</button></div></div>`;
+  const done=value=>{mask.remove();resolve(value)};
+  mask.querySelector('[data-cancel]').addEventListener('click',()=>done(false));
+  mask.querySelector('[data-ok]').addEventListener('click',()=>done(true));
+  mask.addEventListener('click',event=>{if(event.target===mask)done(false)});
+  document.body.appendChild(mask);
+ })
+}
 document.addEventListener('click',async event=>{
  const pageButton=event.target.closest('[data-page]');if(pageButton){go(pageButton.dataset.page);return}
  const formButton=event.target.closest('[data-form]');if(formButton){openSheet(formButton.dataset.form);return}
@@ -332,7 +346,7 @@ document.addEventListener('click',async event=>{
   const input=document.getElementById('newpwd_'+id);
   const value=input.value;
   if(value.length<6){toast('新密码至少 6 位',true);return}
-  if(!window.confirm('重置提醒：确定重置该账号的登录密码吗？重置后原密码立即失效，请把新密码告知对方。'))return;
+  if(!await askConfirm('重置提醒：确定重置该账号的登录密码吗？重置后原密码立即失效，请把新密码告知对方。','确定重置'))return;
   try{await api('/api/admin/users/'+id+'/password',{method:'PUT',body:JSON.stringify({password:value})});toast('密码已重置，请把新密码告知对方');input.value='';document.getElementById('pwReset_'+id).style.display='none'}
   catch(error){toast(error.message,true)}
   return
@@ -344,7 +358,7 @@ document.addEventListener('click',async event=>{
  if(setRole){
   const parts=setRole.dataset.setRole.split(':');
   const label=(ALL_ROLES.find(r=>r.value===parts[1])||{}).label||parts[1];
-  if(!window.confirm('职位分配提醒：确定把该账号的职务改为「'+label+'」吗？对方重新登录后生效。'))return;
+  if(!await askConfirm('职位分配提醒：确定把该账号的职务改为「'+label+'」吗？对方重新登录后生效。','确定修改'))return;
   try{await api('/api/admin/users/'+parts[0]+'/role',{method:'PUT',body:JSON.stringify({role:parts[1]})});toast('角色已更新，对方重新登录后生效');await loadUsers()}
   catch(error){toast(error.message,true)}
   return
@@ -358,7 +372,7 @@ document.addEventListener('click',async event=>{
   }catch(error){toast(error.message,true)}
   return
  }
- const del=event.target.closest('[data-del]');if(del){const parts=del.dataset.del.split(':');if(!window.confirm('删除提醒：确定删除这条记录吗？删除后不可恢复。'))return;try{await api(`/api/${parts[0]}/${parts[1]}`,{method:'DELETE'});toast('已删除');await loadAll()}catch(error){toast(error.message,true)}return}
+ const del=event.target.closest('[data-del]');if(del){const parts=del.dataset.del.split(':');if(!await askConfirm('删除提醒：确定删除这条记录吗？删除后不可恢复。','确定删除'))return;try{await api(`/api/${parts[0]}/${parts[1]}`,{method:'DELETE'});toast('已删除');await loadAll()}catch(error){toast(error.message,true)}return}
  const ack=event.target.closest('[data-ack]');if(ack){try{await api(`/api/alerts/${ack.dataset.ack}/ack`,{method:'POST',body:'{}'});toast('预警已处理');await loadAll()}catch(error){toast(error.message,true)}return}
  const search=event.target.closest('[data-trace-search]');if(search){const code=$('#traceCode').value.trim();if(!code){toast('请输入批次编号',true);return}try{state.traceCode=code;state.traceResult=await api(`/api/trace/${encodeURIComponent(code)}`);render();toast('查询成功')}catch(error){state.traceResult=null;render();toast(error.message,true)}return}
 });
@@ -425,7 +439,7 @@ function openUserManage(){
   if(!target){toast('请先搜索并选择要修改的账号',true);return}
   const role=getRole();
   const label=(ALL_ROLES.find(r=>r.value===role)||{}).label||role;
-  if(!window.confirm('职位分配提醒：确定把「'+target.username+'」的职务改为「'+label+'」吗？对方重新登录后生效。'))return;
+  if(!await askConfirm('职位分配提醒：确定把「'+target.username+'」的职务改为「'+label+'」吗？对方重新登录后生效。','确定修改'))return;
   try{await api('/api/admin/users/'+target.id+'/role',{method:'PUT',body:JSON.stringify({role})});toast('角色已更新，对方重新登录后生效');await loadUsers()}
   catch(error){toast(error.message,true)}
  });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Image, Input, Picker, ScrollView, Text, Textarea, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 
@@ -23,6 +23,17 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
   const [values, setValues] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
 
+  /**
+   * 输入法兼容（重点：中文「打不出字」）：
+   * 微信小程序/部分 H5 端在中文输入法组词尚未上屏时，如果把 value 重新回写进输入框，
+   * 会打断组词过程，现场表现就是「备注/输入框打不出中文」。
+   * 处理方式：小程序端用打开表单时的初始值作为受控值（打字过程中不回写，输入始终跟手）；
+   * H5 端在 composition 组词期间暂停回写，组词结束再统一写回。
+   */
+  const isMiniProgram = process.env.TARO_ENV !== 'h5'
+  const initialRef = useRef<Record<string, string>>({})
+  const composingRef = useRef<Record<string, boolean>>({})
+
   useEffect(() => {
     if (!visible || !config) return
     const next: Record<string, string> = {}
@@ -30,6 +41,8 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
       next[field.name] = field.defaultValue ?? ''
     })
     setValues(next)
+    initialRef.current = next
+    composingRef.current = {}
     setSubmitting(false)
   }, [visible, config])
 
@@ -53,6 +66,29 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
 
   const setValue = (name: string, value: string) => {
     setValues((prev) => ({ ...prev, [name]: value }))
+  }
+
+  /** 文本/多行输入的统一事件绑定，保证中文输入法组词不被打断（详见上方说明） */
+  const textHandlers = (name: string): any => {
+    const base: any = {
+      onInput: (event: any) => setValue(name, event.detail.value),
+    }
+    if (isMiniProgram) return base
+    return {
+      ...base,
+      onCompositionStart: () => {
+        composingRef.current[name] = true
+      },
+      onCompositionEnd: (event: any) => {
+        composingRef.current[name] = false
+        const next = event?.detail?.value ?? event?.target?.value
+        if (typeof next === 'string') setValue(name, next)
+      },
+      onInput: (event: any) => {
+        if (composingRef.current[name]) return
+        setValue(name, event.detail.value)
+      },
+    }
   }
 
   const pickImage = async (name: string) => {
@@ -99,6 +135,8 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
 
   const renderField = (field: FormField) => {
     const value = values[field.name] ?? ''
+    // 小程序端受控值固定为打开表单时的初始值：打字过程中不再回写，中文输入法不会被中断
+    const displayValue = isMiniProgram ? initialRef.current[field.name] ?? '' : value
     const label = (
       <Text className='field-label'>
         {field.label}
@@ -112,9 +150,9 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
           {label}
           <Textarea
             className='field-textarea'
-            value={value}
+            value={displayValue}
             placeholder={field.placeholder || `请输入${field.label}`}
-            onInput={(event) => setValue(field.name, event.detail.value)}
+            {...textHandlers(field.name)}
           />
         </View>
       )
@@ -237,9 +275,9 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
         <Input
           className='field-input'
           type={field.type === 'number' ? 'digit' : 'text'}
-          value={value}
+          value={displayValue}
           placeholder={field.placeholder || `请输入${field.label}`}
-          onInput={(event) => setValue(field.name, event.detail.value)}
+          {...textHandlers(field.name)}
         />
       </View>
     )
