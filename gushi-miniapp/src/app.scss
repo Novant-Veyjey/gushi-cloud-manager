@@ -810,11 +810,8 @@ page {
 
 .sheet {
   width: 100%;
-  max-height: 90vh;
-  /* dvh 是动态视口高度：手机浏览器地址栏收起/展开时 vh 会偏大导致弹层超出可视区，
-     支持 dvh 的浏览器用 min() 留出边距，不支持的忽略这条、用上面的 90vh 兜底 */
-  max-height: min(90vh, calc(100dvh - 24px));
-  /* flex 纵向布局：标题固定、内容区（含底部按钮）滚动 */
+  max-height: 86vh;
+  /* flex 纵向布局：标题固定、内容区滚动、底部按钮固定 */
   display: flex;
   flex-direction: column;
   background: #ffffff;

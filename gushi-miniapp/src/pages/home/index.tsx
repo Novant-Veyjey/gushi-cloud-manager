@@ -458,7 +458,7 @@ export default function Home() {
           <View className='sheet' onClick={(event) => event.stopPropagation()}>
             <Text className='sheet-title'>新增数据</Text>
             <Text className='sheet-desc'>选择要保存到后台数据库的记录类型</Text>
-            {/* 菜单项与底部「取消」都放进滚动区，滑到底一定能看到按钮 */}
+            {/* 菜单项放进滚动区，条目多时也不会把底部「取消」顶出屏幕 */}
             <ScrollView className='sheet-body' scrollY>
               {RECORD_MENU.filter((item) => can(FORM_MODULE[item.key], 'w')).map((item) => (
                 <View className='sheet-menu-item' key={item.key} onClick={() => openForm(item.key)}>
@@ -468,12 +468,12 @@ export default function Home() {
               {RECORD_MENU.some((item) => !can(FORM_MODULE[item.key], 'w')) ? (
                 <View className='notice'>部分数据类型当前角色没有录入权限，已自动隐藏。</View>
               ) : null}
-              <View className='sheet-actions'>
-                <View className='btn secondary' onClick={() => setMenuVisible(false)}>
-                  取消
-                </View>
-              </View>
             </ScrollView>
+            <View className='sheet-actions'>
+              <View className='btn secondary' onClick={() => setMenuVisible(false)}>
+                取消
+              </View>
+            </View>
           </View>
         </View>
       ) : null}

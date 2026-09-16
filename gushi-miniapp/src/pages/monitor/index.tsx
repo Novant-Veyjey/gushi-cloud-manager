@@ -328,35 +328,37 @@ export default function Monitor() {
             <Text className='sheet-title'>设备接入凭证</Text>
             <Text className='sheet-desc'>把下面两项配置到温室网关，设备即可自动上报数据（密钥请勿外泄）。</Text>
 
-            {/* 凭证、说明与所有按钮都放进滚动区，滑到底一定能看到「关闭」 */}
+            <View className='field'>
+              <Text className='field-label'>设备编号</Text>
+              <View className='field-picker filled'>{credential.code}</View>
+            </View>
+            <View className='field'>
+              <Text className='field-label'>设备密钥</Text>
+              <View className='field-picker filled'>{credential.secret || '（已隐藏，请重新获取）'}</View>
+            </View>
+
+            {/* 接口说明较长，放进滚动区，避免两个按钮区被顶出屏幕 */}
             <ScrollView className='sheet-body' scrollY>
-              <View className='field'>
-                <Text className='field-label'>设备编号</Text>
-                <View className='field-picker filled'>{credential.code}</View>
-              </View>
-              <View className='field'>
-                <Text className='field-label'>设备密钥</Text>
-                <View className='field-picker filled'>{credential.secret || '（已隐藏，请重新获取）'}</View>
-              </View>
               <View className='notice'>
                 上报地址：POST /api/ingest/readings{'\n'}
                 请求头：X-Device-Code、X-Device-Secret{'\n'}
                 请求体示例：{'{'}"temperature":24.5,"humidity":88,"co2":650,"light":320{'}'}
               </View>
-              <View className='sheet-actions'>
-                <View className='btn secondary' onClick={() => copy(credential.code)}>
-                  复制编号
-                </View>
-                <View className='btn primary' onClick={() => copy(credential.secret || '')}>
-                  复制密钥
-                </View>
-              </View>
-              <View className='sheet-actions'>
-                <View className='btn secondary' onClick={() => setCredential(null)}>
-                  关闭
-                </View>
-              </View>
             </ScrollView>
+
+            <View className='sheet-actions'>
+              <View className='btn secondary' onClick={() => copy(credential.code)}>
+                复制编号
+              </View>
+              <View className='btn primary' onClick={() => copy(credential.secret || '')}>
+                复制密钥
+              </View>
+            </View>
+            <View className='sheet-actions'>
+              <View className='btn secondary' onClick={() => setCredential(null)}>
+                关闭
+              </View>
+            </View>
           </View>
         </View>
       ) : null}
