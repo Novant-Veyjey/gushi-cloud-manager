@@ -1,149 +1,75 @@
 # 菇事云管家
 
-**数字技术赋能赣北食用菌产业振兴的先行者**
+**数字技术赋能赣北食用菌产业振兴**
 
-面向赣北食用菌产业的数字化管理平台：以基地、批次、菌棒为核心档案，打通生产记录、环境监测预警、专家服务、质量溯源与产销对接，并提供微信小程序端。
-
-本仓库包含两部分：
+食用菌产业数字化管理平台：以基地、批次、菌棒为核心档案，打通生产记录、环境监测预警、AI 问答、质量溯源与产销对接，并提供微信小程序端。
 
 | 目录 | 内容 |
 |---|---|
-| [`后台/`](./后台) | Express + better-sqlite3 服务端：RESTful 接口、JWT 登录、RBAC 权限、SQLite 持久化、手机风格 HTML 原型 |
-| [`gushi-miniapp/`](./gushi-miniapp) | Taro 4 + React 18 + TypeScript 微信小程序：五个 Tab + 专家服务 + 登录注册 |
+| [`后台/`](./后台) | Express + better-sqlite3：RESTful 接口、JWT 登录、RBAC 权限、SQLite 持久化、设备接入与 MQTT 适配层 |
+| [`gushi-miniapp/`](./gushi-miniapp) | Taro 4 + React 18 + TypeScript 微信小程序：五个 Tab + AI 问答 + 登录注册 |
 
-## 功能对照
-
-| 编号 | 模块 | 说明 |
-|---|---|---|
-| FR-01 | 基地管理 | 基地档案新增/查询/修改 |
-| FR-02 | 批次管理 | 批次与菌棒信息，批次编号唯一 |
-| FR-03 | 环境录入 | **大棚硬件自动上报**温湿度/CO₂/光照（设备密钥鉴权），断网时可手动补录 |
-| FR-04 | 自动预警 | 上报数据超过阈值自动生成预警，阈值可按设备单独配置 |
-| FR-05 | 专家问答 | **AI 智能问答**（OpenAI 兼容接口，自动带入本账号实时数据），未配置时降级规则知识库，人工专家可补充 |
-| FR-06 | 质量溯源 | 批次事件时间线 + 公开查询（扫码/编号） |
-| FR-07 | 供应信息 | 产品、数量、价格、日期、图标、批次 |
-| FR-08 | 采购需求 | 采购方、产品、数量与联系要求 |
-| FR-09 | 任务管理 | 任务、截止日期与优先级建议（AI / 规则引擎） |
-| FR-10 | 统计分析 | 首页汇总只反映真实数据库记录 |
-| FR-11 | 权限控制 | JWT 登录 + RBAC 六角色 + 账号级数据隔离 |
-| FR-14 | 微信小程序 | 复用后台接口，五个主要 Tab |
+**功能**：基地 / 批次 / 环境监测预警 / AI 问答 / 质量溯源 / 供应与采购 / 任务管理 / 统计 / 权限 / 微信小程序
 
 ## 快速开始
 
-### 1. 启动后台
-
 ```bash
-cd 后台
-npm install
-copy .env.example .env    # 填入 AI_API_KEY 等配置（可选，不填则 AI 用规则知识库，见下）
-npm start                 # http://localhost:3000
+# 1) 后台（必须先启动）
+cd 后台 && npm install && npm start          # http://localhost:3000
+npm run seed:demo                            # 可选：演示数据，账号 demo / demo123456
+
+# 2) 小程序
+cd gushi-miniapp && npm install
+npm run dev:weapp                            # 微信开发者工具导入本目录，勾选“不校验合法域名”
+# 或浏览器预览：npm run build:h5 && npm run preview:h5   → http://localhost:5173
 ```
 
-`.env` 可选配置（不填也能跑）：
+后台启动后也可直接打开 http://localhost:3000 使用手机风格原型。
+
+`.env` 可选配置（不填也能跑，AI 会自动降级为规则知识库）：
 
 ```text
 AI_BASE_URL=https://api.deepseek.com/v1     # AI 问答（OpenAI 兼容接口）
 AI_API_KEY=你的密钥
 AI_MODEL=deepseek-chat
-WX_APPID=                                    # 微信一键登录（可选）
-WX_SECRET=
+WX_APPID= / WX_SECRET=                       # 微信一键登录（可选）
+MQTT_URL=mqtt://127.0.0.1:1883              # MQTT 设备接入（可选）
 ```
 
-可选：写入演示数据（演示账号 `demo` / `demo123456`，数据均带“演示”标记）
+数据保存在 `后台/server/data/gushi.sqlite`，重启不丢失；`npm run backup` 备份数据库与图片。
+
+## 大棚硬件接入
+
+环境数据由大棚设备自动上报，无需人工录入：
 
 ```bash
-npm run seed:demo
-```
-
-数据库文件为 `后台/server/data/gushi.sqlite`，服务重启数据不丢失；`npm run backup` 可备份数据库与图片目录。
-
-### 2. 查看小程序
-
-**方式 A：微信开发者工具（正式）**
-
-```bash
-cd gushi-miniapp
-npm install
-npm run dev:weapp         # 或 npm run build:weapp 只编译一次
-```
-
-微信开发者工具 → 导入项目 → 目录选 `gushi-miniapp` → AppID 选测试号 → 详情/本地设置里勾选 **不校验合法域名** → 编译。
-
-**方式 B：浏览器快速预览**
-
-```bash
-cd gushi-miniapp
-npm install
-npm run build:h5 && npm run preview:h5    # http://localhost:5173
-```
-
-**方式 C：后台自带手机风格原型**：后台启动后直接打开 http://localhost:3000
-
-## 大棚硬件接入（数据自动上报）
-
-环境数据由大棚里的检测设备自动上报，无需人工录入：
-
-```bash
-# 1) 创建接入设备（后台或小程序里操作，返回设备编号与密钥）
-curl -X POST http://localhost:3000/api/devices \
-  -H "Authorization: Bearer <JWT>" -H "Content-Type: application/json" \
-  -d '{"name":"1 号棚温湿度网关","base_id":1,"temp_max":26,"humidity_min":80,"co2_max":800}'
-
-# 2) 硬件端定时上报（设备密钥鉴权，不需要账号登录）
+# 硬件端定时上报（设备密钥鉴权，无需登录）
 curl -X POST http://localhost:3000/api/ingest/readings \
   -H "X-Device-Code: GS-XXXXXX" -H "X-Device-Secret: <设备密钥>" \
   -H "Content-Type: application/json" \
   -d '{"temperature":24.5,"humidity":88,"co2":650,"light":320}'
+
+# 也可走 MQTT：npm run mqtt（适配层） + npm run mqtt:broker（本地演示 broker）
 ```
 
-上报即入库并按阈值自动预警；超过 10 分钟无上报，小程序显示设备离线。另有 `POST /api/ingest/heartbeat`（心跳）与 `GET /api/ingest/config`（设备自检阈值）。
+上报即入库并按阈值自动预警；超过 10 分钟无上报显示离线；`GET /api/devices/:id/series?hours=24` 提供历史曲线。设备编号与密钥在「监测 → 接入大棚设备」生成。
 
-**也支持 MQTT 接入**（适配层把报文转成同一套入库逻辑）：
+## AI 问答
 
-```bash
-npm run mqtt:broker   # 可选：内置的本地 broker（基于 aedes），没有真实 broker 时用于演示
-npm run mqtt          # 启动适配层，订阅 <前缀>/devices/<设备编号>/readings 与 /heartbeat
-```
-
-报文格式 `{"secret":"<设备密钥>","temperature":24.5,"humidity":88,"co2":650,"light":320}`；密钥错误、设备停用、非法 JSON 一律丢弃并打印原因。历史数据可通过 `GET /api/devices/:id/series?hours=24` 取等长分桶的曲线数据（小程序监测页可直接查看近 24 小时温度趋势）。
-
-## AI 智能问答
-
-`POST /api/ai/ask` 调用大模型回答种植问题，并自动把该账号最近的基地、批次、环境数据作为上下文。回答会标注来源：`ai`（大模型）/ `rule`（未配置密钥或调用失败时降级为内置规则知识库）/ 人工专家补充。AI 仅作辅助，重要决策请咨询当地农技专家。
+`POST /api/ai/ask` 调用大模型回答种植问题，并自动带入该账号最近的基地、批次、环境数据。回答标注来源：`ai`（大模型）/ `rule`（未配置密钥时降级为规则知识库）/ 人工专家补充。AI 仅作辅助，重要决策请咨询当地农技专家。
 
 ## 账号与权限
 
-- 注册登录后每个账号拥有独立数据，互相不可见；数据由用户自己录入。
-- JWT（HS256）登录态，7 天有效，退出登录立即失效；密钥持久化在 `server/data/jwt.secret`。
-- 小程序支持**微信一键登录**（`wx.login` → `code2session`），需在 `后台/.env` 配置 `WX_APPID` / `WX_SECRET`；未配置时会明确提示并建议改用账号密码。
-- RBAC 六种角色：菇农、合作社/基地管理员、专家、采购商、政府/服务机构、平台管理员。后端强制校验，越权返回 403。
-
-把某个账号提升为平台管理员：
-
-```bash
-cd 后台
-npm run make:admin -- 你的账号
-```
+注册后每个账号的数据互相隔离；JWT 登录态 7 天有效，退出立即失效。六种角色（菇农 / 基地管理员 / 专家 / 采购商 / 政府机构 / 平台管理员）由后端强制校验，越权返回 403。提升管理员：`cd 后台 && npm run make:admin -- 账号`。
 
 ## 技术栈
 
-- **后端**：Node.js + Express，better-sqlite3（SQLite），JWT（自研 HS256，零依赖），scrypt 密码哈希
-- **小程序**：Taro 4.2.1、React 18、TypeScript 5、SCSS
-- **接口约定**：RESTful JSON，统一返回 `{ code, message, data }`
+后端 Node.js + Express + better-sqlite3 + JWT（自研 HS256）；小程序 Taro 4 + React 18 + TypeScript；接口统一返回 `{ code, message, data }`。
 
 ## 数据真实性原则
 
-1. 所有页面只展示数据库中已保存的记录，不使用硬编码业务数据。
-2. 没有数据时显示空状态，统计数字与数据库记录数严格一致。
-3. 后台连不上或未登录时明确提示失败，不做虚构数据兜底。
-4. 演示数据全部带“演示”标记，比赛与上线前替换为经确认的真实数据。
-
-## 常见问题
-
-- **git 提示 SSL certificate problem**：本机 git 可使用 Windows 证书库，命令前加 `-c http.sslBackend=schannel`，或自行执行一次 `git config --global http.sslBackend schannel`。
-- **小程序连不上后台**：确认后台已启动；真机预览时把 `gushi-miniapp/src/config/index.ts` 的 `BASE_URL` 改成电脑局域网 IP。
-- **微信一键登录不可用**：未配置 `WX_APPID`/`WX_SECRET` 时属正常降级，改用账号密码登录即可。
+只展示数据库中已保存的记录，无数据时显示空状态，统计数字与数据库一致，连不上或未登录时明确提示失败，不做虚构数据兜底；演示数据全部带“演示”标记。
 
 ---
 
-各子项目的详细说明见 [`后台/README.md`](./后台/README.md) 与 [`gushi-miniapp/README.md`](./gushi-miniapp/README.md)。
+详细说明见 [`后台/README.md`](./后台/README.md) 与 [`gushi-miniapp/README.md`](./gushi-miniapp/README.md)。
