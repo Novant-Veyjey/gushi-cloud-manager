@@ -48,7 +48,14 @@ button,input{font:inherit}button{cursor:pointer}.phone{width:430px;height:900px;
 /* 删除按钮：红色文字，带确认提醒 */
 .action-link{border:0;background:none;color:var(--g700);font-size:11px;font-weight:800;cursor:pointer;padding:3px 8px;border-radius:8px}
 .action-link:hover{background:#eef6ef}
+.action-link{border:0;background:none;color:var(--g700);font-size:11px;font-weight:800;cursor:pointer;padding:3px 8px;border-radius:8px}
+.action-link:hover{background:#eef6ef}
 .action-link.danger{color:#bf4545}
+.action-link.danger:hover{background:#ffeded}
+/* 溯源二维码 */
+.qr{width:150px;height:150px;padding:8px;border:1px solid #e4ece6;border-radius:14px;margin:16px auto 0;background:#fff}
+.qr img{width:100%;height:100%;display:block}
+.verified{display:inline-flex;align-items:center;gap:5px;margin-top:12px;font-size:10px;color:var(--g800);background:#e7f4ea;padding:6px 10px;border-radius:99px;font-weight:800}
 .action-link.danger:hover{background:#ffeded}
 </style>
 </head>
@@ -76,6 +83,8 @@ button,input{font:inherit}button{cursor:pointer}.phone{width:430px;height:900px;
   </div>
   <div class="toast" id="toast">已完成</div>
 </div>
+<script src="/vendor/qrcode.js"></script>
+<script src="/vendor/qrcode_UTF8.js"></script>
 <script>
 const state={page:'home',loading:true,error:'',token:localStorage.getItem('gushi_token')||'',user:JSON.parse(localStorage.getItem('gushi_user')||'null'),data:{dashboard:null,bases:[],batches:[],readings:[],alerts:[],questions:[],products:[],demands:[],tasks:[]}};
 const $=(selector,root=document)=>root.querySelector(selector);
@@ -151,7 +160,7 @@ function renderTrace(){
  let body='<div class="notice">输入真实批次编号后查询。批次、基地、生产事件和产品信息均来自后台数据库。</div>';
  if(result){
   const events=result.events||[],products=result.products||[],batch=result.batch;
-  body=`<div class="card trace-product"><div class="row-top"><div><h3>${esc(batch.mushroom_type)} · ${esc(batch.code)}</h3><p>${esc(batch.base_name||'未关联基地')} · ${esc(batch.base_address||'')}</p></div>${badge('数据库记录')}</div><div class="timeline">${events.length?events.map(e=>`<div class="event"><div class="dot done">✓</div><div><strong>${esc(e.title)}</strong><p>${esc(e.description||e.event_type)}</p></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><time>${esc(dateOnly(e.event_date))}</time><button class="action-link danger" data-del="trace-events:${e.id}">删除</button></div></div>`).join(''):'<div class="empty">该批次暂无溯源事件</div>'}</div>${products.length?products.map(p=>`<div class="demand"><strong>${esc(p.name)}</strong><p>${esc(p.quantity)} ${esc(p.unit)} · ¥${money(p.price)}/${esc(p.unit)}</p></div>`).join(''):''}</div>`;
+  body=`<div class="card trace-product"><div class="row-top"><div><h3>${esc(batch.mushroom_type)} · ${esc(batch.code)}</h3><p>${esc(batch.base_name||'未关联基地')} · ${esc(batch.base_address||'')}</p></div>${badge('数据库记录')}</div><div class="timeline">${events.length?events.map(e=>`<div class="event"><div class="dot done">✓</div><div><strong>${esc(e.title)}</strong><p>${esc(e.description||e.event_type)}</p></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><time>${esc(dateOnly(e.event_date))}</time><button class="action-link danger" data-del="trace-events:${e.id}">删除</button></div></div>`).join(''):'<div class="empty">该批次暂无溯源事件</div>'}</div>${products.length?products.map(p=>`<div class="demand"><strong>${esc(p.name)}</strong><p>${esc(p.quantity)} ${esc(p.unit)} · ¥${money(p.price)}/${esc(p.unit)}</p></div>`).join(''):''}<div style="text-align:center;margin-top:16px"><div class="qr"><img id="traceQr" alt="溯源二维码"></div><div class="verified">扫码查看溯源信息</div><p style="font-size:9px;color:var(--muted);margin:8px 0 0">二维码内容为溯源页面链接，采购商扫码即可查看「${esc(batch.code)}」的完整生产记录。</p></div></div>`;
  }
  return `<section class="page"><div class="toolbar"><div class="search">⌕ <input id="traceCode" placeholder="输入批次编号，例如 DEMO-20260901-01" value="${esc(state.traceCode||'')}"> </div><button class="primary" data-trace-search>查询</button></div><button class="primary full" data-form="trace-event">＋ 新增溯源事件</button>${pageHead('质量溯源','每个批次对应一条可核查的数据链')}${body}</section>`
 }
@@ -188,6 +197,14 @@ function render(){
  if(state.error){$('#app').innerHTML=`<section class="page"><div class="error"><b>后台连接失败</b><br>${esc(state.error)}<br><br>请在项目目录运行：<code>npm start</code>，然后访问 http://localhost:3000。</div></section>`;return}
  const renderers={home:renderHome,production:renderProduction,monitor:renderMonitor,trace:renderTrace,market:renderMarket,expert:renderExpert};
  $('#app').innerHTML=(renderers[state.page]||renderHome)();const renderedPage=$('#app .page');if(renderedPage)renderedPage.classList.add('active');
+ if(state.page==='trace'&&state.traceResult)makeTraceQr();
+}
+/* 生成溯源二维码：内容为公开溯源页链接，采购商扫码即可查看该批次完整记录 */
+function makeTraceQr(){
+ const img=document.getElementById('traceQr');
+ if(!img||typeof qrcode!=='function')return;
+ const url=location.origin+'/trace.html?code='+encodeURIComponent(state.traceCode||'');
+ try{const qr=qrcode(0,'M');qr.addData(url);qr.make();img.src=qr.createDataURL(6,10)}catch(error){img.alt='二维码生成失败'}
 }
 function options(items,valueKey,labelKey,placeholder='请选择'){
  return `<option value="">${esc(placeholder)}</option>`+items.map(item=>`<option value="${esc(item[valueKey])}">${esc(item[labelKey])}</option>`).join('')

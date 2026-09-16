@@ -19,7 +19,8 @@
   "dependencies": {
     "better-sqlite3": "^12.2.0",
     "express": "^4.21.2",
-    "mqtt": "^5.15.2"
+    "mqtt": "^5.15.2",
+    "qrcode-generator": "^2.0.4"
   },
   "devDependencies": {
     "aedes": "^0.51.3"

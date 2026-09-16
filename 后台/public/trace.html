@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f6a4a">
+<title>菇事云管家 · 产品溯源</title>
+<style>
+body{margin:0;font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:radial-gradient(circle at 15% 10%,rgba(156,203,75,.2),transparent 24%),#eaf0e8;color:#17291f}
+.wrap{max-width:430px;margin:0 auto;padding:28px 16px 48px}
+h1{font-size:18px;color:#1f6a4a;display:flex;align-items:center;gap:8px;margin:0 0 4px}
+.sub{font-size:12px;color:#718077;margin:0 0 8px}
+.card{background:#fff;border:1px solid #e5ece7;border-radius:18px;padding:18px;margin-top:14px;box-shadow:0 10px 24px rgba(25,70,49,.08)}
+.badge{display:inline-block;font-size:11px;background:#e7f4ea;color:#1f6a4a;border-radius:99px;padding:4px 10px;font-weight:800}
+h3{margin:10px 0 0;font-size:16px}
+.event{display:flex;gap:10px;padding:12px 0;border-bottom:1px solid #eef2ef}
+.event:last-child{border-bottom:0}
+.dot{width:26px;height:26px;border-radius:50%;background:#27845a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;flex:0 0 auto}
+.meta{color:#718077;font-size:12px;margin:4px 0 0;line-height:1.7}
+.err{color:#bf4545;font-weight:800}
+.footer{margin-top:24px;text-align:center;font-size:11px;color:#9ba89f}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🍄 菇事云管家 · 产品溯源</h1>
+  <p class="sub">展示的数据全部来自生产基地的真实录入</p>
+  <div id="box" class="card">正在查询溯源信息...</div>
+  <div class="footer">菇事云管家 · 数字技术赋能赣北食用菌产业振兴</div>
+</div>
+<script>
+const code = new URLSearchParams(location.search).get('code') || '';
+const box = document.getElementById('box');
+function esc(s){return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+if (!code) {
+  box.innerHTML = '<span class="err">未提供批次编号，请通过产品二维码进入。</span>';
+} else {
+  fetch('/api/trace/' + encodeURIComponent(code))
+    .then(r => r.json())
+    .then(j => {
+      if (j.code !== 0 || !j.data) throw new Error(j.message || '查询失败');
+      const d = j.data, b = d.batch || {}, events = d.events || [], products = d.products || [];
+      let html = '<span class="badge">批次 ' + esc(b.code || code) + '</span>';
+      html += '<h3>' + esc(b.mushroom_type || '') + '</h3>';
+      html += '<p class="meta">基地：' + esc(b.base_name || '未关联基地') + (b.base_address ? ' · ' + esc(b.base_address) : '') + '</p>';
+      if (b.start_date) html += '<p class="meta">入库日期：' + esc(String(b.start_date).slice(0, 10)) + (b.expected_harvest_date ? ' · 预计出菇：' + esc(String(b.expected_harvest_date).slice(0, 10)) : '') + '</p>';
+      if (events.length) {
+        html += '<div style="margin-top:10px">';
+        events.forEach(e => {
+          html += '<div class="event"><div class="dot">✓</div><div><b style="font-size:13px">' + esc(e.title || '') + '</b>';
+          html += '<p class="meta">' + esc(e.event_type || '') + (e.operator ? ' · 操作人：' + esc(e.operator) : '') + (e.event_date ? ' · ' + esc(String(e.event_date).slice(0, 10)) : '');
+          if (e.description) html += '<br>' + esc(e.description);
+          html += '</p></div></div>';
+        });
+        html += '</div>';
+      } else {
+        html += '<p class="meta">该批次暂无溯源事件。</p>';
+      }
+      if (products.length) {
+        html += '<div class="card" style="margin-top:12px"><b style="font-size:13px">该批次产品</b>';
+        products.forEach(p => { html += '<p class="meta">' + esc(p.name || '') + ' · ' + esc(p.quantity ?? '') + ' ' + esc(p.unit || '') + (p.price ? ' · ¥' + esc(p.price) : '') + '</p>'; });
+        html += '</div>';
+      }
+      box.innerHTML = html;
+    })
+    .catch(e => { box.innerHTML = '<span class="err">查询失败：' + esc(e.message) + '</span>'; });
+}
+</script>
+</body>
+</html>
