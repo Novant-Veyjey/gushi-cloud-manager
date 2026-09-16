@@ -244,14 +244,8 @@ function login(payload = {}) {
   const name = String(payload.username || '').trim();
   const secret = String(payload.password || '');
   const row = db.prepare('SELECT * FROM users WHERE username = ?').get(name);
-  if (!row) {
-    // 账号不存在与密码错误分开提示，方便用户判断该去注册还是重试密码
-    const error = new Error('该账号尚未注册，请先注册新账号');
-    error.status = 401;
-    throw error;
-  }
-  if (!verifyPassword(secret, row.password_salt, row.password_hash)) {
-    const error = new Error('密码错误，请重新输入');
+  if (!row || !verifyPassword(secret, row.password_salt, row.password_hash)) {
+    const error = new Error('账号或密码不正确');
     error.status = 401;
     throw error;
   }
