@@ -4,6 +4,7 @@ import Taro from '@tarojs/taro'
 
 import { PRODUCT_ICON_PRESETS } from '@/config'
 import { api, assetUrl, chooseAndUploadImage } from '@/utils/request'
+import { useHideTabBarWhen } from '@/utils/tabbar'
 import { nowLocalDateTime, today } from '@/utils/format'
 import type { FormConfig, FormField } from '@/config/forms'
 
@@ -22,6 +23,9 @@ interface Props {
 export default function FormSheet({ visible, config, onClose, onSaved }: Props) {
   const [values, setValues] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
+
+  // 表单打开期间收起底部 TabBar，避免它盖住弹层最下方的「取消 / 确定」
+  useHideTabBarWhen(visible)
 
   /**
    * 输入法兼容（重点：中文「打不出字」）：

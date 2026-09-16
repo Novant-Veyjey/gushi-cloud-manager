@@ -46,6 +46,39 @@ page {
   box-sizing: border-box;
 }
 
+/* ---------- 二级页面左上角返回入口 ---------- */
+.back-row {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+.back-bar {
+  display: flex;
+  align-items: center;
+  height: 60px;
+  padding: 0 22px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--g800);
+  font-size: 22px;
+  font-weight: 800;
+  box-shadow: 0 6px 16px rgba(27, 73, 52, 0.05);
+  transition: background-color 0.15s ease, transform 0.12s ease;
+}
+
+.back-bar:active {
+  background: #eef5f0;
+  transform: scale(0.96);
+}
+
+.back-arrow {
+  font-size: 32px;
+  line-height: 1;
+  margin-right: 8px;
+}
+
 /* ---------- 页面最顶部左侧的常用入口 ---------- */
 .top-actions {
   display: flex;
@@ -892,21 +925,26 @@ page {
 }
 
 /*
- * 弹层底部按钮：取消 / 保存上下并排（纵向排列）。
- * 两颗按钮同宽同高（都是 .btn 的 84px 高 + flex:1 拉满宽度），文字居中对齐；
+ * 弹层底部按钮：取消 / 确定（保存）左右并排。
+ * 两颗按钮各占一半宽度（flex: 1），高度一致，操作更直观；
  * 保存为主色（绿色），取消为浅色次要按钮。
  */
 .sheet-actions {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  flex-direction: row;
+  gap: 20px;
   margin-top: 20px;
   padding-top: 20px;
   flex-shrink: 0;
   background: #ffffff;
 }
 
-/* 纵向排列后不再需要「右侧按钮」的左边距，避免宽度不一致 */
+/* 并排时两按钮等宽；间距由 gap 控制，避免再叠一层左边距 */
+.sheet-actions .btn {
+  flex: 1;
+  min-width: 0;
+}
+
 .sheet-actions .btn + .btn {
   margin-left: 0;
 }

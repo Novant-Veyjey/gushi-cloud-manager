@@ -13,6 +13,7 @@ import { api } from '@/utils/request'
 import { readableTime } from '@/utils/format'
 import { FORM_MODULE, guard } from '@/utils/permission'
 import { deleteRecord } from '@/utils/deleteRecord'
+import { useHideTabBarWhen } from '@/utils/tabbar'
 import type { Device, DeviceSeries } from '@/types'
 
 /** 设备近 24 小时温度趋势（等长分桶的平均值柱状图） */
@@ -61,6 +62,10 @@ export default function Monitor() {
   const [seriesLoading, setSeriesLoading] = useState(0)
   const [lastRefresh, setLastRefresh] = useState('')
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // 设备凭证弹层或录入表单打开时收起底部 TabBar，避免最下方的按钮被遮挡。
+  // activeForm 也要算进来：与表单内部的判断保持一致，否则这里会把 TabBar 显示回来。
+  useHideTabBarWhen(!!credential || !!activeForm)
 
   // 页面可见时每 30 秒静默刷新一次：大棚设备上报的数据会自动出现在列表里
   useDidShow(() => {

@@ -106,8 +106,25 @@ export default function Expert() {
 
   const questions: ExpertQuestion[] = data.questions
 
+  /** 返回上一级：有历史记录就回退；从分享链接直接打开时没有上一页，回首页 */
+  const goBack = () => {
+    if (Taro.getCurrentPages().length > 1) {
+      Taro.navigateBack()
+      return
+    }
+    Taro.switchTab({ url: '/pages/home/index' })
+  }
+
   return (
     <View className='page'>
+      {/* 左上角返回箭头：回到上一级页面 */}
+      <View className='back-row'>
+        <View className='back-bar' onClick={goBack} aria-role='button' aria-label='返回上一级'>
+          <Text className='back-arrow'>←</Text>
+          <Text className='back-label'>返回</Text>
+        </View>
+      </View>
+
       <BrandBar
         title='AI 智能问答'
         sub={aiStatus?.configured ? `已接入大模型 ${aiStatus.model}` : '未配置大模型时使用规则知识库'}

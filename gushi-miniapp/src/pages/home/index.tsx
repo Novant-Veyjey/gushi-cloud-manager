@@ -10,6 +10,7 @@ import { buildFormConfigs, RECORD_MENU, type FormConfig } from '@/config/forms'
 import { baseNameOf, useCloudData } from '@/hooks/useCloudData'
 import { logout, ROLE_OPTIONS, roleLabel } from '@/utils/auth'
 import { deleteRecord } from '@/utils/deleteRecord'
+import { useHideTabBarWhen } from '@/utils/tabbar'
 import { FORM_MODULE, can, guard } from '@/utils/permission'
 import { getUser, saveAuth } from '@/utils/storage'
 import { api } from '@/utils/request'
@@ -40,9 +41,15 @@ export default function Home() {
   const [resetPwd, setResetPwd] = useState('')
   const [permSheet, setPermSheet] = useState(false)
 
+  // 任一枚层打开时收起底部 TabBar，避免它盖住弹层最下方的按钮与说明文字。
+  // 必须把 activeForm 也算进来：从「新增数据」菜单点进表单时菜单会关闭，
+  // 只判断菜单状态的话这里会立刻把 TabBar 显示回来，反而盖住表单底部的「取消 / 确定」。
+  useHideTabBarWhen(menuVisible || userSheet || adminSheet || permSheet || !!activeForm)
+
   const openForm = (key: string) => {
     const config = forms[key]
     if (!config) return
+
 
     // 角色权限：无写权限时直接提示，后端还会再校验一次
     if (!guard(FORM_MODULE[key] || 'bases', 'w')) return
