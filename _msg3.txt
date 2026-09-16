@@ -1,0 +1,9 @@
+chore: 清理重复与过时文档，原型文件去掉“小程序风格”字样
+
+- 重命名 菇事云管家-小程序风格.html → 菇事云管家-界面原型.html
+- 删除仓库根目录的需求文档 .docx / .md（与 后台/docs/ 下副本哈希完全一致，属重复）
+- 删除 后台/docs/菇事云管家-项目需求文档.md（精简版，内容少于保留的 .docx）
+- 删除 后台/docs/后续开发关键词与GitHub参考.md（2026-09-15 的规划笔记，其中 Taro 小程序、
+  MQTT 接入、RBAC 权限等条目已完成）
+
+保留：根 README.md、后台/README.md、gushi-miniapp/README.md、后台/docs/菇事云管家-项目需求文档.docx
