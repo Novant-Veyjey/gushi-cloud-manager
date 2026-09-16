@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Image, Input, Text, View } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 
+import eyeClosed from '@/assets/icons/eye-closed.png'
+import eyeOpen from '@/assets/icons/eye-open.png'
 import logo from '@/assets/logo.jpg'
 import { fetchCurrentUser, login, register, wechatLogin } from '@/utils/auth'
 import { clearAuth, getToken } from '@/utils/storage'
@@ -143,8 +145,17 @@ export default function Login() {
               placeholder='至少 6 位'
               onInput={(event) => setPassword(event.detail.value)}
             />
-            <View className='field-password-toggle' onClick={() => setShowPassword((value) => !value)}>
-              {showPassword ? '隐藏' : '显示'}
+            <View
+              className='field-password-toggle'
+              onClick={() => setShowPassword((value) => !value)}
+              aria-role='button'
+            >
+              {/* 睁眼 = 点击可见密码；斜杠闭眼 = 点击隐藏密码 */}
+              <Image
+                className='field-password-eye'
+                src={showPassword ? eyeClosed : eyeOpen}
+                mode='aspectFit'
+              />
             </View>
           </View>
         </View>

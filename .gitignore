@@ -33,3 +33,9 @@ _*.txt
 .DS_Store
 Thumbs.db
 *.tmp
+
+# ---------- 部署产物与 IDE 状态 ----------
+# _deploy 是 Cloud Studio 部署用的工作目录（源码与数据在 后台/ 和 gushi-miniapp/ 中）
+/_deploy/
+# CodeBuddy IDE 的本地状态与集成数据
+.codebuddy/

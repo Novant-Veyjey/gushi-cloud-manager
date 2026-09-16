@@ -659,7 +659,7 @@ page {
   box-sizing: border-box;
 }
 
-/* 密码框：右侧放「显示/隐藏」切换，输入区留出空间避免文字压到按钮 */
+/* 密码框：右侧放「显示/隐藏」眼睛图标，输入区留出空间避免文字压到按钮 */
 .field-input-wrap {
   position: relative;
 }
@@ -670,17 +670,19 @@ page {
 
 .field-password-toggle {
   position: absolute;
-  right: 12px;
+  right: 6px;
   top: 50%;
   transform: translateY(-50%);
-  height: 56px;
-  line-height: 56px;
-  padding: 0 20px;
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--g700);
-  border-radius: 18px;
-  background: #eef5f0;
+  width: 100px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.field-password-eye {
+  width: 44px;
+  height: 44px;
 }
 
 .field-textarea {
