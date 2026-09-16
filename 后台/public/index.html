@@ -372,7 +372,7 @@ async function loadUsers(){
      <div><b style="font-size:11px">${esc(u.username)}${state.user&&u.id===state.user.id?'（我）':''}</b><p style="font-size:9px;color:var(--muted);margin:3px 0 0">${esc(u.display_name||'未填称呼')} · 当前：${esc(u.role_label||u.role)}</p></div>
      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
       <span class="badge" data-edit-role="${u.id}" style="cursor:pointer" title="点击修改职务">${esc(u.role_label||u.role)}</span>
-      <button class="action-link" data-reset-pw="${u.id}">重置密码</button>
+      <button class="action-link" data-reset-pw="${u.id}" style="font-size:9px;padding:2px 4px">重置密码</button>
      </div>
     </div>
     <div class="role-options" id="roleEdit_${u.id}" style="display:none;margin-top:10px">${chips}</div>
