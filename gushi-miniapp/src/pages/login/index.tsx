@@ -156,10 +156,10 @@ export default function Login() {
               onClick={() => setShowPassword((value) => !value)}
               aria-role='button'
             >
-              {/* 图标反映当前状态：密码隐藏时闭眼（斜线），明文可见时睁眼 */}
+              {/* 睁眼 = 点击可见密码；斜杠闭眼 = 点击隐藏密码 */}
               <Image
                 className='field-password-eye'
-                src={showPassword ? eyeOpen : eyeClosed}
+                src={showPassword ? eyeClosed : eyeOpen}
                 mode='aspectFit'
               />
             </View>
