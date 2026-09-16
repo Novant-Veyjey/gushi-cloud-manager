@@ -46,9 +46,8 @@ const MATRIX: Record<string, Rule> = {
     devices: 'r', dashboard: 'r', uploads: 'w', ai: 'r'
   },
   buyer: {
-    bases: 'r', batches: 'r', readings: 'r', alerts: 'r', 'trace-events': 'r',
-    questions: 'rw', products: 'r', demands: 'rw', tasks: 'r',
-    devices: 'r', dashboard: 'r', uploads: 'w', ai: 'r'
+    bases: 'r', batches: 'r', 'trace-events': 'r', questions: 'rw',
+    products: 'r', demands: 'rw', dashboard: 'r', uploads: 'w', ai: 'r'
   },
   government: {
     bases: 'r', batches: 'r', readings: 'r', alerts: 'r', 'trace-events': 'r',

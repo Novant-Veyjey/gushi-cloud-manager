@@ -55,11 +55,8 @@ const PERMISSIONS = {
     devices: 'r', dashboard: 'r', uploads: 'w', ai: 'r'
   },
   buyer: {
-    // 介绍书：采购商对「基地 / 批次 / 环境 / 任务 / 设备」是「只能看」，
-    // 必须有读权限，否则页面并发拉数据时 403 会导致整个页面打不开。
-    bases: 'r', batches: 'r', readings: 'r', alerts: 'r', 'trace-events': 'r',
-    questions: 'rw', products: 'r', demands: 'rw', tasks: 'r',
-    devices: 'r', dashboard: 'r', uploads: 'w', ai: 'r'
+    bases: 'r', batches: 'r', 'trace-events': 'r', questions: 'rw',
+    products: 'r', demands: 'rw', dashboard: 'r', uploads: 'w', ai: 'r'
   },
   government: {
     bases: 'r', batches: 'r', readings: 'r', alerts: 'r', 'trace-events': 'r',
