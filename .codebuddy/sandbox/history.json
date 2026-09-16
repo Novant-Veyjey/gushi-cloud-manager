@@ -2,18 +2,6 @@
   "version": 1,
   "records": [
     {
-      "spaceKey": "fe2a880e7cfe4d54995b89adbe0251dd",
-      "projectPath": "d:\\Users\\Voyager\\Desktop\\新建文件夹 (3)\\_deploy",
-      "desc": "菇事云管家 · 食用菌产业数字化平台（小程序浏览器版 + 后台接口一体部署，演示账号 demo / demo123456）",
-      "createdAt": 1789533274307
-    },
-    {
-      "spaceKey": "01d013ac723049beb6f7bf3cb96efa1e",
-      "projectPath": "d:\\Users\\Voyager\\Desktop\\新建文件夹 (3)\\_deploy",
-      "desc": "菇事云管家 · 食用菌产业数字化平台（小程序浏览器版 + 后台接口一体部署，演示账号 demo / demo123456）",
-      "createdAt": 1789533408278
-    },
-    {
       "spaceKey": "a12d526b955546cf8d161f33bad1d329",
       "projectPath": "d:\\Users\\Voyager\\Desktop\\新建文件夹 (3)\\_deploy",
       "desc": "菇事云管家 · 食用菌产业数字化平台（登录页按钮对齐修复版；演示账号 demo / demo123456）",
