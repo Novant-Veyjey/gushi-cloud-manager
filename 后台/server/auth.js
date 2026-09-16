@@ -347,6 +347,39 @@ function updateUserRole(id, role) {
 }
 
 /**
+ * 平台管理员：重置指定账号的登录密码。
+ * 密码只保存不可逆的哈希，任何人都看不到原密码；忘记密码时由管理员设置一个新密码。
+ * 重置后该账号的所有登录状态立即失效，需要用新密码重新登录。
+ */
+function adminResetPassword(id, password) {
+  const secret = String(password || '');
+  if (secret.length < 6 || secret.length > 64) {
+    const error = new Error('密码长度需为 6-64 位');
+    error.status = 400;
+    throw error;
+  }
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(Number(id));
+  if (!user) {
+    const error = new Error('账号不存在');
+    error.status = 404;
+    throw error;
+  }
+  // 与注册一致：新密码不能和其他账号的密码相同
+  const taken = db.prepare('SELECT id, password_salt, password_hash FROM users').all()
+    .some((row) => row.id !== user.id && verifyPassword(secret, row.password_salt, row.password_hash));
+  if (taken) {
+    const error = new Error('该密码已被其他账号使用，请换一个');
+    error.status = 409;
+    throw error;
+  }
+  const { hash, salt } = hashPassword(secret);
+  db.prepare('UPDATE users SET password_hash = ?, password_salt = ?, updated_at = ? WHERE id = ?')
+    .run(hash, salt, new Date().toISOString(), user.id);
+  db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id);
+  return sanitizeUser(db.prepare('SELECT * FROM users WHERE id = ?').get(user.id));
+}
+
+/**
  * 平台管理员：按「目标账号 + 目标账号密码」给指定账号分配职务。
  * 管理员在分配时输入对方的账号与密码做身份核验，避免把职务分给输错的同名账号。
  */
@@ -396,5 +429,6 @@ module.exports = {
   wechatLogin,
   listUsers,
   updateUserRole,
-  assignRoleByCredentials
+  assignRoleByCredentials,
+  adminResetPassword
 };

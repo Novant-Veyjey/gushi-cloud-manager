@@ -35,6 +35,8 @@ export default function Home() {
   const [assignTarget, setAssignTarget] = useState<any>(null)
   const [assignRoleIndex, setAssignRoleIndex] = useState(0)
   const [assigning, setAssigning] = useState(false)
+  const [resetFor, setResetFor] = useState(0)
+  const [resetPwd, setResetPwd] = useState('')
   const [permSheet, setPermSheet] = useState(false)
 
   const openForm = (key: string) => {
@@ -157,6 +159,30 @@ export default function Home() {
       Taro.showToast({ title: (err as Error).message, icon: 'none' })
     } finally {
       setAssigning(false)
+    }
+  }
+
+  /** 管理员重置用户密码：密码加密保存无法查看，忘记密码时直接设置一个新密码 */
+  const handleResetPassword = async (target: any) => {
+    if (resetPwd.length < 6) {
+      Taro.showToast({ title: '新密码至少 6 位', icon: 'none' })
+      return
+    }
+    const confirmed = await Taro.showModal({
+      title: '重置密码',
+      content: `确定重置「${target.username}」的登录密码吗？重置后原密码立即失效，请把新密码告知对方。`
+    })
+    if (!confirmed.confirm) return
+    try {
+      await api(`/api/admin/users/${target.id}/password`, {
+        method: 'PUT',
+        data: { password: resetPwd },
+        successText: '密码已重置，请把新密码告知对方'
+      })
+      setResetFor(0)
+      setResetPwd('')
+    } catch (err) {
+      Taro.showToast({ title: (err as Error).message, icon: 'none' })
     }
   }
 
@@ -457,6 +483,9 @@ export default function Home() {
           <View className='sheet' onClick={(event) => event.stopPropagation()}>
             <Text className='sheet-title'>账号管理 · 分配职务</Text>
             <Text className='sheet-desc'>搜索账号并点选，再点一个职位即可直接修改，无需对方密码；修改后对方重新登录生效。</Text>
+            <View className='notice' style='margin-top:14px'>
+              密码是加密保存的，任何人都看不到原密码；用户忘记密码时，点其账号下方的「重置密码」设置一个新密码即可。
+            </View>
             <ScrollView className='sheet-body' scrollY>
               {/* 搜索账号：管理员输入关键字，点选结果后直接改职位 */}
               <View className='field' style='margin-top:20px'>
@@ -529,23 +558,48 @@ export default function Home() {
                 <Text className='user-sub'>加载中...</Text>
               ) : (
                 users.map((user) => (
-                  <View className='user-row' key={user.id}>
-                    <View className='user-info'>
-                      <Text className='user-name'>
-                        {user.username}
-                        {user.id === account?.id ? '（我）' : ''}
-                      </Text>
-                      <Text className='user-sub'>
-                        {user.display_name || '未填称呼'} · 当前：{roleLabel(user.role)}
-                      </Text>
+                  <View key={user.id} style='border-bottom:1px solid #eef2ef;padding-bottom:12px;margin-bottom:12px'>
+                    <View className='user-row' style='border-bottom:0;padding-bottom:0;margin-bottom:0'>
+                      <View className='user-info'>
+                        <Text className='user-name'>
+                          {user.username}
+                          {user.id === account?.id ? '（我）' : ''}
+                        </Text>
+                        <Text className='user-sub'>
+                          {user.display_name || '未填称呼'} · 当前：{user.role_label || roleLabel(user.role)}
+                        </Text>
+                      </View>
+                      <Picker
+                        mode='selector'
+                        range={ROLE_OPTIONS.map((item) => item.label)}
+                        onChange={(event) => assignRole(user, ROLE_OPTIONS[Number(event.detail.value)])}
+                      >
+                        <View className='user-role-picker'>分配职务</View>
+                      </Picker>
                     </View>
-                    <Picker
-                      mode='selector'
-                      range={ROLE_OPTIONS.map((item) => item.label)}
-                      onChange={(event) => assignRole(user, ROLE_OPTIONS[Number(event.detail.value)])}
-                    >
-                      <View className='user-role-picker'>分配职务</View>
-                    </Picker>
+                    {resetFor === user.id ? (
+                      <View>
+                        <Input
+                          className='field-input'
+                          password
+                          value={resetPwd}
+                          placeholder='新密码（至少 6 位）'
+                          onInput={(event) => setResetPwd(event.detail.value)}
+                        />
+                        <View className='toolbar' style='margin-top:10px'>
+                          <View className='btn secondary' onClick={() => { setResetFor(0); setResetPwd('') }}>
+                            取消
+                          </View>
+                          <View className='btn primary' onClick={() => handleResetPassword(user)}>
+                            确认重置
+                          </View>
+                        </View>
+                      </View>
+                    ) : (
+                      <Text className='todo-action' onClick={() => { setResetFor(user.id); setResetPwd('') }}>
+                        重置密码
+                      </Text>
+                    )}
                   </View>
                 ))
               )}

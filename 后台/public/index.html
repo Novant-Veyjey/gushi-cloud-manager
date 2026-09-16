@@ -254,6 +254,20 @@ document.addEventListener('click',async event=>{
  /* 密码显示/隐藏切换：隐藏时闭眼图标，明文时睁眼图标 */
  const eye=event.target.closest('[data-pwd]');
  if(eye){const input=document.getElementById(eye.dataset.pwd);if(input){const show=input.type==='password';input.type=show?'text':'password';eye.innerHTML=show?EYE_OPEN:EYE_CLOSED}return}
+ /* 管理员重置用户密码：展开输入新密码，确认后原密码立即失效 */
+ const resetPw=event.target.closest('[data-reset-pw]');
+ if(resetPw){const panel=document.getElementById('pwReset_'+resetPw.dataset.resetPw);if(panel)panel.style.display=panel.style.display==='none'?'block':'none';return}
+ const resetConfirm=event.target.closest('[data-reset-confirm]');
+ if(resetConfirm){
+  const id=resetConfirm.dataset.resetConfirm;
+  const input=document.getElementById('newpwd_'+id);
+  const value=input.value;
+  if(value.length<6){toast('新密码至少 6 位',true);return}
+  if(!window.confirm('重置提醒：确定重置该账号的登录密码吗？重置后原密码立即失效，请把新密码告知对方。'))return;
+  try{await api('/api/admin/users/'+id+'/password',{method:'PUT',body:JSON.stringify({password:value})});toast('密码已重置，请把新密码告知对方');input.value='';document.getElementById('pwReset_'+id).style.display='none'}
+  catch(error){toast(error.message,true)}
+  return
+ }
  /* 点击账号右侧的职位徽章：展开/收起该账号的职位芯片，点选后确认修改 */
  const roleBadge=event.target.closest('[data-edit-role]');
  if(roleBadge){const panel=document.getElementById('roleEdit_'+roleBadge.dataset.editRole);if(panel)panel.style.display=panel.style.display==='none'?'grid':'none';return}
@@ -356,9 +370,19 @@ async function loadUsers(){
    return `<div style="padding:10px 0;border-bottom:1px solid #eef2ef">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
      <div><b style="font-size:11px">${esc(u.username)}${state.user&&u.id===state.user.id?'（我）':''}</b><p style="font-size:9px;color:var(--muted);margin:3px 0 0">${esc(u.display_name||'未填称呼')} · 当前：${esc(u.role_label||u.role)}</p></div>
-     <span class="badge" data-edit-role="${u.id}" style="cursor:pointer" title="点击修改职务">${esc(u.role_label||u.role)}</span>
+     <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+      <span class="badge" data-edit-role="${u.id}" style="cursor:pointer" title="点击修改职务">${esc(u.role_label||u.role)}</span>
+      <button class="action-link" data-reset-pw="${u.id}">重置密码</button>
+     </div>
     </div>
     <div class="role-options" id="roleEdit_${u.id}" style="display:none;margin-top:10px">${chips}</div>
+    <div id="pwReset_${u.id}" style="display:none;margin-top:10px">
+     <div style="display:flex;gap:8px">
+      <input id="newpwd_${u.id}" type="password" placeholder="新密码（至少 6 位）" style="flex:1">
+      <button class="primary" data-reset-confirm="${u.id}" style="height:42px;padding:0 12px;border:0;border-radius:12px;background:linear-gradient(135deg,var(--g700),var(--g800));color:#fff;font-size:11px;font-weight:800;flex:0 0 auto;cursor:pointer">确认重置</button>
+     </div>
+     <span class="field-hint">密码是加密保存的，任何人都看不到原密码；重置后原密码立即失效，请把新密码告知对方。</span>
+    </div>
    </div>`
   }).join('');
  }catch(error){$('#userList').innerHTML=`<div class="notice">${esc(error.message)}</div>`}

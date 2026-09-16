@@ -137,15 +137,21 @@ function makeCrudRouter(name, config) {
   router.get('/', requirePermission(name, 'r'), (req, res) => {
     try {
       const limit = Math.min(Math.max(Number(req.query.limit || 100), 1), 500);
-      const where = ['user_id = @user_id'];
-      const params = { user_id: req.user.id };
+      const where = [];
+      const params = {};
+      // 提问模块对专家/管理员开放：他们要能看到所有人的问题才能人工回复；其它数据仍按账号隔离
+      const seeAll = name === 'questions' && auth.canAnswerQuestion(req.user.role);
+      if (!seeAll) {
+        where.push('user_id = @user_id');
+        params.user_id = req.user.id;
+      }
       for (const key of ['base_id', 'batch_id', 'status', 'stage', 'level']) {
         if (req.query[key] !== undefined && config.columns.includes(key)) {
           where.push(`${key} = @${key}`);
           params[key] = (config.numeric || []).includes(key) ? number(req.query[key]) : text(req.query[key]);
         }
       }
-      const clause = `WHERE ${where.join(' AND ')}`;
+      const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
       const rows = db.prepare(`SELECT * FROM ${table} ${clause} ORDER BY ${config.order} LIMIT @limit`).all({ ...params, limit });
       ok(res, rows);
     } catch (error) {
@@ -154,7 +160,10 @@ function makeCrudRouter(name, config) {
   });
 
   router.get('/:id', requirePermission(name, 'r'), (req, res) => {
-    const row = db.prepare(`SELECT * FROM ${table} WHERE id = ? AND user_id = ?`).get(Number(req.params.id), req.user.id);
+    const seeAll = name === 'questions' && auth.canAnswerQuestion(req.user.role);
+    const row = seeAll
+      ? db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(Number(req.params.id))
+      : db.prepare(`SELECT * FROM ${table} WHERE id = ? AND user_id = ?`).get(Number(req.params.id), req.user.id);
     if (!row) return fail(res, 404, '记录不存在');
     ok(res, row);
   });
@@ -199,8 +208,16 @@ function makeCrudRouter(name, config) {
   router.put('/:id', requirePermission(name, 'w'), (req, res) => {
     try {
       const id = Number(req.params.id);
-      if (!db.prepare(`SELECT id FROM ${table} WHERE id = ? AND user_id = ?`).get(id, req.user.id)) {
+      const target = db.prepare(`SELECT id, user_id FROM ${table} WHERE id = ?`).get(id);
+      if (!target) {
         return fail(res, 404, '记录不存在');
+      }
+      const isOwner = target.user_id === req.user.id;
+      // 专家/管理员回复提问时，问题可能属于其它账号：仅限写入 answer 字段
+      const replying = name === 'questions' && auth.canAnswerQuestion(req.user.role) && !isOwner;
+      // 不是本人、又不能代专家回复的（如菇农改别人的提问），明确拒绝
+      if (name === 'questions' && !isOwner && !auth.canAnswerQuestion(req.user.role)) {
+        return fail(res, 403, `当前角色（${req.user.role_label}）不能代替专家回复问题`);
       }
       const row = normalizeRow(config, req.body || {}, true);
       if (!Object.keys(row).length) return fail(res, 400, '没有可更新字段');
@@ -217,7 +234,11 @@ function makeCrudRouter(name, config) {
       }
       if (config.updatedAt !== false) row.updated_at = new Date().toISOString();
       const assignments = Object.keys(row).map((key) => `${key} = @${key}`).join(', ');
-      db.prepare(`UPDATE ${table} SET ${assignments} WHERE id = @id AND user_id = @user_id`).run({ ...row, id, user_id: req.user.id });
+      if (replying) {
+        db.prepare(`UPDATE ${table} SET ${assignments} WHERE id = @id`).run({ ...row, id });
+      } else {
+        db.prepare(`UPDATE ${table} SET ${assignments} WHERE id = @id AND user_id = @user_id`).run({ ...row, id, user_id: req.user.id });
+      }
       const updated = db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(id);
       ok(res, updated, '更新成功');
     } catch (error) {
@@ -310,6 +331,15 @@ app.put('/api/admin/users/:id/role', requireAuth, requireRole('admin'), (req, re
 app.post('/api/admin/users/assign', requireAuth, requireRole('admin'), (req, res) => {
   try {
     ok(res, auth.assignRoleByCredentials(req.body || {}), '角色已更新，对方重新登录后生效');
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+/** 管理员重置指定账号的登录密码：密码只存哈希无法查看，忘记密码时由管理员设置新密码 */
+app.put('/api/admin/users/:id/password', requireAuth, requireRole('admin'), (req, res) => {
+  try {
+    ok(res, auth.adminResetPassword(Number(req.params.id), String(req.body?.password || '')), '密码已重置，请把新密码告知对方');
   } catch (error) {
     fail(res, error.status || 400, error.message);
   }
