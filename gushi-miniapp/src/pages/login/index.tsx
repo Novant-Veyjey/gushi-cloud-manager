@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Image, Input, Text, View } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 
@@ -67,6 +67,45 @@ export default function Login() {
     }
   }
 
+  /** 切换密码可见性：鼠标点击、键盘 Enter / 空格 均可触发 */
+  const togglePassword = () => setShowPassword((value) => !value)
+
+  /**
+   * 键盘操作（H5）：Tab 聚焦到按钮后，用 Enter / 空格 切换密码可见性。
+   * Taro 的 View 只透传触摸 / 点击类事件，onKeyDown 传不到真实节点上，
+   * 因此这里在 document 上监听 keydown，并判断当前焦点是否落在密码按钮内。
+   * 小程序端没有物理键盘，直接跳过。
+   */
+  useEffect(() => {
+    if (process.env.TARO_ENV !== 'h5') return
+    const onKeyDown = (event: KeyboardEvent) => {
+      const active = document.activeElement as HTMLElement | null
+      const focused = !!active && typeof active.className === 'string' && active.className.indexOf('field-password-toggle') >= 0
+      if (!focused) return
+      if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+        event.preventDefault()
+        setShowPassword((value) => !value)
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  /**
+   * 密码显示/隐藏按钮的无障碍属性：
+   * - role=button / aria-label：屏幕阅读器读出「显示密码 / 隐藏密码」
+   * - aria-pressed：声明这是切换按钮并给出当前状态
+   * - tabIndex=0：H5 端可用 Tab 键聚焦，聚焦时有可见描边
+   * - title：鼠标悬停显示文字提示
+   */
+  const passwordToggleProps = {
+    tabIndex: 0,
+    role: 'button',
+    'aria-label': showPassword ? '隐藏密码' : '显示密码',
+    'aria-pressed': showPassword,
+    title: showPassword ? '隐藏密码' : '显示密码'
+  } as any
+
   if (checking) {
     return (
       <View className='page'>
@@ -131,17 +170,12 @@ export default function Login() {
               onInput={(event) => setPassword(event.detail.value)}
             />
             <View
-              className='field-password-toggle'
-              onClick={() => setShowPassword((value) => !value)}
-              aria-role='button'
-              aria-label={showPassword ? '当前密码可见，点击隐藏' : '当前密码已隐藏，点击显示'}
+              className={`field-password-toggle${showPassword ? ' is-visible' : ''}`}
+              onClick={togglePassword}
+              {...passwordToggleProps}
             >
               {/* 图标与密码可见性保持一致：隐藏时闭眼、明文时睁眼 */}
-              <Image
-                className='field-password-eye'
-                src={showPassword ? eyeOpen : eyeClosed}
-                mode='aspectFit'
-              />
+              <Image className='field-password-eye' src={showPassword ? eyeOpen : eyeClosed} mode='aspectFit' />
             </View>
           </View>
         </View>

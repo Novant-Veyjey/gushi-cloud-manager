@@ -243,17 +243,13 @@ export default function Home() {
 
   return (
     <View className='page'>
-      {/* 最顶部左侧的常用入口：账号管理（管理员直接打开分配，其他角色先验证管理员身份）、
-          溯源查询、退出登录 —— 集中在页面最上方，不用往下找 */}
+      {/* 右上角常用入口：账号管理（管理员直接打开分配，其他角色先验证管理员身份）、退出登录 */}
       <View className='top-actions'>
         <View
           className='top-action'
           onClick={() => (can('users', 'w') ? openUserSheet() : setAdminSheet(true))}
         >
           账号管理
-        </View>
-        <View className='top-action' onClick={() => Taro.switchTab({ url: '/pages/trace/index' })}>
-          溯源查询
         </View>
         <View className='top-action' onClick={handleLogout}>
           退出登录

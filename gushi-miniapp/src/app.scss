@@ -24,7 +24,7 @@ page {
   background: #eaf0e8;
   color: var(--ink);
   font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  font-size: 26px;
+  font-size: 32px;
 }
 
 /**
@@ -44,6 +44,23 @@ page {
 .page {
   padding: 20px 30px 40px;
   box-sizing: border-box;
+  /**
+   * 全局文字居中对齐：页面本身是居中的卡片式布局，文字居中后整体更整齐；
+   * 字号基准已整体上调一档（设计稿 750 下原 20-26px 在手机上只有 10-13px，偏小）。
+   */
+  text-align: center;
+}
+
+/**
+ * 输入类控件保持左对齐：
+ * 输入内容若居中，文字会随字数左右跳动，输入时难以定位，因此单独排除。
+ */
+input,
+textarea,
+.field-input,
+.field-textarea,
+.search-input {
+  text-align: left;
 }
 
 /* ---------- 二级页面左上角返回入口 ---------- */
@@ -62,7 +79,7 @@ page {
   background: #ffffff;
   border: 1px solid var(--line);
   color: var(--g800);
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 800;
   box-shadow: 0 6px 16px rgba(27, 73, 52, 0.05);
   transition: background-color 0.15s ease, transform 0.12s ease;
@@ -74,29 +91,30 @@ page {
 }
 
 .back-arrow {
-  font-size: 32px;
+  font-size: 38px;
   line-height: 1;
   margin-right: 8px;
 }
 
-/* ---------- 页面最顶部左侧的常用入口 ---------- */
+/* ---------- 页面右上角的常用入口（账号管理 / 退出登录） ---------- */
 .top-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 12px;
 }
 
 .top-action {
-  height: 60px;
-  line-height: 60px;
-  padding: 0 20px;
-  border-radius: 18px;
+  height: 64px;
+  line-height: 64px;
+  padding: 0 24px;
+  border-radius: 20px;
   background: #ffffff;
   border: 1px solid var(--line);
   color: var(--g800);
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 800;
   box-shadow: 0 6px 16px rgba(27, 73, 52, 0.05);
   transition: background-color 0.15s ease, transform 0.12s ease;
@@ -134,13 +152,13 @@ page {
 
 .brand-title {
   display: block;
-  font-size: 30px;
+  font-size: 36px;
   font-weight: 900;
 }
 
 .brand-sub {
   display: block;
-  font-size: 21px;
+  font-size: 26px;
   color: var(--muted);
   margin-top: 4px;
 }
@@ -154,7 +172,7 @@ page {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40px;
+  font-size: 44px;
   font-weight: 700;
 }
 
@@ -171,7 +189,7 @@ page {
 }
 
 .hero-small {
-  font-size: 20px;
+  font-size: 26px;
   letter-spacing: 2px;
   color: #dff0b8;
   font-weight: 700;
@@ -179,7 +197,7 @@ page {
 
 .hero-title {
   display: block;
-  font-size: 42px;
+  font-size: 46px;
   line-height: 1.4;
   margin-top: 14px;
   font-weight: 900;
@@ -187,7 +205,7 @@ page {
 
 .hero-desc {
   display: block;
-  font-size: 22px;
+  font-size: 28px;
   line-height: 1.7;
   color: rgba(255, 255, 255, 0.78);
   margin-top: 14px;
@@ -200,7 +218,7 @@ page {
 }
 
 .hero-tag {
-  font-size: 20px;
+  font-size: 26px;
   padding: 10px 16px;
   border-radius: 99px;
   background: rgba(255, 255, 255, 0.14);
@@ -231,12 +249,12 @@ page {
 
 .quick-icon {
   display: block;
-  font-size: 34px;
+  font-size: 40px;
   margin-bottom: 8px;
 }
 
 .quick-label {
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 700;
   color: #4d6356;
 }
@@ -250,20 +268,20 @@ page {
 }
 
 .section-title-main {
-  font-size: 30px;
+  font-size: 36px;
   font-weight: 900;
 }
 
 .section-title-sub {
   display: block;
-  font-size: 22px;
+  font-size: 28px;
   color: var(--muted);
   margin-top: 6px;
   line-height: 1.6;
 }
 
 .section-title-action {
-  font-size: 22px;
+  font-size: 28px;
   color: var(--g700);
   font-weight: 800;
 }
@@ -287,20 +305,20 @@ page {
 }
 
 .stat-label {
-  font-size: 22px;
+  font-size: 28px;
   color: var(--muted);
   font-weight: 800;
 }
 
 .stat-value {
   display: block;
-  font-size: 46px;
+  font-size: 50px;
   font-weight: 900;
   margin-top: 12px;
 }
 
 .stat-unit {
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 400;
   color: var(--muted);
   margin-left: 6px;
@@ -308,7 +326,7 @@ page {
 
 .stat-foot {
   display: block;
-  font-size: 20px;
+  font-size: 26px;
   color: var(--g700);
   margin-top: 10px;
 }
@@ -330,20 +348,20 @@ page {
 }
 
 .row-title {
-  font-size: 28px;
+  font-size: 34px;
   font-weight: 900;
 }
 
 .row-desc {
   display: block;
-  font-size: 23px;
+  font-size: 28px;
   color: var(--muted);
   line-height: 1.75;
   margin-top: 8px;
 }
 
 .badge {
-  font-size: 21px;
+  font-size: 26px;
   padding: 8px 14px;
   border-radius: 99px;
   background: var(--g100);
@@ -369,7 +387,7 @@ page {
 
 .meta {
   display: block;
-  font-size: 22px;
+  font-size: 28px;
   color: #6b7a70;
   margin-top: 12px;
   line-height: 1.7;
@@ -394,13 +412,13 @@ page {
 
 .metric-line-label {
   display: block;
-  font-size: 21px;
+  font-size: 26px;
   color: var(--muted);
 }
 
 .metric-line-value {
   display: block;
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 700;
   margin-top: 8px;
 }
@@ -427,7 +445,7 @@ page {
   background: #fff0d8;
   color: #ae6814;
   font-weight: 900;
-  font-size: 24px;
+  font-size: 30px;
   margin-right: 18px;
   flex-shrink: 0;
 }
@@ -447,21 +465,21 @@ page {
 }
 
 .todo-title {
-  font-size: 25px;
+  font-size: 30px;
   font-weight: 800;
   line-height: 1.45;
 }
 
 .todo-desc {
   display: block;
-  font-size: 22px;
+  font-size: 28px;
   color: var(--muted);
   line-height: 1.7;
   margin-top: 8px;
 }
 
 .todo-action {
-  font-size: 22px;
+  font-size: 28px;
   color: var(--g700);
   font-weight: 800;
   padding-left: 16px;
@@ -480,7 +498,7 @@ page {
   line-height: 84px;
   text-align: center;
   border-radius: 26px;
-  font-size: 26px;
+  font-size: 32px;
   font-weight: 900;
   /* 带边框与不带边框的按钮保持同样高度，避免并排时错位 */
   box-sizing: border-box;
@@ -523,12 +541,12 @@ page {
 
 .search-input {
   flex: 1;
-  font-size: 24px;
+  font-size: 30px;
   color: var(--ink);
 }
 
 .search-icon {
-  font-size: 26px;
+  font-size: 32px;
   color: #8b9990;
   margin-right: 12px;
 }
@@ -541,14 +559,14 @@ page {
   background: #ffffff;
   border: 1px dashed #dbe6de;
   border-radius: 30px;
-  font-size: 22px;
+  font-size: 28px;
   line-height: 1.8;
 }
 
 .empty-title {
   display: block;
   color: var(--ink);
-  font-size: 28px;
+  font-size: 34px;
   font-weight: 900;
   margin-bottom: 10px;
 }
@@ -557,7 +575,7 @@ page {
   padding: 90px 40px;
   text-align: center;
   color: var(--muted);
-  font-size: 24px;
+  font-size: 30px;
   line-height: 1.8;
 }
 
@@ -566,13 +584,13 @@ page {
   border-radius: 30px;
   background: #fff0f0;
   color: #a33f3f;
-  font-size: 22px;
+  font-size: 28px;
   line-height: 1.8;
 }
 
 .state-error-title {
   display: block;
-  font-size: 28px;
+  font-size: 34px;
   font-weight: 900;
   margin-bottom: 10px;
 }
@@ -583,7 +601,7 @@ page {
   background: #fff8e9;
   border: 1px solid #f3dfb9;
   color: #8f6421;
-  font-size: 22px;
+  font-size: 28px;
   line-height: 1.7;
   margin-bottom: 16px;
 }
@@ -614,7 +632,7 @@ page {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 900;
   margin-right: 18px;
   flex-shrink: 0;
@@ -625,21 +643,21 @@ page {
 }
 
 .event-title {
-  font-size: 25px;
+  font-size: 30px;
   font-weight: 800;
   line-height: 1.45;
 }
 
 .event-desc {
   display: block;
-  font-size: 22px;
+  font-size: 28px;
   color: var(--muted);
   margin-top: 8px;
   line-height: 1.7;
 }
 
 .event-time {
-  font-size: 20px;
+  font-size: 26px;
   color: #9ba89f;
 }
 
@@ -659,7 +677,7 @@ page {
   justify-content: center;
   overflow: hidden;
   margin-right: 20px;
-  font-size: 46px;
+  font-size: 50px;
   flex-shrink: 0;
 }
 
@@ -669,7 +687,7 @@ page {
 }
 
 .price {
-  font-size: 34px;
+  font-size: 40px;
   font-weight: 900;
   color: var(--g900);
 }
@@ -681,7 +699,7 @@ page {
 
 .field-label {
   display: block;
-  font-size: 22px;
+  font-size: 28px;
   color: var(--muted);
   font-weight: 800;
   margin-bottom: 10px;
@@ -690,7 +708,7 @@ page {
 /* 字段下方的小字提示（如注册身份说明） */
 .field-hint {
   display: block;
-  font-size: 20px;
+  font-size: 26px;
   color: #a3b1a8;
   margin-top: 8px;
   line-height: 1.5;
@@ -714,7 +732,7 @@ page {
   border: 1px solid #dfe9e2;
   border-radius: 20px;
   background: #fafcfa;
-  font-size: 24px;
+  font-size: 30px;
   color: #53685c;
   text-align: center;
 }
@@ -733,42 +751,75 @@ page {
   border-radius: 24px;
   padding: 0 22px;
   background: #fafcfa;
-  font-size: 24px;
+  font-size: 30px;
   box-sizing: border-box;
 }
 
-/* 密码框：右侧放「显示/隐藏」眼睛图标，输入区留出空间避免文字压到按钮 */
+/* 密码框：右侧「显示 / 隐藏」按钮，放在输入框内部右侧 */
 .field-input-wrap {
   position: relative;
 }
 
+/* 输入区右侧预留按钮宽度 + 间距，长密码也不会压到按钮 */
 .field-input-password {
-  padding-right: 136px;
+  padding-right: 148px;
 }
 
+/**
+ * 密码可见性切换按钮（输入框内部右侧）
+ * - 触控区 100×76（设计稿）≈ 50×38 实际，超过移动端 44px 最小点击目标，减少误触
+ * - 圆角 24px 与输入框同一体系，底色取自主题绿系，风格与表单一致
+ * - 四种交互状态：默认 / 悬停 hover / 按下 active / 键盘聚焦 focus-visible
+ */
 .field-password-toggle {
   position: absolute;
-  right: 6px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   width: 100px;
-  height: 84px;
+  height: 76px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 18px;
-  /* 点击时有按压反馈，用户能明确知道切换生效 */
-  transition: background-color 0.15s ease, transform 0.12s ease;
+  border-radius: 24px;
+  background: #eef5f0;
+  color: var(--g700);
+  cursor: pointer;
+  /* 键盘可聚焦，但只在键盘操作时显示描边（鼠标点击不留框） */
+  outline: none;
+  /* 移动端：去掉点击高亮、禁止长按选中，点击更干脆 */
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition: background-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
 }
 
+/* 明文状态：底色加深，与密文状态一眼可辨 */
+.field-password-toggle.is-visible {
+  background: #dcecdf;
+}
+
+/* 鼠标悬停（桌面端） */
+.field-password-toggle:hover {
+  background: #e3f0e7;
+}
+
+.field-password-toggle.is-visible:hover {
+  background: #cfe5d4;
+}
+
+/* 按下反馈：轻微缩小，明确告知点击已生效 */
 .field-password-toggle:active {
-  background: #eef5f0;
   transform: translateY(-50%) scale(0.92);
 }
 
+/* 键盘聚焦：清晰的焦点环，方便纯键盘 / 无障碍操作 */
+.field-password-toggle:focus-visible {
+  box-shadow: 0 0 0 6px rgba(39, 132, 90, 0.25);
+}
+
 .field-password-eye {
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   /* 睁眼 / 闭眼切换时轻微淡入，避免生硬跳变 */
   transition: opacity 0.15s ease;
 }
@@ -780,7 +831,7 @@ page {
   border-radius: 24px;
   padding: 18px 22px;
   background: #fafcfa;
-  font-size: 24px;
+  font-size: 30px;
   box-sizing: border-box;
 }
 
@@ -791,7 +842,7 @@ page {
   border-radius: 24px;
   padding: 0 22px;
   background: #fafcfa;
-  font-size: 24px;
+  font-size: 30px;
   color: var(--muted);
 }
 
@@ -827,7 +878,7 @@ page {
   border: 1px solid var(--line);
   border-radius: 26px;
   background: #ffffff;
-  font-size: 40px;
+  font-size: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -912,13 +963,13 @@ page {
 }
 
 .sheet-title {
-  font-size: 32px;
+  font-size: 38px;
   font-weight: 900;
 }
 
 .sheet-desc {
   display: block;
-  font-size: 22px;
+  font-size: 28px;
   color: var(--muted);
   margin: 10px 0 26px;
   line-height: 1.6;
@@ -975,7 +1026,7 @@ page {
 }
 
 .qr-tip {
-  font-size: 20px;
+  font-size: 26px;
   color: var(--muted);
   margin-top: 12px;
 }
@@ -983,7 +1034,7 @@ page {
 /* 记录卡片里的轻量文字操作（删除等），不抢主操作视觉 */
 .link-danger {
   color: #bf4545;
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 800;
   padding: 6px 8px;
 }
@@ -1025,13 +1076,13 @@ page {
 }
 
 .user-name {
-  font-size: 26px;
+  font-size: 32px;
   font-weight: 800;
   color: var(--ink);
 }
 
 .user-sub {
-  font-size: 20px;
+  font-size: 26px;
   color: var(--muted);
   margin-top: 6px;
 }
@@ -1045,7 +1096,7 @@ page {
   border-radius: 18px;
   background: #f1f7f2;
   color: var(--g800);
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 800;
 }
 
@@ -1056,7 +1107,7 @@ page {
   border-radius: 24px;
   background: #f5f8f6;
   color: #3f564a;
-  font-size: 26px;
+  font-size: 32px;
   font-weight: 700;
   margin-bottom: 16px;
 }
@@ -1078,13 +1129,13 @@ page {
 }
 
 .login-title {
-  font-size: 42px;
+  font-size: 46px;
   font-weight: 900;
   margin-top: 24px;
 }
 
 .login-sub {
-  font-size: 22px;
+  font-size: 28px;
   color: var(--muted);
   margin-top: 10px;
 }
@@ -1111,7 +1162,7 @@ page {
   height: 72px;
   line-height: 72px;
   text-align: center;
-  font-size: 26px;
+  font-size: 32px;
   font-weight: 800;
   color: var(--muted);
   border-radius: 18px;
@@ -1147,7 +1198,7 @@ page {
 }
 
 .chart-x {
-  font-size: 16px;
+  font-size: 22px;
   color: #9ba89f;
   margin-top: 8px;
   transform: scale(0.9);
@@ -1156,7 +1207,7 @@ page {
 /* ---------- AI 问答 ---------- */
 .line {
   display: block;
-  font-size: 24px;
+  font-size: 30px;
   line-height: 1.7;
   color: var(--ink);
 }
@@ -1173,6 +1224,6 @@ page {
   border-radius: 22px;
   background: #f5f8f6;
   color: #3f564a;
-  font-size: 22px;
+  font-size: 28px;
   line-height: 1.5;
 }
