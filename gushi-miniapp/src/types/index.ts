@@ -160,6 +160,7 @@ export interface Product {
   unit: string
   price: number
   available_date: string
+  off_shelf_date: string
   status: string
   description: string
   created_at: string

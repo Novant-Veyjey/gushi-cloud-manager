@@ -10,8 +10,18 @@ import { buildFormConfigs, type FormConfig } from '@/config/forms'
 import { batchCodeOf, useCloudData } from '@/hooks/useCloudData'
 import { FORM_MODULE, can, guard } from '@/utils/permission'
 import { assetUrl } from '@/utils/request'
-import { dateOnly, money } from '@/utils/format'
+import { dateOnly, money, today } from '@/utils/format'
 import type { Demand, Product } from '@/types'
+
+/** 供应信息状态：按「上架日期 / 下架日期」与当天日期自动判定 */
+const productState = (product: Product): { label: string; plain: boolean } => {
+  const now = today()
+  const start = dateOnly(product.available_date)
+  const end = dateOnly(product.off_shelf_date)
+  if (end && now > end) return { label: '已下架', plain: true }
+  if (start && now < start) return { label: '未上架', plain: true }
+  return { label: '可供应', plain: false }
+}
 
 /** 修改供应信息时，把原记录转成表单默认值（空值用空串，避免显示 undefined） */
 const productPreset = (product: Product): Record<string, string> => ({
@@ -23,6 +33,7 @@ const productPreset = (product: Product): Record<string, string> => ({
   unit: product.unit || 'kg',
   price: product.price === null || product.price === undefined ? '' : String(product.price),
   available_date: dateOnly(product.available_date),
+  off_shelf_date: dateOnly(product.off_shelf_date),
   description: product.description || ''
 })
 
@@ -102,12 +113,12 @@ export default function Market() {
                       <Text className='row-desc'>
                         批次：{batchCodeOf(data.batches, product.batch_id)}
                         {'\n'}
-                        可售日期：{dateOnly(product.available_date) || '未设置'}
+                        上架：{dateOnly(product.available_date) || '未设置'} · 下架：{dateOnly(product.off_shelf_date) || '未设置'}
                       </Text>
                     </View>
                   </View>
-                  <Text className={`badge${product.status === 'available' ? '' : ' plain'}`}>
-                    {product.status === 'available' ? '可供应' : '已下架'}
+                  <Text className={`badge${productState(product).plain ? ' plain' : ''}`}>
+                    {productState(product).label}
                   </Text>
                 </View>
                 <View className='metric-line'>

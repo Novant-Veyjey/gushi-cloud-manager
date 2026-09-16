@@ -93,10 +93,12 @@ const configs = {
     numeric: ['base_id']
   },
   products: {
-    columns: ['batch_id', 'name', 'icon', 'quantity', 'unit', 'price', 'available_date', 'status', 'description'],
+    columns: ['batch_id', 'name', 'icon', 'quantity', 'unit', 'price', 'available_date', 'off_shelf_date', 'status', 'description'],
     required: ['name'],
     order: 'created_at DESC',
-    numeric: ['batch_id', 'quantity', 'price']
+    numeric: ['batch_id', 'quantity', 'price'],
+    // 供应信息用 'available' 表示「可供应」，与其它模块的 'active' 不同，单独指定兜底值
+    defaultStatus: 'available'
   },
   demands: {
     columns: ['buyer_name', 'product_name', 'quantity', 'unit', 'price', 'requirements', 'contact', 'status'],
@@ -123,7 +125,7 @@ function normalizeRow(config, body, partial = false) {
       if (!row[key]) throw new Error(`缺少必填字段：${key}`);
     }
   }
-  if (config.columns.includes('status') && row.status === undefined && !partial) row.status = 'active';
+  if (config.columns.includes('status') && row.status === undefined && !partial) row.status = config.defaultStatus || 'active';
   return row;
 }
 

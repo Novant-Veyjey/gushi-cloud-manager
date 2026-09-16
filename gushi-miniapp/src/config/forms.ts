@@ -89,7 +89,8 @@ export function buildFormConfigs(data: CloudData): Record<string, FormConfig> {
       defaultValue: 'kg'
     },
     { name: 'price', label: '参考价格（元）', type: 'number' },
-    { name: 'available_date', label: '可售日期', type: 'date', defaultValue: today() },
+    { name: 'available_date', label: '上架日期', type: 'date', defaultValue: today() },
+    { name: 'off_shelf_date', label: '下架日期', type: 'date' },
     { name: 'description', label: '产品说明', type: 'textarea' }
   ]
   const productForm: FormConfig = {

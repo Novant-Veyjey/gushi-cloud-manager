@@ -133,6 +133,7 @@ CREATE TABLE IF NOT EXISTS products (
   unit TEXT NOT NULL DEFAULT 'kg',
   price REAL DEFAULT 0,
   available_date TEXT DEFAULT '',
+  off_shelf_date TEXT DEFAULT '',
   status TEXT NOT NULL DEFAULT 'available',
   description TEXT DEFAULT '',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -221,6 +222,15 @@ function ensureColumn(table, column, definition) {
 
 const productColumns = db.prepare('PRAGMA table_info(products)').all().map((column) => column.name);
 if (!productColumns.includes('icon')) db.exec("ALTER TABLE products ADD COLUMN icon TEXT DEFAULT ''");
+
+/** 供应信息上下架日期：旧库补列，兼容已有数据库文件 */
+ensureColumn('products', 'off_shelf_date', "TEXT DEFAULT ''");
+
+/**
+ * 早期版本对所有带 status 的表统一兜底成 'active'，但供应信息是用 'available' 表示「可供应」，
+ * 导致新建产品一保存就被判成「已下架」。这里把历史脏数据回填为 'available'。
+ */
+db.exec("UPDATE products SET status = 'available' WHERE status = 'active'");
 
 /** 每个账号的数据通过 user_id 隔离，所有业务表都需要该字段 */
 const businessTables = ['partners', 'bases', 'batches', 'readings', 'alerts', 'trace_events', 'expert_questions', 'products', 'demands', 'tasks', 'devices'];
