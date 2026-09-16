@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Text, View } from '@tarojs/components'
+import { ScrollView, Text, View } from '@tarojs/components'
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro'
 
 import BrandBar from '@/components/BrandBar'
@@ -338,13 +338,13 @@ export default function Monitor() {
             </View>
 
             {/* 接口说明较长，放进滚动区，避免两个按钮区被顶出屏幕 */}
-            <View className='sheet-body'>
+            <ScrollView className='sheet-body' scrollY>
               <View className='notice'>
                 上报地址：POST /api/ingest/readings{'\n'}
                 请求头：X-Device-Code、X-Device-Secret{'\n'}
                 请求体示例：{'{'}"temperature":24.5,"humidity":88,"co2":650,"light":320{'}'}
               </View>
-            </View>
+            </ScrollView>
 
             <View className='sheet-actions'>
               <View className='btn secondary' onClick={() => copy(credential.code)}>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Image, Input, Picker, Text, Textarea, View } from '@tarojs/components'
+import { Image, Input, Picker, ScrollView, Text, Textarea, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 
 import { PRODUCT_ICON_PRESETS } from '@/config'
@@ -251,8 +251,11 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
         <Text className='sheet-title'>{config.title}</Text>
         <Text className='sheet-desc'>{config.desc}</Text>
         {config.notice ? <View className='notice'>{config.notice}</View> : null}
-        {/* 字段放在可滚动区域里，底部「取消 / 保存到后台」不会被内容顶出屏幕 */}
-        <View className='sheet-body'>{visibleFields.map(renderField)}</View>
+        {/* 字段放在可滚动区域里，底部「取消 / 保存到后台」不会被内容顶出屏幕。
+            用 ScrollView 而不是 View + overflow：小程序端 view 不支持内部滚动，ScrollView 两端通用 */}
+        <ScrollView className='sheet-body' scrollY>
+          {visibleFields.map(renderField)}
+        </ScrollView>
         <View className='sheet-actions'>
           <View className='btn secondary' onClick={onClose}>
             取消

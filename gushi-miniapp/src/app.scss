@@ -760,7 +760,11 @@ page {
   top: 0;
   bottom: 0;
   background: rgba(12, 38, 26, 0.45);
-  z-index: 100;
+  /**
+   * 必须压过 Taro H5 底部 TabBar（.taro-tabbar__tabbar 的 z-index 在 1000 量级），
+   * 否则弹层底部的「取消 / 保存」按钮会被 TabBar 盖住，看起来就像显示不全。
+   */
+  z-index: 2000;
   display: flex;
   align-items: flex-end;
 }
@@ -780,6 +784,7 @@ page {
 /**
  * 表单内容区：只有这一块滚动，标题与底部「取消 / 保存」始终可见。
  * min-height: 0 是 flex 子项能正常收缩并产生滚动条的前提（否则会被内容撑开溢出屏幕）。
+ * 滚动条默认在移动端不可见，这里显式画出一条细滚动条，提示用户「这里可以滑动查看全部」。
  */
 .sheet-body {
   flex: 1;
@@ -787,6 +792,20 @@ page {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+}
+
+.sheet-body::-webkit-scrollbar {
+  width: 8px;
+  border-radius: 4px;
+}
+
+.sheet-body::-webkit-scrollbar-thumb {
+  background: #c3d2c8;
+  border-radius: 4px;
+}
+
+.sheet-body::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .sheet-scroll {
