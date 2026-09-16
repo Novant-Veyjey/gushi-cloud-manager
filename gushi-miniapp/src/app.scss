@@ -1,5 +1,23 @@
 /* 全局样式：沿用原 HTML 原型的绿色视觉体系，设计宽度 750（数值为原型 px 的两倍） */
 
+/**
+ * 正常页面隐藏滚动条，保持手机原生观感；
+ * 弹层内容区（.sheet-body，如「新增数据」）单独保留滚动条，提示可滑动查看全部。
+ */
+html,
+body,
+.taro_page,
+.taro-tabbar__panel {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
 /* 主题变量抽成 mixin，供小程序端与 H5 端各自的根节点复用 */
 @mixin gushi-theme-vars {
   --g900: #174f39;
