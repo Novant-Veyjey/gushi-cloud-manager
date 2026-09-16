@@ -105,16 +105,6 @@ function decodeJwt(token) {
     const me = await request(base, '/api/auth/me', { token: login.token });
     if (me.username !== `alice_${suffix}` || !me.permissions) throw new Error('auth/me 返回不正确');
 
-    // 8. 微信一键登录：未配置 AppID 时必须明确提示，不能静默失败
-    if (!process.env.WX_APPID) {
-      const wechat = await request(base, '/api/auth/wechat', {
-        method: 'POST',
-        body: JSON.stringify({ code: 'fake-code' }),
-        expectStatus: 501
-      });
-      if (!/AppID/.test(wechat.message)) throw new Error('微信登录未配置时的提示不明确');
-    }
-
     // 9. alice 录入真实数据
     const createdBase = await request(base, '/api/bases', {
       method: 'POST',
@@ -319,7 +309,7 @@ function decodeJwt(token) {
     await request(base, '/api/auth/me', { token: login.token, expectStatus: 401 });
 
     console.log(
-      `API tests passed：JWT 登录、RBAC、账号隔离、管理员接口、微信登录降级、` +
+      `API tests passed：JWT 登录、RBAC、账号隔离、管理员接口、` +
         `硬件自动上报与阈值预警、AI 问答（当前来源 ${ask.source}，模型 ${aiStatus.model}）、持久化与公开溯源均通过`
     );
   } finally {

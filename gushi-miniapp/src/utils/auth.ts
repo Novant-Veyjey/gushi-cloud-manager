@@ -61,16 +61,6 @@ export async function login(username: string, password: string): Promise<AuthSes
   return session
 }
 
-/**
- * 微信小程序一键登录：wx.login 拿到 code，由后台换取 openid 并签发 JWT。
- * 后台未配置 WX_APPID/WX_SECRET 时会返回明确提示，此时改用账号密码登录。
- */
-export async function wechatLogin(code: string): Promise<AuthSession> {
-  const session = await api<AuthSession>('/api/auth/wechat', { method: 'POST', data: { code } })
-  saveAuth(session.token, session.user)
-  return session
-}
-
 /** 校验本地 token 是否仍然有效，并返回服务端最新账号信息 */
 export async function fetchCurrentUser(): Promise<AuthUser> {
   const user = await api<AuthUser>('/api/auth/me')

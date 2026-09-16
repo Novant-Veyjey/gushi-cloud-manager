@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
-"""生成密码框的小眼睛图标（睁眼 / 闭眼），风格与 TabBar 图标一致"""
+"""生成密码框的密码可见性切换图标（主题绿线条，无底色）
+
+- eye-open.png   密码以明文显示时：睁眼（椭圆眼眶 + 瞳孔）
+- eye-closed.png 密码隐藏时：闭眼（下弯眼睑 + 睫毛，无瞳孔）
+
+用法（需要 Pillow）：python scripts/gen-eye-icons.py
+"""
 import os
 from PIL import Image, ImageDraw
 
@@ -16,13 +22,16 @@ GREEN = (39, 132, 90, 255)   # #27845a 与主题 --g700 一致
 def eye(color, closed):
     img = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    # 眼眶：扁椭圆
-    d.ellipse([26, 78, 230, 178], outline=color, width=W)
-    # 瞳孔：实心圆
-    d.ellipse([92, 92, 164, 164], fill=color)
     if closed:
-        # 斜杠划过眼睛 = 已隐藏 / 点击切换
-        d.line([(38, 238), (218, 18)], fill=color, width=W)
+        # 闭眼：一条下弯的眼睑弧线 + 三根向下的睫毛（没有瞳孔，一眼就能看出「闭着」）
+        d.arc([36, 56, 220, 200], start=0, end=180, fill=color, width=W)
+        d.line([(84, 158), (66, 184)], fill=color, width=W)
+        d.line([(128, 194), (128, 224)], fill=color, width=W)
+        d.line([(172, 158), (190, 184)], fill=color, width=W)
+    else:
+        # 睁眼：扁椭圆眼眶 + 实心瞳孔
+        d.ellipse([26, 78, 230, 178], outline=color, width=W)
+        d.ellipse([98, 98, 158, 158], fill=color)
     return img
 
 

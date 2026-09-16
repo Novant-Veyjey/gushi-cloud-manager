@@ -11,7 +11,7 @@ Express + better-sqlite3 服务端，为小程序与手机风格 HTML 原型提�
 
 ```bash
 npm install
-copy .env.example .env      # 可选，填 AI / 微信 / MQTT 配置
+copy .env.example .env      # 可选，填 AI / MQTT 配置
 npm start                   # http://localhost:3000
 ```
 
@@ -20,7 +20,6 @@ npm start                   # http://localhost:3000
 ```text
 AI_BASE_URL=https://api.deepseek.com/v1   # AI 问答，OpenAI 兼容
 AI_API_KEY= / AI_MODEL=deepseek-chat
-WX_APPID= / WX_SECRET=                     # 微信一键登录
 MQTT_URL=mqtt://127.0.0.1:1883             # MQTT 设备接入
 MQTT_TOPIC_PREFIX=gushi
 JWT_SECRET=                                # 留空则自动生成到 server/data/jwt.secret
@@ -37,14 +36,14 @@ JWT_SECRET=                                # 留空则自动生成到 server/dat
 
 ```text
 GET  /api/auth/roles                 角色与权限矩阵
-POST /api/auth/register|login|wechat 注册 / 登录 / 微信一键登录
+POST /api/auth/register|login        注册 / 登录
 POST /api/auth/logout                退出（token 立即失效）
 GET  /api/auth/me                    当前账号 + 自己的权限
 GET  /api/admin/users                管理员：账号列表
 PUT  /api/admin/users/:id/role       管理员：改角色
 ```
 
-微信一键登录：配置 `WX_APPID`/`WX_SECRET` 后，小程序 `wx.login` 的 code 换 openid，首次自动建号；**未配置返回 501 并提示改用账号密码**。
+登录方式：账号密码（注册后数据只属于该账号，JWT 有效期 7 天）。
 
 ## 大棚硬件接入
 

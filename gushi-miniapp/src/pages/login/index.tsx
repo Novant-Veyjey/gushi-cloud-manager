@@ -5,7 +5,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import eyeClosed from '@/assets/icons/eye-closed.png'
 import eyeOpen from '@/assets/icons/eye-open.png'
 import logo from '@/assets/logo.jpg'
-import { fetchCurrentUser, login, REGISTER_ROLE_OPTIONS, register, wechatLogin } from '@/utils/auth'
+import { fetchCurrentUser, login, REGISTER_ROLE_OPTIONS, register } from '@/utils/auth'
 import { clearAuth, getToken } from '@/utils/storage'
 
 type Mode = 'login' | 'register'
@@ -59,23 +59,6 @@ export default function Login() {
         })
         Taro.showToast({ title: '注册成功', icon: 'success' })
       }
-      Taro.switchTab({ url: '/pages/home/index' })
-    } catch (error) {
-      Taro.showToast({ title: (error as Error).message, icon: 'none' })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  /** 微信一键登录：后台未配置 AppID/Secret 时会明确提示，可改用账号密码 */
-  const handleWechatLogin = async () => {
-    if (submitting) return
-    setSubmitting(true)
-    try {
-      const result = await Taro.login()
-      if (!result.code) throw new Error('未获取到微信登录凭证，请重试')
-      await wechatLogin(result.code)
-      Taro.showToast({ title: '登录成功', icon: 'success' })
       Taro.switchTab({ url: '/pages/home/index' })
     } catch (error) {
       Taro.showToast({ title: (error as Error).message, icon: 'none' })
@@ -151,11 +134,12 @@ export default function Login() {
               className='field-password-toggle'
               onClick={() => setShowPassword((value) => !value)}
               aria-role='button'
+              aria-label={showPassword ? '当前密码可见，点击隐藏' : '当前密码已隐藏，点击显示'}
             >
-              {/* 睁眼 = 点击可见密码；斜杠闭眼 = 点击隐藏密码 */}
+              {/* 图标与密码可见性保持一致：隐藏时闭眼、明文时睁眼 */}
               <Image
                 className='field-password-eye'
-                src={showPassword ? eyeClosed : eyeOpen}
+                src={showPassword ? eyeOpen : eyeClosed}
                 mode='aspectFit'
               />
             </View>
@@ -197,24 +181,9 @@ export default function Login() {
           {submitting ? '提交中...' : mode === 'login' ? '登录' : '注册并登录'}
         </View>
 
-        {mode === 'login' ? (
-          <View>
-            <View className='login-divider'>
-              <View className='login-divider-line' />
-              <Text className='login-divider-text'>或</Text>
-              <View className='login-divider-line' />
-            </View>
-            <View className='btn wechat' onClick={handleWechatLogin}>
-              微信一键登录
-            </View>
-          </View>
-        ) : null}
-
         <View className='notice' style='margin:24px 0 0'>
           演示账号：demo / demo123456（数据带“演示”标记，可直接删除）。<br />
           注册时可选择菇农 / 基地管理员 / 采购商；「政府/服务机构」「专家」「平台管理员」不可自选，由平台管理员分配。
-          <br />
-          微信一键登录需后台配置 WX_APPID / WX_SECRET（见 后台/.env.example），未配置时会提示并改用账号密码登录。
         </View>
       </View>
     </View>

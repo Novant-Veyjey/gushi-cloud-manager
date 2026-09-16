@@ -1,6 +1,6 @@
 const { loadEnvFile } = require('./env');
 
-// 先加载 .env，保证后续模块能读到 AI / 微信 / 数据库配置
+// 先加载 .env，保证后续模块能读到 AI / MQTT / 数据库配置
 loadEnvFile();
 
 const express = require('express');
@@ -291,15 +291,6 @@ app.post('/api/auth/register', (req, res) => {
 app.post('/api/auth/login', (req, res) => {
   try {
     ok(res, auth.login(req.body || {}), '登录成功');
-  } catch (error) {
-    fail(res, error.status || 400, error.message);
-  }
-});
-
-/** 微信小程序一键登录：前端 wx.login 拿 code，后台换 openid */
-app.post('/api/auth/wechat', async (req, res) => {
-  try {
-    ok(res, await auth.wechatLogin(text(req.body?.code)), '登录成功');
   } catch (error) {
     fail(res, error.status || 400, error.message);
   }

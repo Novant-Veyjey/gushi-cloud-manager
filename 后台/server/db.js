@@ -249,10 +249,6 @@ ensureColumn('expert_questions', 'ai_model', "TEXT DEFAULT ''");
 db.exec('CREATE INDEX IF NOT EXISTS idx_readings_device ON readings(device_id, recorded_at)');
 db.exec('CREATE INDEX IF NOT EXISTS idx_ingest_logs_device ON ingest_logs(device_id, created_at)');
 
-/** 微信登录标识：同一个微信用户只对应一个账号 */
-ensureColumn('users', 'openid', 'TEXT');
-db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_openid ON users(openid)');
-
 // 过期会话清理
 db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(new Date().toISOString());
 

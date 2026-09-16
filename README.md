@@ -45,7 +45,6 @@ Windows 上也可以双击启动脚本，省去敲命令：
 AI_BASE_URL=https://api.deepseek.com/v1     # AI 问答（OpenAI 兼容接口）
 AI_API_KEY=你的密钥
 AI_MODEL=deepseek-chat
-WX_APPID= / WX_SECRET=                       # 微信一键登录（可选）
 MQTT_URL=mqtt://127.0.0.1:1883              # MQTT 设备接入（可选）
 ```
 

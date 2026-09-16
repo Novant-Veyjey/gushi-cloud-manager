@@ -109,7 +109,7 @@ function verifyPassword(password, salt, hash) {
   return crypto.timingSafeEqual(candidate, expected);
 }
 
-/** 返回给前端的用户信息，绝不包含密码或微信标识 */
+/** 返回给前端的用户信息，绝不包含密码哈希等敏感字段 */
 function sanitizeUser(row) {
   if (!row) return null;
   return {
@@ -252,54 +252,6 @@ function login(payload = {}) {
   return { user: sanitizeUser(row), ...issueToken(row) };
 }
 
-/**
- * 微信小程序一键登录：用 wx.login 拿到的 code 换取 openid，
- * 首次登录自动创建账号，之后每次登录复用同一个账号。
- * 需要在后台配置 WX_APPID 与 WX_SECRET（见 .env.example）。
- */
-async function wechatLogin(code) {
-  const appid = process.env.WX_APPID;
-  const secret = process.env.WX_SECRET;
-  if (!appid || !secret) {
-    const error = new Error('后台未配置微信小程序 AppID/Secret，请先用账号密码登录');
-    error.status = 501;
-    throw error;
-  }
-  if (!code) {
-    const error = new Error('缺少微信登录凭证 code');
-    error.status = 400;
-    throw error;
-  }
-
-  const url = `https://api.weixin.qq.com/sns/jscode2session?appid=${encodeURIComponent(appid)}&secret=${encodeURIComponent(
-    secret
-  )}&js_code=${encodeURIComponent(code)}&grant_type=authorization_code`;
-  const response = await fetch(url);
-  const payload = await response.json();
-  if (!payload || payload.errcode || !payload.openid) {
-    const error = new Error(`微信登录失败：${(payload && payload.errmsg) || '未知错误'}`);
-    error.status = 400;
-    throw error;
-  }
-
-  let user = db.prepare('SELECT * FROM users WHERE openid = ?').get(payload.openid);
-  if (!user) {
-    const baseUsername = `wx_${String(payload.openid).slice(-10)}`;
-    let username = baseUsername;
-    let index = 1;
-    while (db.prepare('SELECT id FROM users WHERE username = ?').get(username)) {
-      username = `${baseUsername}_${index++}`;
-    }
-    const { hash, salt } = hashPassword(crypto.randomBytes(18).toString('hex'));
-    const result = db
-      .prepare('INSERT INTO users (username, display_name, role, password_hash, password_salt, openid) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(username, '微信用户', 'farmer', hash, salt, payload.openid);
-    user = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid);
-  }
-
-  return { user: sanitizeUser(user), ...issueToken(user) };
-}
-
 /** 平台管理员：查看全部账号及其数据量 */
 function listUsers() {
   const rows = db.prepare('SELECT * FROM users ORDER BY id ASC').all();
@@ -308,7 +260,7 @@ function listUsers() {
     for (const table of ['bases', 'batches', 'readings', 'products', 'demands']) {
       counts[table] = db.prepare(`SELECT COUNT(*) AS count FROM ${table} WHERE user_id = ?`).get(row.id).count;
     }
-    return { ...sanitizeUser(row), openid_bound: Boolean(row.openid), ...counts };
+    return { ...sanitizeUser(row), ...counts };
   });
 }
 
@@ -400,7 +352,6 @@ module.exports = {
   resolveUser,
   register,
   login,
-  wechatLogin,
   listUsers,
   updateUserRole,
   assignRoleByCredentials,
