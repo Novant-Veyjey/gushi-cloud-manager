@@ -16,6 +16,8 @@ export interface RequestOptions {
   data?: Record<string, any>
   /** 成功提示文案，传入后保存成功自动 toast */
   successText?: string
+  /** 超时时间（毫秒），默认 10000；AI 问答这类耗时接口可单独放宽 */
+  timeout?: number
 }
 
 /**
@@ -24,7 +26,7 @@ export interface RequestOptions {
  * 连接失败时直接抛出错误，页面必须提示失败，不能回退到虚构数据。
  */
 export async function api<T = any>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', data, successText } = options
+  const { method = 'GET', data, successText, timeout = 10000 } = options
   const token = getToken()
   let response: Taro.request.SuccessCallbackResult<any>
 
@@ -33,7 +35,7 @@ export async function api<T = any>(path: string, options: RequestOptions = {}): 
       url: `${BASE_URL}${path}`,
       method,
       data,
-      timeout: 10000,
+      timeout,
       header: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {})

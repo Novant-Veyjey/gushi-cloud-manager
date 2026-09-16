@@ -337,10 +337,13 @@ export default function Monitor() {
               <View className='field-picker filled'>{credential.secret || '（已隐藏，请重新获取）'}</View>
             </View>
 
-            <View className='notice'>
-              上报地址：POST /api/ingest/readings{'\n'}
-              请求头：X-Device-Code、X-Device-Secret{'\n'}
-              请求体示例：{'{'}"temperature":24.5,"humidity":88,"co2":650,"light":320{'}'}
+            {/* 接口说明较长，放进滚动区，避免两个按钮区被顶出屏幕 */}
+            <View className='sheet-body'>
+              <View className='notice'>
+                上报地址：POST /api/ingest/readings{'\n'}
+                请求头：X-Device-Code、X-Device-Secret{'\n'}
+                请求体示例：{'{'}"temperature":24.5,"humidity":88,"co2":650,"light":320{'}'}
+              </View>
             </View>
 
             <View className='sheet-actions'>

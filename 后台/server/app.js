@@ -86,7 +86,7 @@ const configs = {
   },
   questions: {
     table: 'expert_questions',
-    columns: ['base_id', 'title', 'content', 'category', 'answer', 'status', 'answered_at'],
+    columns: ['base_id', 'title', 'content', 'category', 'answer', 'status', 'answered_at', 'answer_source', 'ai_model'],
     required: ['title', 'content'],
     updatedAt: false,
     order: 'created_at DESC',
@@ -159,9 +159,30 @@ function makeCrudRouter(name, config) {
     ok(res, row);
   });
 
-  router.post('/', requirePermission(name, 'w'), (req, res) => {
+  router.post('/', requirePermission(name, 'w'), async (req, res) => {
     try {
       const row = normalizeRow(config, req.body || {});
+      // 提问类资源：不管是从「AI 问答」提问还是「向专家提问」表单提交，
+      // 保存时就顺手自动回答一次，避免记录落库后一直停在“待回复”。
+      // 有 AI 密钥走大模型，否则走规则知识库；自动回答失败也不影响提问本身保存，专家仍可人工补充回复。
+      if (name === 'questions' && !row.answer) {
+        try {
+          const auto = await aiService.answerQuestion({
+            question: row.content,
+            userId: req.user.id,
+            baseId: row.base_id || null,
+            category: row.category || '',
+            save: false
+          });
+          row.answer = auto.answer;
+          row.answer_source = auto.source;
+          row.ai_model = auto.model || '';
+          row.status = 'answered';
+          row.answered_at = new Date().toISOString();
+        } catch (error) {
+          console.warn('自动回答失败，问题按待回复保存：', error.message);
+        }
+      }
       row.user_id = req.user.id;
       const cols = Object.keys(row);
       const placeholders = cols.map((col) => `@${col}`).join(', ');
@@ -183,6 +204,17 @@ function makeCrudRouter(name, config) {
       }
       const row = normalizeRow(config, req.body || {}, true);
       if (!Object.keys(row).length) return fail(res, 400, '没有可更新字段');
+      // 专家回复只能由专家/平台管理员执行：
+      // questions 的写权限代表能“提问”，不能拿来替专家“回复”，否则菇农也能冒充专家答题。
+      if (name === 'questions' && row.answer && !auth.canAnswerQuestion(req.user.role)) {
+        return fail(res, 403, `当前角色（${req.user.role_label}）不能代替专家回复问题`);
+      }
+      // 专家人工补充回复：自动补上回答来源与状态，避免出现“已有回答但界面仍显示待回复”
+      if (name === 'questions' && row.answer && !row.answer_source) {
+        row.answer_source = 'expert';
+        if (!row.status) row.status = 'answered';
+        if (!row.answered_at) row.answered_at = new Date().toISOString();
+      }
       if (config.updatedAt !== false) row.updated_at = new Date().toISOString();
       const assignments = Object.keys(row).map((key) => `${key} = @${key}`).join(', ');
       db.prepare(`UPDATE ${table} SET ${assignments} WHERE id = @id AND user_id = @user_id`).run({ ...row, id, user_id: req.user.id });

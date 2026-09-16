@@ -10,9 +10,9 @@
     "framework": "react"
   },
   "scripts": {
-    "build:weapp": "taro build --type weapp",
+    "build:weapp": "taro build --type weapp && node scripts/copy-tabbar.js",
     "dev:weapp": "npm run build:weapp -- --watch",
-    "build:h5": "cross-env TARO_OUTPUT_ROOT=dist-h5 taro build --type h5",
+    "build:h5": "cross-env TARO_OUTPUT_ROOT=dist-h5 taro build --type h5 && node scripts/copy-tabbar.js",
     "dev:h5": "cross-env TARO_OUTPUT_ROOT=dist-h5 taro build --type h5 --watch",
     "preview:h5": "node scripts/serve-h5.js",
     "type-check": "tsc --noEmit"

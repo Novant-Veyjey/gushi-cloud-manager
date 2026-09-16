@@ -38,12 +38,24 @@ function decodeJwt(token) {
   const createdUsers = [];
   const tables = ['alerts', 'trace_events', 'readings', 'products', 'demands', 'tasks', 'expert_questions', 'batches', 'bases', 'partners', 'devices', 'ingest_logs', 'sessions'];
 
+  /**
+   * 注册账号用于 RBAC 校验。
+   * 自助注册现在固定为 farmer（不允许自选角色，见 auth.js），
+   * 因此注册后按需改写角色，效果等同于平台管理员在后台分配角色。
+   * 注意 admin 故意不在可分配列表里，便于第 5 步继续校验“自助注册拿不到管理员角色”。
+   */
+  const ASSIGNABLE_ROLES = ['farmer', 'base', 'expert', 'buyer', 'government'];
+
   async function registerUser(role, tag) {
     const result = await request(base, '/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ username: `${tag}_${suffix}`, password: 'test123456', display_name: tag, role })
     });
     createdUsers.push(result.user);
+    if (role && ASSIGNABLE_ROLES.includes(role) && role !== result.user.role) {
+      db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, result.user.id);
+      result.user.role = role;
+    }
     return result;
   }
 

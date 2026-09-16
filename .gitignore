@@ -7,6 +7,8 @@ gushi-miniapp/dist/
 gushi-miniapp/dist-h5/
 dist/
 dist-h5/
+# Taro copy 插件会把 TabBar 图标复制到包根目录，属构建产物（源文件在 src/assets/tabbar/）
+/gushi-miniapp/assets/
 
 # ---------- 运行期数据（数据库、JWT 密钥、备份、上传图片）----------
 # 数据库可通过 `cd 后台 && npm run seed:demo` 重新生成演示数据

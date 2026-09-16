@@ -1,5 +1,7 @@
 /* 全局样式：沿用原 HTML 原型的绿色视觉体系，设计宽度 750（数值为原型 px 的两倍） */
-page {
+
+/* 主题变量抽成 mixin，供小程序端与 H5 端各自的根节点复用 */
+@mixin gushi-theme-vars {
   --g900: #174f39;
   --g800: #1f6a4a;
   --g700: #27845a;
@@ -12,11 +14,30 @@ page {
   --line: #e5ece7;
   --orange: #ef9d3c;
   --red: #df5b5b;
+}
+
+/* 小程序端：page 是页面根节点，变量与基础样式都挂在这里 */
+page {
+  @include gushi-theme-vars;
 
   background: #eaf0e8;
   color: var(--ink);
   font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
   font-size: 26px;
+}
+
+/**
+ * H5 端：Taro 渲染出来的是 div.taro_page，根本没有 page 元素，
+ * 变量若只挂在 page 上会全部失效 —— 典型症状是登录按钮白字 + 透明底，看上去“没有登录按钮”。
+ * 因此这里给 :root 再挂一份。必须与 page 分成两条规则：
+ * 万一小程序编译器不认 :root，也只会忽略这一条，不会连带丢掉 page 上的变量。
+ */
+:root {
+  @include gushi-theme-vars;
+
+  background: #eaf0e8;
+  color: var(--ink);
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
 .page {
@@ -694,10 +715,25 @@ page {
 .sheet {
   width: 100%;
   max-height: 86vh;
+  /* flex 纵向布局：标题固定、内容区滚动、底部按钮固定 */
+  display: flex;
+  flex-direction: column;
   background: #ffffff;
   border-radius: 40px 40px 0 0;
   padding: 40px 34px 40px;
   box-sizing: border-box;
+}
+
+/**
+ * 表单内容区：只有这一块滚动，标题与底部「取消 / 保存」始终可见。
+ * min-height: 0 是 flex 子项能正常收缩并产生滚动条的前提（否则会被内容撑开溢出屏幕）。
+ */
+.sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .sheet-scroll {
@@ -720,6 +756,9 @@ page {
 .sheet-actions {
   display: flex;
   margin-top: 20px;
+  padding-top: 20px;
+  flex-shrink: 0;
+  background: #ffffff;
 }
 
 .sheet-menu-item {

@@ -13,7 +13,6 @@ npm run dev:weapp                        # 或 npm run build:weapp 只编译一�
 ```
 
 导入项目选 `gushi-miniapp` 目录 → AppID 用测试号 → 详情/本地设置勾选 **不校验合法域名** → 编译。
-真机预览：把 `src/config/index.ts` 的 `BASE_URL` 改成电脑局域网 IP。
 
 **浏览器预览（不用开发者工具）**
 
@@ -21,35 +20,75 @@ npm run dev:weapp                        # 或 npm run build:weapp 只编译一�
 npm run build:h5 && npm run preview:h5    # http://localhost:5173
 ```
 
-扫码、图片上传、微信一键登录等小程序专有能力需在开发者工具里体验。
-后台启动后打开 http://localhost:3000 也可用手机风格 HTML 原型。
+Windows 上也可直接双击 `启动浏览器预览.cmd`：首次会自动构建，然后启动预览并打开浏览器。
+
+扫码、图片上传、微信一键登录等小程序专有能力需在开发者工具里体验。后台启动后打开 http://localhost:3000 也可用手机风格 HTML 界面。
+
+### 接口地址（BASE_URL）怎么定
+
+`src/config/index.ts` 会按以下顺序解析，**不需要为了换 IP 改代码重新构建**：
+
+1. 构建时显式指定（在 `config/index.ts` 的 `defineConstants` 里注入）：
+
+   ```bash
+   # Git Bash / macOS / Linux
+   TARO_APP_API_BASE=http://192.168.1.10:3000 npm run build:h5
+   # Windows PowerShell
+   $env:TARO_APP_API_BASE='http://192.168.1.10:3000'; npm run build:h5
+   ```
+2. 浏览器端自动跟随访问地址：用 `http://10.23.53.47:5173` 打开就自动连 `http://10.23.53.47:3000`，本机 `localhost:5173` 就自动连 `localhost:3000`；
+3. 兜底 `http://localhost:3000`。
+
+所以手机只要和电脑在同一个 WiFi，直接打开 `http://<电脑局域网IP>:5173` 即可（前提是后台 3000 与预览 5173 都在运行、防火墙放行 Node 入站）。
+
+微信小程序真机预览时，用第 1 种方式把地址写成电脑局域网 IP。
 
 ## 二、登录与权限
 
 | 登录方式 | 说明 |
 |---|---|
-| 账号密码 | 注册后数据只属于该账号，可自选角色 |
+| 账号密码 | 注册后数据只属于该账号；**注册一律是普通菇农**，不能自选角色 |
 | 微信一键登录 | `wx.login` → `code2session`，首次自动建号；需后台配置 `WX_APPID`/`WX_SECRET`，未配置会提示改用账号密码 |
 | 演示账号 | `demo` / `demo123456` |
 
-JWT 登录态本地缓存 7 天，退出后服务端立即撤销。角色能力：菇农（生产/设备/环境/溯源/任务读写）、基地管理员（除账号管理外全部）、专家（问答读写，其余只读）、采购商（采购需求读写、无设备权限）、政府机构（只读+统计）、平台管理员（全部+账号管理）。前端会隐藏无权限入口，后端强制校验。
+JWT 登录态本地缓存 7 天，退出后服务端立即撤销。角色由**平台管理员在后台分配**（登录/注册页不提供角色选择）。
+
+角色能力：
+
+| 角色 | 可写模块 |
+|---|---|
+| 菇农 `farmer` | 基地 / 批次 / 设备 / 环境 / 预警 / 溯源 / 任务（供应、采购需求、合作方只读） |
+| 基地管理员 `base` | 除账号管理外全部 |
+| 专家 `expert` | 只有问答可写，其余只读 |
+| 采购商 `buyer` | 采购需求、问答 |
+| 政府机构 `government` | 全部只读 + 统计 |
+| 平台管理员 `admin` | 全部 + 账号管理 |
+
+两点细节：
+
+- **提问 ≠ 回复**：任何有 `questions` 写权限的角色都能提问（提交后 AI 自动作答）；但**人工专家回复只有专家与平台管理员能做**，其它角色调用会被 403 拦下（`permission.ts` 的 `canAnswerQuestion` 与后台规则一致）。
+- 前端只是隐藏无权限入口（`can()` / `guard()` / `FORM_MODULE`），真正的权限校验在后端。
 
 ## 三、目录结构
 
 ```
 gushi-miniapp/
-├── config/                     # Taro 编译配置（@ → src 别名、小程序/H5 输出目录）
-├── scripts/serve-h5.js         # 浏览器预览用的零依赖静态服务器
+├── config/                        # Taro 编译配置（@ → src 别名、小程序/H5 输出目录、defineConstants、TabBar 图标复制）
+├── scripts/
+│   ├── serve-h5.js                # 浏览器预览用的零依赖静态服务器
+│   ├── copy-tabbar.js             # 构建后把 TabBar 图标补到产物根目录（H5 需要）
+│   └── gen-tabbar-icons.py        # 生成 TabBar 图标（81×81，普通/选中两套，需 Pillow）
 └── src/
-    ├── app.config.ts           # 页面注册 + 五个 Tab
-    ├── index.html              # H5 入口模板
-    ├── assets/logo.jpg         # 品牌图标
-    ├── config/                 # BASE_URL/阈值等常量、10 类录入表单配置
-    ├── types/                  # 数据模型与账号模型
-    ├── utils/                  # request（携带 JWT、401 跳登录）、auth、storage、permission、format
-    ├── hooks/useCloudData.ts   # 并发拉取本账号数据（支持静默刷新）
-    ├── components/             # BrandBar / FormSheet / EmptyState / StateHint
-    └── pages/                  # login、home、production、monitor、trace、market、expert(AI)
+    ├── app.config.ts              # 页面注册 + 五个 Tab（含 iconPath）
+    ├── index.html                 # H5 入口模板
+    ├── assets/logo.jpg            # 品牌图标
+    ├── assets/tabbar/             # TabBar 图标（home / production / monitor / trace / market）
+    ├── config/                    # BASE_URL/阈值等常量、录入表单配置与首页「＋」菜单
+    ├── types/                     # 数据模型与账号模型
+    ├── utils/                     # request（携带 JWT、可配超时、401 跳登录）、auth、storage、permission、format
+    ├── hooks/useCloudData.ts      # 并发拉取本账号数据（支持静默刷新）
+    ├── components/                # BrandBar / FormSheet / EmptyState / StateHint
+    └── pages/                     # login、home、production、monitor、trace、market、expert(AI 问答)
 ```
 
 ## 四、硬件自动上报
@@ -71,16 +110,18 @@ curl -X POST http://<后台地址>/api/ingest/readings \
 
 ## 五、AI 问答
 
-- 输入问题即答，回答自动带上本账号最近的基地、批次、环境数据作为上下文。
-- 来源标记：**AI 大模型**（`source=ai`）/ **规则知识库**（`rule`，未配置 Key 或调用失败时降级）/ **人工专家**。
-- 问答自动存档，人工专家可补充纠正。切换模型只改后台 `.env`，小程序无需改动。
+- **提问即自动回答**：输入问题点「向 AI 提问」，或在「＋ → 问题提问」表单提交，后台会立即作答并写入问答记录，不用等人工专家。
+- 回答自动带上本账号最近的基地、批次、环境数据作为上下文。
+- 来源标记：**AI 大模型**（`source=ai`）/ **规则知识库**（`rule`，未配置 Key 或调用失败时降级）。
+- 小程序端**不提供人工回复入口**：提问与查看记录面向所有角色，人工专家回复只由专家/管理员在后台完成。
+- 切换模型只改后台 `.env`，小程序无需改动。
 
 ## 六、常用命令
 
 ```bash
 npm run dev:weapp      # 小程序开发模式（监听编译）
-npm run build:weapp    # 小程序构建 → dist/
-npm run build:h5       # 浏览器版构建 → dist-h5/
+npm run build:weapp    # 小程序构建 → dist/（构建后自动执行 copy-tabbar.js 补 TabBar 图标）
+npm run build:h5       # 浏览器版构建 → dist-h5/（同样自动补图标）
 npm run preview:h5     # 浏览器预览 → http://localhost:5173
 npm run type-check     # TypeScript 类型检查
 ```
@@ -92,3 +133,10 @@ npm run type-check     # TypeScript 类型检查
 ## 八、数据真实性原则
 
 数据全部来自后台 SQLite，无数据时显示空状态，统计与数据库一致；连不上或未登录明确提示失败，不做虚构数据兜底；环境数据以硬件上报为准，AI 回答为辅助建议且必须标注来源，演示数据带“演示”标记。
+
+## 九、已知坑（改动前请注意）
+
+1. **不要直接写 `process.env.自定义变量`**：webpack5 的 h5 构建不注入 `process`，会导致浏览器白屏。新增环境变量请在 `config/index.ts` 的 `defineConstants` 里声明。
+2. **主题变量要同时挂 `page` 与 `:root`**：H5 没有 `page` 元素，只写 `page` 会让 H5 里所有 `var(--g*)` 失效（表现为按钮白字白底）。
+3. **新增 TabBar 图标**：图标放 `src/assets/tabbar/`，`app.config.ts` 里用 `assets/tabbar/xxx.png` 相对路径；改完跑一次 `npm run build:h5` 让 `copy-tabbar.js` 补齐产物。
+4. **弹层加长内容**：把滚动部分放进 `.sheet-body`，底部按钮留在 `.sheet-actions`，否则内容会溢出屏幕、按钮点不到。

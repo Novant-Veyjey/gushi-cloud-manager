@@ -1,12 +1,27 @@
+import { ENV_TYPE, getEnv } from '@tarojs/taro'
+
 /**
- * 全局配置。
+ * API 地址解析顺序：
+ *   1. 构建时显式指定的 TARO_APP_API_BASE（见 config/index.ts 的 defineConstants）
+ *   2. 浏览器端按当前访问地址自动推导：用 http://192.168.x.x:5173 打开，就自动连 http://192.168.x.x:3000
+ *      —— 同一个包在本机和手机（同一 WiFi）都能直接用，换 IP 不用重新打包
+ *   3. 兜底 http://localhost:3000
  *
- * BASE_URL 指向「菌云-可保存后台版」的 Express 服务：
- *   1. 本机调试：npm start 后填 http://localhost:3000
- *   2. 真机预览：填电脑局域网 IP，例如 http://192.168.1.10:3000（手机与电脑同一 WiFi）
- *   3. 微信开发者工具需勾选「不校验合法域名」，正式发布需在公众平台配置 request 合法域名
+ * 微信开发者工具里预览真机需勾选「不校验合法域名」，正式发布需在公众平台配置 request 合法域名。
  */
-export const BASE_URL = process.env.TARO_APP_API_BASE || 'http://localhost:3000'
+const envApiBase =
+  typeof process !== 'undefined' && process.env ? process.env.TARO_APP_API_BASE : undefined
+
+function resolveBaseUrl(): string {
+  if (envApiBase) return envApiBase
+  if (getEnv() === ENV_TYPE.WEB && typeof window !== 'undefined' && window.location && window.location.hostname) {
+    return window.location.protocol + '//' + window.location.hostname + ':3000'
+  }
+  return 'http://localhost:3000'
+}
+
+export const BASE_URL = resolveBaseUrl()
+
 
 /** 环境阈值，与后台 server/app.js 的 evaluateReadingAlerts 保持一致，仅用于界面提示 */
 export const THRESHOLDS = {

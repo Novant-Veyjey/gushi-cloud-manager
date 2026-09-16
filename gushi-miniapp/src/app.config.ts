@@ -21,11 +21,11 @@ export default defineAppConfig({
     backgroundColor: '#ffffff',
     borderStyle: 'white',
     list: [
-      { pagePath: 'pages/home/index', text: '首页' },
-      { pagePath: 'pages/production/index', text: '生产' },
-      { pagePath: 'pages/monitor/index', text: '监测' },
-      { pagePath: 'pages/trace/index', text: '溯源' },
-      { pagePath: 'pages/market/index', text: '市场' }
+      { pagePath: 'pages/home/index', text: '首页', iconPath: 'assets/tabbar/home.png', selectedIconPath: 'assets/tabbar/home-on.png' },
+      { pagePath: 'pages/production/index', text: '生产', iconPath: 'assets/tabbar/production.png', selectedIconPath: 'assets/tabbar/production-on.png' },
+      { pagePath: 'pages/monitor/index', text: '监测', iconPath: 'assets/tabbar/monitor.png', selectedIconPath: 'assets/tabbar/monitor-on.png' },
+      { pagePath: 'pages/trace/index', text: '溯源', iconPath: 'assets/tabbar/trace.png', selectedIconPath: 'assets/tabbar/trace-on.png' },
+      { pagePath: 'pages/market/index', text: '市场', iconPath: 'assets/tabbar/market.png', selectedIconPath: 'assets/tabbar/market-on.png' }
     ]
   },
   permission: {

@@ -173,7 +173,7 @@ const formConfigs={
  reading:{title:'录入环境数据',desc:'超过阈值时后台自动生成预警',endpoint:'/api/readings',fields:[
   {name:'base_id',label:'所属基地',type:'select',options:()=>options(state.data.bases,'id','name','请选择基地'),required:true},{name:'device_name',label:'设备名称',required:true},{name:'temperature',label:'温度（°C）',type:'number',step:'0.1'},{name:'humidity',label:'湿度（%）',type:'number',step:'0.1'},{name:'co2',label:'CO₂（ppm）',type:'number',step:'1'},{name:'light',label:'光照（lux）',type:'number',step:'1'},{name:'recorded_at',label:'记录时间',type:'datetime-local',value:nowLocal(),required:true,full:true},{name:'notes',label:'备注',type:'textarea',full:true}
  ]},
- question:{title:'向专家提问',desc:'问题将保存并等待专家回复',endpoint:'/api/questions',fields:[
+ question:{title:'提交问题（AI 自动作答）',desc:'提交后 AI 会立即自动回答并存档',endpoint:'/api/questions',fields:[
   {name:'base_id',label:'所属基地',type:'select',options:()=>options(state.data.bases,'id','name','不关联基地')},{name:'title',label:'问题标题',required:true,full:true},{name:'category',label:'问题类型',type:'select',options:()=>['病虫害防治','环境调控','生产流程','设备使用','市场销售'].map(v=>`<option>${v}</option>`).join('')},{name:'content',label:'问题描述',type:'textarea',required:true,full:true}
  ]},
  'trace-event':{title:'新增溯源事件',desc:'溯源事件会绑定到具体批次',endpoint:'/api/trace-events',fields:[
@@ -245,7 +245,7 @@ function renderLogin(mode='login'){
     <form id="authForm" class="form-grid">
       <div class="field full"><label>账号</label><input name="username" autocomplete="username" placeholder="3-32 位字母、数字、下划线或中文"></div>
       <div class="field full"><label>密码</label><input type="password" name="password" autocomplete="current-password" placeholder="至少 6 位"></div>
-      ${mode==='register'?'<div class="field full"><label>称呼（可选）</label><input name="display_name" placeholder="例如：王师傅 / 德安基地"></div><div class="field full"><label>角色</label><select name="role"><option value="farmer">菇农</option><option value="base">合作社/基地管理员</option><option value="expert">专家</option><option value="buyer">采购商</option><option value="government">政府/服务机构</option></select></div>':''}
+      ${mode==='register'?'<div class="field full"><label>称呼（可选）</label><input name="display_name" placeholder="例如：王师傅 / 德安基地"></div>':''}
     </form>
     <button class="primary full" id="authSubmit">${mode==='login'?'登录':'注册并登录'}</button>
     <div class="sheet-actions"><button class="secondary" id="authSwitch">${mode==='login'?'注册新账号':'返回登录'}</button></div>

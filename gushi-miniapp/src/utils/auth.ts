@@ -15,12 +15,14 @@ export function roleLabel(role?: string): string {
   return ROLE_OPTIONS.find((item) => item.value === role)?.label || '未设置'
 }
 
-/** 注册新账号，成功后后台直接返回登录 token */
+/**
+ * 注册新账号，成功后后台直接返回登录 token。
+ * 注意：后台固定把新账号建为普通菇农，传 role 也不会生效（专家等角色由平台管理员分配）。
+ */
 export async function register(payload: {
   username: string
   password: string
   display_name?: string
-  role?: string
 }): Promise<AuthSession> {
   const session = await api<AuthSession>('/api/auth/register', { method: 'POST', data: payload })
   saveAuth(session.token, session.user)

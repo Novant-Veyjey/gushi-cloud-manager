@@ -33,6 +33,20 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
     setSubmitting(false)
   }, [visible, config])
 
+  /**
+   * H5 端：弹层打开时锁住背景页面滚动。
+   * 否则在弹层里滚动会连带整页一起动，手感发飘、也容易划不到底部按钮。
+   * 小程序没有 document，走原生滚动，这里直接跳过。
+   */
+  useEffect(() => {
+    if (!visible || typeof document === 'undefined' || !document.body) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [visible])
+
   if (!visible || !config) return null
 
   const visibleFields = config.fields.filter((field) => !field.hidden)
@@ -237,7 +251,8 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
         <Text className='sheet-title'>{config.title}</Text>
         <Text className='sheet-desc'>{config.desc}</Text>
         {config.notice ? <View className='notice'>{config.notice}</View> : null}
-        {visibleFields.map(renderField)}
+        {/* 字段放在可滚动区域里，底部「取消 / 保存到后台」不会被内容顶出屏幕 */}
+        <View className='sheet-body'>{visibleFields.map(renderField)}</View>
         <View className='sheet-actions'>
           <View className='btn secondary' onClick={onClose}>
             取消

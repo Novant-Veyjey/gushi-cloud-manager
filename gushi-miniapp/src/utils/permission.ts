@@ -68,8 +68,16 @@ export const FORM_MODULE: Record<string, PermissionModule> = {
   task: 'tasks',
   partner: 'partners',
   device: 'devices',
-  reply: 'questions',
   icon: 'products'
+}
+
+/**
+ * 能否回答提问（专家回复）：只有专家与平台管理员。
+ * 与后台 server/auth.js 的 canAnswerQuestion 保持一致 ——
+ * questions 的写权限只代表账号能“提问”，不代表能替专家“回复”。
+ */
+export function canAnswerQuestion(role = currentRole()): boolean {
+  return role === 'expert' || role === 'admin'
 }
 
 export function currentRole(): string {

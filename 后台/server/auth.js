@@ -16,8 +16,12 @@ const ROLES = [
   { value: 'admin', label: '平台管理员' }
 ];
 
-/** 允许自助注册的角色（平台管理员只能由管理员在后台设置） */
-const SELF_REGISTER_ROLES = ROLES.filter((item) => item.value !== 'admin');
+/**
+ * 自助注册固定为普通菇农：专家、采购商、基地管理员等角色由平台管理员在后台分配。
+ * 之前允许注册时自选角色，导致任何人选“专家”注册后就拿到问题回复权限。
+ */
+const SELF_REGISTER_ROLE = 'farmer';
+const SELF_REGISTER_ROLES = ROLES.filter((item) => item.value === SELF_REGISTER_ROLE);
 
 /**
  * 角色权限矩阵（RBAC）：
@@ -53,6 +57,19 @@ const PERMISSIONS = {
     devices: 'r', dashboard: 'r', ai: 'r'
   }
 };
+
+/**
+ * 可以回答提问（专家回复）的角色：只有专家与平台管理员。
+ *
+ * 注意与 questions 模块的写权限区分开：菇农、基地管理员等角色需要写权限来“提问”，
+ * 但不能代替专家“回复”。之前回答与提问共用 questions 的写权限，
+ * 导致任何菇农登录后都能冒充专家答题。
+ */
+const QUESTION_ANSWER_ROLES = ['expert', 'admin'];
+
+function canAnswerQuestion(role) {
+  return QUESTION_ANSWER_ROLES.includes(role) || PERMISSIONS[role] === '*';
+}
 
 function roleValues() {
   return ROLES.map((item) => item.value);
@@ -196,8 +213,8 @@ function validateCredentials(username, password) {
 function register(payload = {}) {
   const { name, secret } = validateCredentials(payload.username, payload.password);
   const displayName = String(payload.display_name || '').trim().slice(0, 32);
-  const allowed = SELF_REGISTER_ROLES.map((item) => item.value);
-  const role = allowed.includes(String(payload.role)) ? String(payload.role) : 'farmer';
+  // 忽略客户端传来的 role：自助注册一律是普通菇农，其它角色只能由平台管理员分配
+  const role = SELF_REGISTER_ROLE;
 
   if (db.prepare('SELECT id FROM users WHERE username = ?').get(name)) {
     const error = new Error('该账号已存在，请直接登录');
@@ -308,6 +325,7 @@ module.exports = {
   SELF_REGISTER_ROLES,
   PERMISSIONS,
   can,
+  canAnswerQuestion,
   roleLabel,
   hashPassword,
   verifyPassword,

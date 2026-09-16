@@ -89,7 +89,9 @@ export default function Expert() {
     try {
       const result = await api<AiAnswer>('/api/ai/ask', {
         method: 'POST',
-        data: { question: value, base_id: baseOptions[baseIndex].value || null, save: true }
+        data: { question: value, base_id: baseOptions[baseIndex].value || null, save: true },
+        // 大模型作答偶尔会超过默认 10 秒，单独放宽到 60 秒，避免被中断后误报“无法连接后台”
+        timeout: 60000
       })
       setAnswer(result)
       setQuestion('')
@@ -115,9 +117,6 @@ export default function Expert() {
       <View className='toolbar'>
         <View className='btn secondary' onClick={() => Taro.switchTab({ url: '/pages/home/index' })}>
           返回首页
-        </View>
-        <View className='btn secondary' onClick={() => openForm('question')}>
-          转人工专家
         </View>
       </View>
 
@@ -184,7 +183,7 @@ export default function Expert() {
           <View className='section-title'>
             <View>
               <Text className='section-title-main'>问答记录</Text>
-              <Text className='section-title-sub'>共 {questions.length} 条，AI 与人工专家的回答都会存档</Text>
+              <Text className='section-title-sub'>共 {questions.length} 条，每次提问 AI 都会立即作答并存档</Text>
             </View>
           </View>
 
@@ -210,15 +209,9 @@ export default function Expert() {
                   </View>
                 ) : (
                   <View className='notice' style='margin:18px 0 0'>
-                    等待人工专家回复
+                    该记录暂无回答，可在上方重新提问，AI 会立即作答。
                   </View>
                 )}
-
-                <View className='toolbar' style='margin-bottom:0'>
-                  <View className='btn secondary' onClick={() => openForm('reply', { id: String(item.id) })}>
-                    人工补充回复
-                  </View>
-                </View>
               </View>
             ))
           ) : (

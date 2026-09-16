@@ -38,7 +38,7 @@ export const RECORD_MENU: Array<{ key: string; label: string }> = [
   { key: 'batch', label: '生产批次' },
   { key: 'device', label: '大棚设备' },
   { key: 'reading', label: '环境数据（手动补录）' },
-  { key: 'question', label: '专家问题' },
+  { key: 'question', label: '问题提问' },
   { key: 'trace-event', label: '溯源事件' },
   { key: 'product', label: '供应信息' },
   { key: 'demand', label: '采购需求' },
@@ -163,8 +163,8 @@ export function buildFormConfigs(data: CloudData): Record<string, FormConfig> {
     },
     question: {
       key: 'question',
-      title: '向专家提问',
-      desc: '问题保存后状态为待回复，专家在后台或小程序内回复。',
+      title: '提交问题（AI 自动作答）',
+      desc: '提交后 AI 会立即自动回答并存档，可在问答记录中查看。',
       endpoint: '/api/questions',
       fields: [
         { name: 'base_id', label: '所属基地', type: 'select', options: baseOptions, placeholder: '不关联基地' },
@@ -280,23 +280,6 @@ export function buildFormConfigs(data: CloudData): Record<string, FormConfig> {
         { name: 'role', label: '合作角色', placeholder: '例如：技术指导 / 采购商' },
         { name: 'contact', label: '联系方式' }
       ]
-    },
-    /** 专家回复：更新专家问题状态为已回复 */
-    reply: {
-      key: 'reply',
-      title: '专家回复',
-      desc: '回复内容会保存到后台，问题状态更新为已回复。',
-      endpoint: (payload) => `/api/questions/${payload.id}`,
-      method: 'PUT',
-      fields: [
-        { name: 'id', label: '问题编号', hidden: true, required: true },
-        { name: 'answer', label: '回复内容', type: 'textarea', required: true }
-      ],
-      transform: (payload) => ({
-        answer: payload.answer,
-        status: 'answered',
-        answered_at: new Date().toISOString()
-      })
     },
     /** 更换产品图标：只更新 icon 字段 */
     icon: {

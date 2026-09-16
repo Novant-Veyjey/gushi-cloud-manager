@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Image, Input, Picker, Text, View } from '@tarojs/components'
+import { Image, Input, Text, View } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 
 import logo from '@/assets/logo.jpg'
-import { ROLE_OPTIONS, fetchCurrentUser, login, register, wechatLogin } from '@/utils/auth'
+import { fetchCurrentUser, login, register, wechatLogin } from '@/utils/auth'
 import { clearAuth, getToken } from '@/utils/storage'
 
 type Mode = 'login' | 'register'
@@ -13,7 +13,6 @@ export default function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
-  const [roleIndex, setRoleIndex] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [checking, setChecking] = useState(true)
 
@@ -51,8 +50,7 @@ export default function Login() {
         await register({
           username: name,
           password,
-          display_name: displayName.trim(),
-          role: ROLE_OPTIONS[roleIndex].value
+          display_name: displayName.trim()
         })
         Taro.showToast({ title: '注册成功', icon: 'success' })
       }
@@ -146,27 +144,14 @@ export default function Login() {
         </View>
 
         {mode === 'register' ? (
-          <View>
-            <View className='field'>
-              <Text className='field-label'>称呼（可选）</Text>
-              <Input
-                className='field-input'
-                value={displayName}
-                placeholder='例如：王师傅 / 德安基地'
-                onInput={(event) => setDisplayName(event.detail.value)}
-              />
-            </View>
-            <View className='field'>
-              <Text className='field-label'>角色</Text>
-              <Picker
-                mode='selector'
-                range={ROLE_OPTIONS.map((item) => item.label)}
-                value={roleIndex}
-                onChange={(event) => setRoleIndex(Number(event.detail.value))}
-              >
-                <View className='field-picker filled'>{ROLE_OPTIONS[roleIndex].label}</View>
-              </Picker>
-            </View>
+          <View className='field'>
+            <Text className='field-label'>称呼（可选）</Text>
+            <Input
+              className='field-input'
+              value={displayName}
+              placeholder='例如：王师傅 / 德安基地'
+              onInput={(event) => setDisplayName(event.detail.value)}
+            />
           </View>
         ) : null}
 
@@ -182,6 +167,8 @@ export default function Login() {
 
         <View className='notice' style='margin:24px 0 0'>
           演示账号：demo / demo123456（数据带“演示”标记，可直接删除）。<br />
+          新注册账号均为普通菇农，专家、采购商等角色由平台管理员在后台分配。
+          <br />
           微信一键登录需后台配置 WX_APPID / WX_SECRET（见 后台/.env.example），未配置时会提示并改用账号密码登录。
         </View>
       </View>
