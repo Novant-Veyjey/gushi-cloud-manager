@@ -2,7 +2,7 @@
   "name": "gushi-cloud-app",
   "version": "0.1.0",
   "private": true,
-  "description": "菇事云管家小程序风格 HTML + Express + better-sqlite3 可保存原型",
+  "description": "菇事云管家：HTML 界面原型 + Express + better-sqlite3 可保存后台",
   "main": "server/app.js",
   "scripts": {
     "start": "node server/app.js",
