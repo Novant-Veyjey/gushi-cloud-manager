@@ -10,7 +10,8 @@
   --lime: #9ccb4b;
   --cream: #f6f8f4;
   --ink: #17291f;
-  --muted: #718077;
+  /* 次要文字略加深：原来 #718077 在浅底上偏灰，长段落读起来吃力 */
+  --muted: #5e6d63;
   --line: #e5ece7;
   --orange: #ef9d3c;
   --red: #df5b5b;
@@ -78,7 +79,7 @@ page {
 
 .brand-sub {
   display: block;
-  font-size: 20px;
+  font-size: 21px;
   color: var(--muted);
   margin-top: 4px;
 }
@@ -194,9 +195,10 @@ page {
 
 .section-title-sub {
   display: block;
-  font-size: 20px;
+  font-size: 22px;
   color: var(--muted);
   margin-top: 6px;
+  line-height: 1.6;
 }
 
 .section-title-action {
@@ -224,7 +226,7 @@ page {
 }
 
 .stat-label {
-  font-size: 20px;
+  font-size: 22px;
   color: var(--muted);
   font-weight: 800;
 }
@@ -273,14 +275,14 @@ page {
 
 .row-desc {
   display: block;
-  font-size: 22px;
+  font-size: 23px;
   color: var(--muted);
-  line-height: 1.6;
+  line-height: 1.75;
   margin-top: 8px;
 }
 
 .badge {
-  font-size: 20px;
+  font-size: 21px;
   padding: 8px 14px;
   border-radius: 99px;
   background: var(--g100);
@@ -306,10 +308,10 @@ page {
 
 .meta {
   display: block;
-  font-size: 20px;
-  color: #87958d;
-  margin-top: 10px;
-  line-height: 1.6;
+  font-size: 22px;
+  color: #6b7a70;
+  margin-top: 12px;
+  line-height: 1.7;
 }
 
 .metric-line {
@@ -331,7 +333,7 @@ page {
 
 .metric-line-label {
   display: block;
-  font-size: 20px;
+  font-size: 21px;
   color: var(--muted);
 }
 
@@ -384,15 +386,16 @@ page {
 }
 
 .todo-title {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 1.45;
 }
 
 .todo-desc {
   display: block;
-  font-size: 20px;
+  font-size: 22px;
   color: var(--muted);
-  line-height: 1.6;
+  line-height: 1.7;
   margin-top: 8px;
 }
 
@@ -587,16 +590,17 @@ page {
 }
 
 .event-title {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 1.45;
 }
 
 .event-desc {
   display: block;
-  font-size: 20px;
+  font-size: 22px;
   color: var(--muted);
-  margin-top: 6px;
-  line-height: 1.6;
+  margin-top: 8px;
+  line-height: 1.7;
 }
 
 .event-time {

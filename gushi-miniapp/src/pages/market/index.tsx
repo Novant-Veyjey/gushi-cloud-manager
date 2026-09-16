@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Image, Text, View } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 
 import BrandBar from '@/components/BrandBar'
 import EmptyState from '@/components/EmptyState'
@@ -9,9 +9,20 @@ import StateHint from '@/components/StateHint'
 import { buildFormConfigs, type FormConfig } from '@/config/forms'
 import { batchCodeOf, useCloudData } from '@/hooks/useCloudData'
 import { FORM_MODULE, can, guard } from '@/utils/permission'
-import { assetUrl } from '@/utils/request'
+import { api, assetUrl } from '@/utils/request'
 import { dateOnly, money, today } from '@/utils/format'
 import type { Demand, Product } from '@/types'
+
+/**
+ * 平台其他账号发布的供应信息：跨账号可见，但只读。
+ * 修改 / 删除仍然只能作用于自己发布的记录（后端按 user_id 校验）。
+ */
+interface SharedProduct extends Product {
+  owner_name?: string
+  owner_username?: string
+  base_name?: string
+  batch_code?: string
+}
 
 /** 供应信息状态：按「上架日期 / 下架日期」与当天日期自动判定 */
 const productState = (product: Product): { label: string; plain: boolean } => {
@@ -54,6 +65,25 @@ export default function Market() {
   const forms = buildFormConfigs(data)
 
   const [activeForm, setActiveForm] = useState<FormConfig | null>(null)
+  const [sharedProducts, setSharedProducts] = useState<SharedProduct[]>([])
+  const [sharedLoading, setSharedLoading] = useState(true)
+
+  /** 拉取平台其他账号上架的供应信息（只读，用于产销对接） */
+  const loadShared = useCallback(async () => {
+    try {
+      const rows = await api<SharedProduct[]>('/api/products/shared')
+      setSharedProducts(rows || [])
+    } catch (err) {
+      // 无权限或后台异常时保持空列表，绝不填充编造数据
+      setSharedProducts([])
+    } finally {
+      setSharedLoading(false)
+    }
+  }, [])
+
+  useDidShow(() => {
+    loadShared()
+  })
 
   const openForm = (key: string, preset?: Record<string, string>) => {
     const config = forms[key]
@@ -193,6 +223,62 @@ export default function Market() {
             ))
           ) : (
             <EmptyState title='暂无采购需求' text='点击发布采购需求，保存真实采购方和产品需求。' />
+          )}
+
+          {/* 平台其他账号上架的供应信息：互通可见、只读查看（没有修改/删除入口） */}
+          <View className='section-title'>
+            <View>
+              <Text className='section-title-main'>其他供应商的供应信息</Text>
+              <Text className='section-title-sub'>来自平台其他账号，只读查看，便于对接采购</Text>
+            </View>
+            <Text className='badge plain'>只读</Text>
+          </View>
+
+          {sharedLoading ? (
+            <Text className='meta'>正在加载其他账号的供应信息...</Text>
+          ) : sharedProducts.length ? (
+            sharedProducts.map((item) => (
+              <View className='card' key={item.id}>
+                <View className='row-top'>
+                  <View className='product-row'>
+                    <View className='product-icon'>{renderIcon(item.icon, item.name)}</View>
+                    <View>
+                      <Text className='row-title'>{item.name}</Text>
+                      <Text className='row-desc'>
+                        发布者：{item.owner_name || item.owner_username || '其他账号'}
+                        {item.base_name ? ` · ${item.base_name}` : ''}
+                        {'\n'}
+                        批次：{item.batch_code || batchCodeOf(data.batches, item.batch_id)} · 上架：
+                        {dateOnly(item.available_date) || '未设置'} · 下架：{dateOnly(item.off_shelf_date) || '未设置'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text className='badge plain'>其他账号</Text>
+                </View>
+                <View className='metric-line'>
+                  <View className='metric-line-item'>
+                    <Text className='metric-line-label'>数量</Text>
+                    <Text className='metric-line-value'>
+                      {item.quantity} {item.unit}
+                    </Text>
+                  </View>
+                  <View className='metric-line-item'>
+                    <Text className='metric-line-label'>价格</Text>
+                    <Text className='metric-line-value'>¥{money(item.price)}</Text>
+                  </View>
+                  <View className='metric-line-item'>
+                    <Text className='metric-line-label'>单位</Text>
+                    <Text className='metric-line-value'>{item.unit}</Text>
+                  </View>
+                </View>
+                <Text className='meta'>{item.description || '暂无说明'}</Text>
+              </View>
+            ))
+          ) : (
+            <EmptyState
+              title='暂无其他供应商的供应信息'
+              text='其他账号发布供应信息后会自动出现在这里，方便产销对接。'
+            />
           )}
         </View>
       )}

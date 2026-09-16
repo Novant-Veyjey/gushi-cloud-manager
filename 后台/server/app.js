@@ -236,10 +236,13 @@ function makeCrudRouter(name, config) {
       }
       if (config.updatedAt !== false) row.updated_at = new Date().toISOString();
       const assignments = Object.keys(row).map((key) => `${key} = @${key}`).join(', ');
-      if (replying) {
-        db.prepare(`UPDATE ${table} SET ${assignments} WHERE id = @id`).run({ ...row, id });
-      } else {
-        db.prepare(`UPDATE ${table} SET ${assignments} WHERE id = @id AND user_id = @user_id`).run({ ...row, id, user_id: req.user.id });
+      // 只允许改自己账号的数据：UPDATE 带 user_id 条件，影响 0 行说明这条记录不属于当前账号，
+      // 必须显式报错 —— 否则接口会返回“更新成功”却什么都没改，前端与调用方都会被误导。
+      const result = replying
+        ? db.prepare(`UPDATE ${table} SET ${assignments} WHERE id = @id`).run({ ...row, id })
+        : db.prepare(`UPDATE ${table} SET ${assignments} WHERE id = @id AND user_id = @user_id`).run({ ...row, id, user_id: req.user.id });
+      if (!result.changes) {
+        return fail(res, 403, '只能修改自己账号发布的内容，其它账号的记录只能查看');
       }
       const updated = db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(id);
       ok(res, updated, '更新成功');
@@ -616,6 +619,39 @@ app.post('/api/ai/suggest-priority', requireAuth, requirePermission('ai', 'r'), 
     }
   }
   ok(res, { ...result, source: result.source || 'rule' });
+});
+
+/**
+ * 产销对接：所有账号上架的供应信息互通可见（只读）。
+ * 每个账号的生产数据仍然互相隔离，供应信息是唯一的例外 ——
+ * 否则采购商登录后看不到任何货源，平台就没有撮合的意义。
+ * 修改 / 删除仍然只能作用于自己发布的记录（见 /api/products/:id，带 user_id 校验）。
+ *
+ * 必须定义在下面的通用 CRUD 之前，否则会被 /api/products/:id 抢先匹配。
+ */
+app.get('/api/products/shared', requireAuth, requirePermission('products', 'r'), (req, res) => {
+  try {
+    const rows = db
+      .prepare(`
+        SELECT p.*,
+               u.display_name AS owner_name,
+               u.username AS owner_username,
+               u.role AS owner_role,
+               b.name AS base_name,
+               bt.code AS batch_code
+        FROM products p
+        LEFT JOIN users u ON u.id = p.user_id
+        LEFT JOIN batches bt ON bt.id = p.batch_id
+        LEFT JOIN bases b ON b.id = bt.base_id
+        WHERE p.user_id <> ?
+        ORDER BY p.created_at DESC, p.id DESC
+        LIMIT 100
+      `)
+      .all(req.user.id);
+    ok(res, rows);
+  } catch (error) {
+    fail(res, 400, error.message);
+  }
 });
 
 for (const [name, config] of Object.entries(configs)) app.use(`/api/${name}`, makeCrudRouter(name, config));
