@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ScrollView, Text, View } from '@tarojs/components'
+import { Picker, ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 
 import BrandBar from '@/components/BrandBar'
@@ -8,12 +8,14 @@ import FormSheet from '@/components/FormSheet'
 import StateHint from '@/components/StateHint'
 import { buildFormConfigs, RECORD_MENU, type FormConfig } from '@/config/forms'
 import { baseNameOf, useCloudData } from '@/hooks/useCloudData'
-import { logout, roleLabel } from '@/utils/auth'
+import { logout, ROLE_OPTIONS, roleLabel } from '@/utils/auth'
 import { FORM_MODULE, can, guard } from '@/utils/permission'
 import { getUser } from '@/utils/storage'
 import { api } from '@/utils/request'
 import { dateOnly, readableTime } from '@/utils/format'
 import type { AuthUser } from '@/types'
+
+/** 角色列表复用 utils/auth 的 ROLE_OPTIONS（与后台 server/auth.js 的 ROLES 保持一致） */
 
 export default function Home() {
   const { data, loading, error, reload } = useCloudData()
@@ -21,6 +23,9 @@ export default function Home() {
 
   const [activeForm, setActiveForm] = useState<FormConfig | null>(null)
   const [menuVisible, setMenuVisible] = useState(false)
+  const [userSheet, setUserSheet] = useState(false)
+  const [users, setUsers] = useState<any[]>([])
+  const [usersLoading, setUsersLoading] = useState(false)
 
   const openForm = (key: string) => {
     const config = forms[key]
@@ -50,6 +55,43 @@ export default function Home() {
     if (!confirm.confirm) return
     await logout()
     Taro.reLaunch({ url: '/pages/login/index' })
+  }
+
+  /** 平台管理员：打开账号管理弹层，加载全部注册账号 */
+  const openUserSheet = async () => {
+    if (!guard('users', 'w')) return
+    setUserSheet(true)
+    setUsersLoading(true)
+    try {
+      const list = await api<any[]>('/api/admin/users')
+      setUsers(list || [])
+    } catch (err) {
+      Taro.showToast({ title: (err as Error).message, icon: 'none' })
+      setUserSheet(false)
+    } finally {
+      setUsersLoading(false)
+    }
+  }
+
+  /** 平台管理员：给账号分配职务，保存后对方重新登录生效 */
+  const assignRole = async (target: any, role: { value: string; label: string }) => {
+    if (target.role === role.value) return
+    const confirm = await Taro.showModal({
+      title: '分配职务',
+      content: `把账号「${target.username}」设为「${role.label}」？`
+    })
+    if (!confirm.confirm) return
+    try {
+      await api(`/api/admin/users/${target.id}/role`, {
+        method: 'PUT',
+        data: { role: role.value },
+        successText: '职务已更新'
+      })
+      setUsers((prev) => prev.map((item) => (item.id === target.id ? { ...item, role: role.value } : item)))
+      await reload()
+    } catch (err) {
+      Taro.showToast({ title: (err as Error).message, icon: 'none' })
+    }
   }
 
   const handleAck = async (id: number) => {
@@ -108,6 +150,13 @@ export default function Home() {
               <Text className='quick-label'>AI 问答</Text>
             </View>
           </View>
+
+          {/* 平台管理员专属：给注册账号分配职务 */}
+          {can('users', 'w') ? (
+            <View className='btn secondary' style='margin-top:20px' onClick={openUserSheet}>
+              账号管理 · 分配职务
+            </View>
+          ) : null}
 
           <View className='section-title'>
             <View>
@@ -292,6 +341,46 @@ export default function Home() {
               <View className='sheet-actions'>
                 <View className='btn secondary' onClick={() => setMenuVisible(false)}>
                   取消
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      ) : null}
+
+      {userSheet ? (
+        <View className='sheet-mask' onClick={() => setUserSheet(false)}>
+          <View className='sheet' onClick={(event) => event.stopPropagation()}>
+            <Text className='sheet-title'>账号管理</Text>
+            <Text className='sheet-desc'>点「分配职务」给注册账号设置身份，保存后对方重新登录生效。</Text>
+            <ScrollView className='sheet-body' scrollY>
+              {usersLoading ? (
+                <Text className='user-sub'>加载中...</Text>
+              ) : (
+                users.map((user) => (
+                  <View className='user-row' key={user.id}>
+                    <View className='user-info'>
+                      <Text className='user-name'>
+                        {user.username}
+                        {user.id === account?.id ? '（我）' : ''}
+                      </Text>
+                      <Text className='user-sub'>
+                        {user.display_name || '未填称呼'} · 当前：{roleLabel(user.role)}
+                      </Text>
+                    </View>
+                    <Picker
+                      mode='selector'
+                      range={ROLE_OPTIONS.map((item) => item.label)}
+                      onChange={(event) => assignRole(user, ROLE_OPTIONS[Number(event.detail.value)])}
+                    >
+                      <View className='user-role-picker'>分配职务</View>
+                    </Picker>
+                  </View>
+                ))
+              )}
+              <View className='sheet-actions'>
+                <View className='btn secondary' onClick={() => setUserSheet(false)}>
+                  关闭
                 </View>
               </View>
             </ScrollView>

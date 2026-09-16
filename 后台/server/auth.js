@@ -222,6 +222,18 @@ function register(payload = {}) {
     throw error;
   }
 
+  // 密码唯一性：两个账号的密码不能一样。
+  // scrypt 每次加盐不同、无法直接比对哈希，这里用已有账号各自的盐逐一验证新密码。
+  const passwordTaken = db
+    .prepare('SELECT password_salt, password_hash FROM users')
+    .all()
+    .some((row) => verifyPassword(secret, row.password_salt, row.password_hash));
+  if (passwordTaken) {
+    const error = new Error('该密码已被其他账号使用，请更换密码');
+    error.status = 409;
+    throw error;
+  }
+
   const { hash, salt } = hashPassword(secret);
   const result = db
     .prepare('INSERT INTO users (username, display_name, role, password_hash, password_salt) VALUES (?, ?, ?, ?, ?)')

@@ -836,6 +836,47 @@ page {
   background: #ffffff;
 }
 
+/* ---------- 账号管理（平台管理员）---------- */
+.user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.user-sub {
+  font-size: 20px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.user-role-picker {
+  flex-shrink: 0;
+  height: 68px;
+  line-height: 68px;
+  padding: 0 22px;
+  border: 1px solid #dfe9e2;
+  border-radius: 18px;
+  background: #f1f7f2;
+  color: var(--g800);
+  font-size: 22px;
+  font-weight: 800;
+}
+
 .sheet-menu-item {
   height: 88px;
   line-height: 88px;

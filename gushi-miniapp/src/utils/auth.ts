@@ -8,7 +8,8 @@ export const ROLE_OPTIONS = [
   { label: '合作社/基地管理员', value: 'base' },
   { label: '专家', value: 'expert' },
   { label: '采购商', value: 'buyer' },
-  { label: '政府/服务机构', value: 'government' }
+  { label: '政府/服务机构', value: 'government' },
+  { label: '平台管理员', value: 'admin' }
 ]
 
 export function roleLabel(role?: string): string {
