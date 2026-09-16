@@ -166,8 +166,8 @@ function renderTrace(){
 }
 function renderMarket(){
  const products=state.data.products,demands=state.data.demands;
- return `<section class="page"><div class="toolbar"><button class="primary" data-form="product">＋ 发布供应</button><button class="secondary" data-form="demand">发布采购需求</button></div>${pageHead('供应信息','只展示后台已保存的真实供应数据')}${products.length?products.map(p=>`<div class="card list-card"><div class="row-top"><div class="product-row"><div class="product-icon">${p.icon?(p.icon.startsWith('http')||p.icon.startsWith('/')?`<img src="${esc(p.icon)}" alt="${esc(p.name)}">`:esc(p.icon)):'🍄'}</div><div><h3>${esc(p.name)}</h3><p>批次：${esc(batchCode(p.batch_id))} · 可售日期：${esc(dateOnly(p.available_date)||'未设置')}</p></div></div>${badge(p.status==='available'?'可供应':'已下架')}</div><div class="metric-line"><div><span>数量</span><b>${esc(p.quantity)} ${esc(p.unit)}</b></div><div><span>价格</span><b>¥${money(p.price)}</b></div><div><span>单位</span><b>${esc(p.unit)}</b></div></div><p class="meta">${esc(p.description||'暂无说明')}</p><div class="action-row"><button data-edit-icon="${p.id}">更换产品图标</button><button class="action-link danger" data-del="products:${p.id}">删除</button></div><div style="display:flex;gap:12px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px dashed #e4ece6"><div class="qr" style="width:84px;height:84px;margin:0"><img data-qr-batch="${esc(batchCode(p.batch_id)==='未关联批次'?'':batchCode(p.batch_id))}" alt="产品溯源二维码"></div><div style="flex:1"><b style="font-size:11px">产品溯源二维码</b><p class="meta">贴在包装上或发给买家，扫码即可查看该批次「${esc(batchCode(p.batch_id))}」的完整生产记录。长按或右键二维码可保存图片。</p></div></div></div>`).join(''):empty('暂无供应信息','点击发布供应，保存真实产品、数量、价格和批次。')}
- ${pageHead('采购需求','采购商通过表单录入并保存到数据库')}${demands.length?demands.map(d=>`<div class="card list-card"><div class="row-top"><div><h3>${esc(d.buyer_name)}</h3><p>${esc(d.product_name)} · ${esc(d.quantity)} ${esc(d.unit)}</p></div>${badge('¥'+money(d.price))}</div><p class="meta">${esc(d.requirements||'暂无补充要求')}</p><div class="action-row"><button class="action-link danger" data-del="demands:${d.id}">删除</button></div></div>`).join(''):empty('暂无采购需求','点击发布采购需求，保存真实采购方和产品需求。')}</section>`
+ return `<section class="page"><div class="toolbar"><button class="primary" data-form="product">＋ 发布供应</button><button class="secondary" data-form="demand">发布采购需求</button></div>${pageHead('供应信息','只展示后台已保存的真实供应数据')}${products.length?products.map(p=>`<div class="card list-card"><div class="row-top"><div class="product-row"><div class="product-icon">${p.icon?(p.icon.startsWith('http')||p.icon.startsWith('/')?`<img src="${esc(p.icon)}" alt="${esc(p.name)}">`:esc(p.icon)):'🍄'}</div><div><h3>${esc(p.name)}</h3><p>批次：${esc(batchCode(p.batch_id))} · 可售日期：${esc(dateOnly(p.available_date)||'未设置')}</p></div></div>${badge(p.status==='available'?'可供应':'已下架')}</div><div class="metric-line"><div><span>数量</span><b>${esc(p.quantity)} ${esc(p.unit)}</b></div><div><span>价格</span><b>¥${money(p.price)}</b></div><div><span>单位</span><b>${esc(p.unit)}</b></div></div><p class="meta">${esc(p.description||'暂无说明')}</p><div class="action-row"><button data-edit="product:${p.id}">修改</button><button data-edit-icon="${p.id}">更换产品图标</button><button class="action-link danger" data-del="products:${p.id}">删除</button></div><div style="display:flex;gap:12px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px dashed #e4ece6"><div class="qr" style="width:84px;height:84px;margin:0"><img data-qr-batch="${esc(batchCode(p.batch_id)==='未关联批次'?'':batchCode(p.batch_id))}" alt="产品溯源二维码"></div><div style="flex:1"><b style="font-size:11px">产品溯源二维码</b><p class="meta">贴在包装上或发给买家，扫码即可查看该批次「${esc(batchCode(p.batch_id))}」的完整生产记录。长按或右键二维码可保存图片。</p></div></div></div>`).join(''):empty('暂无供应信息','点击发布供应，保存真实产品、数量、价格和批次。')}
+ ${pageHead('采购需求','采购商通过表单录入并保存到数据库')}${demands.length?demands.map(d=>`<div class="card list-card"><div class="row-top"><div><h3>${esc(d.buyer_name)}</h3><p>${esc(d.product_name)} · ${esc(d.quantity)} ${esc(d.unit)}</p></div>${badge('¥'+money(d.price))}</div><p class="meta">${esc(d.requirements||'暂无补充要求')}</p><div class="action-row"><button data-edit="demand:${d.id}">修改</button><button class="action-link danger" data-del="demands:${d.id}">删除</button></div></div>`).join(''):empty('暂无采购需求','点击发布采购需求，保存真实采购方和产品需求。')}</section>`
 }
 function renderExpert(){
  const qs=state.data.questions;
@@ -235,10 +235,10 @@ const formConfigs={
  'trace-event':{title:'新增溯源事件',desc:'溯源事件会绑定到具体批次',endpoint:'/api/trace-events',fields:[
   {name:'batch_id',label:'所属批次',type:'select',options:()=>options(state.data.batches,'id','code','请选择批次'),required:true,full:true},{name:'event_type',label:'事件类型',type:'select',options:()=>['入库','接种','养菌','转房','催蕾','出菇','采摘','质检','出库','运输'].map(v=>`<option>${v}</option>`).join('')},{name:'title',label:'事件标题',required:true},{name:'event_date',label:'事件日期',type:'date',value:today(),required:true},{name:'operator',label:'操作人'},{name:'description',label:'事件说明',type:'textarea',full:true}
  ]},
- product:{title:'发布供应信息',desc:'供应信息必须关联真实批次',endpoint:'/api/products',fields:[
+ product:{title:'发布供应信息',editTitle:'修改供应信息',desc:'供应信息必须关联真实批次',endpoint:'/api/products',fields:[
   {name:'batch_id',label:'所属批次',type:'select',options:()=>options(state.data.batches,'id','code','请选择批次'),required:true,full:true},{name:'name',label:'产品名称',required:true},{name:'icon',label:'产品图标',type:'select',options:()=>['🍄','🌿','🌱','🥬','🫘','🍲','📦','🏷️'].map(v=>`<option value="${v}">${v}</option>`).join('')},{name:'quantity',label:'数量',type:'number',required:true},{name:'unit',label:'单位',type:'select',options:()=>['kg','500g','棒','箱','吨'].map(v=>`<option>${v}</option>`).join('')},{name:'price',label:'参考价格',type:'number',step:'0.01'},{name:'available_date',label:'可售日期',type:'date'},{name:'icon_file',label:'上传产品图标（可选，最大 4MB）',type:'file',full:true},{name:'description',label:'产品说明',type:'textarea',full:true}
  ]},
- demand:{title:'发布采购需求',desc:'采购需求将保存到数据库',endpoint:'/api/demands',fields:[
+ demand:{title:'发布采购需求',editTitle:'修改采购需求',desc:'采购需求将保存到数据库',endpoint:'/api/demands',fields:[
   {name:'buyer_name',label:'采购方名称',required:true},{name:'product_name',label:'采购产品',required:true},{name:'quantity',label:'采购数量',type:'number',required:true},{name:'unit',label:'单位',type:'select',options:()=>['kg','500g','棒','箱','吨'].map(v=>`<option>${v}</option>`).join('')},{name:'price',label:'意向价格',type:'number',step:'0.01'},{name:'contact',label:'联系方式'},{name:'requirements',label:'具体要求',type:'textarea',full:true}
  ]},
  task:{title:'新增生产任务',desc:'可保存任务并调用优先级建议',endpoint:'/api/tasks',fields:[
@@ -247,27 +247,57 @@ const formConfigs={
  partner:{title:'新增合作方',desc:'保存真实合作单位或专家团队',endpoint:'/api/partners',fields:[{name:'name',label:'合作方名称',required:true,full:true},{name:'role',label:'合作角色'},{name:'contact',label:'联系方式'}]}
 };
 const menuTypes=[['base','基地'],['batch','生产批次'],['reading','环境数据'],['question','专家问题'],['trace-event','溯源事件'],['product','供应信息'],['demand','采购需求'],['task','生产任务'],['partner','合作方']];
+/* 下拉框：把当前值标记为 selected，「修改」时能带出原来的选择 */
+function selectHtml(field,value){
+ const html=field.options?field.options():'';
+ const v=value===null||value===undefined||value===''?'':String(value);
+ if(!v)return html;
+ const quoted=`value="${esc(v)}"`;
+ if(html.includes(quoted))return html.replace(quoted,`${quoted} selected`);
+ const plain=`<option>${esc(v)}</option>`;
+ if(html.includes(plain))return html.replace(plain,`<option selected>${esc(v)}</option>`);
+ return html;
+}
 function fieldHtml(field){
  const required=field.required?'required':'';
  const full=field.full?'full':'';
  const value=field.value??'';
  if(field.type==='textarea')return `<div class="field ${full}"><label>${esc(field.label)}</label><textarea name="${field.name}" ${required}>${esc(value)}</textarea></div>`;
- if(field.type==='select')return `<div class="field ${full}"><label>${esc(field.label)}</label><select name="${field.name}" ${required}>${field.options?field.options():''}</select></div>`;
+ if(field.type==='select')return `<div class="field ${full}"><label>${esc(field.label)}</label><select name="${field.name}" ${required}>${selectHtml(field,value)}</select></div>`;
  if(field.type==='file')return `<div class="field ${full}"><label>${esc(field.label)}</label><input type="file" name="${field.name}" accept="image/jpeg,image/png,image/webp,image/gif"></div>`;
  return `<div class="field ${full}"><label>${esc(field.label)}</label><input type="${field.type||'text'}" name="${field.name}" value="${esc(value)}" ${field.step?`step="${field.step}"`:''} ${required}></div>`;
 }
-function openSheet(type){
+/* 修改回显：日期只保留年月日，避免 date 输入框不认带时间的字符串 */
+function recordFieldValue(field,record){
+ const raw=record[field.name];
+ if(raw===null||raw===undefined)return field.value??'';
+ if(field.type==='date')return dateOnly(raw);
+ if(field.type==='datetime-local')return String(raw).slice(0,16);
+ return String(raw);
+}
+/* record 存在时是「修改」：带出原内容，保存走 PUT 覆盖原记录；否则是新增 */
+function openSheet(type,record){
  const config=formConfigs[type];
  const sheetBody=$('#sheetBody');
+ const editing=!!record;
  if(type==='menu'){
   $('#sheetTitle').textContent='新增数据';$('#sheetDesc').textContent='选择要保存到后台数据库的记录类型';
   sheetBody.innerHTML=`<div class="form-grid">${menuTypes.map(([key,label])=>`<button class="secondary" data-form="${key}">${label}</button>`).join('')}</div><div class="sheet-actions"><button class="secondary" data-close-sheet>取消</button></div>`;
  }else if(config){
   if(['batch','reading'].includes(type)&&!state.data.bases.length){toast('请先新增基地',true);return}
   if(['trace-event','product'].includes(type)&&!state.data.batches.length){toast('请先新增生产批次',true);return}
-  $('#sheetTitle').textContent=config.title;$('#sheetDesc').textContent=config.desc;
-  sheetBody.innerHTML=`<form id="recordForm"><div class="form-grid">${config.fields.map(fieldHtml).join('')}</div><div class="sheet-actions"><button type="button" class="secondary" data-close-sheet>取消</button><button type="submit" class="primary">保存到后台</button></div></form>`;
-  $('#recordForm').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='保存中...';try{const payload=Object.fromEntries(new FormData(form).entries());const file=form.querySelector('input[type="file"]')?.files?.[0];delete payload.icon_file;if(file)payload.icon=await uploadImage(file);await api(config.endpoint,{method:'POST',body:JSON.stringify(payload)});closeSheet();toast('保存成功');await loadAll()}catch(error){toast(error.message,true);submit.disabled=false;submit.textContent='保存到后台'}});
+  $('#sheetTitle').textContent=editing?(config.editTitle||'修改'+config.title):config.title;
+  $('#sheetDesc').textContent=editing?'带出原来的内容，保存后会覆盖原记录。':config.desc;
+  const fields=config.fields.map(field=>{
+   if(!editing)return field;
+   const next={...field,value:recordFieldValue(field,record)};
+   // 供应信息里的图标：留空表示保持原图标，避免上传过的图片被预设图标覆盖
+   if(field.name==='icon')next.options=()=>'<option value="">保持原图标不变</option>'+(field.options?field.options():'');
+   return next;
+  });
+  const submitText=editing?'保存修改':'保存到后台';
+  sheetBody.innerHTML=`<form id="recordForm"><div class="form-grid">${fields.map(fieldHtml).join('')}</div><div class="sheet-actions"><button type="button" class="secondary" data-close-sheet>取消</button><button type="submit" class="primary">${submitText}</button></div></form>`;
+  $('#recordForm').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='保存中...';try{const payload=Object.fromEntries(new FormData(form).entries());const file=form.querySelector('input[type="file"]')?.files?.[0];delete payload.icon_file;if(file)payload.icon=await uploadImage(file);if(editing&&payload.icon==='')delete payload.icon;await api(editing?`${config.endpoint}/${record.id}`:config.endpoint,{method:editing?'PUT':'POST',body:JSON.stringify(payload)});closeSheet();toast(editing?'修改已保存':'保存成功');await loadAll()}catch(error){toast(error.message,true);submit.disabled=false;submit.textContent=submitText}});
  }
  $('#sheetMask').classList.add('open');
 }
@@ -280,6 +310,15 @@ document.addEventListener('click',async event=>{
  const pageButton=event.target.closest('[data-page]');if(pageButton){go(pageButton.dataset.page);return}
  const formButton=event.target.closest('[data-form]');if(formButton){openSheet(formButton.dataset.form);return}
  const iconButton=event.target.closest('[data-edit-icon]');if(iconButton){openIconEditor(iconButton.dataset.editIcon);return}
+ /* 修改自己发布的供应信息 / 采购需求：表单带出原内容，保存后用 PUT 覆盖原记录 */
+ const editButton=event.target.closest('[data-edit]');
+ if(editButton){
+  const parts=editButton.dataset.edit.split(':');
+  const list=parts[0]==='product'?state.data.products:state.data.demands;
+  const record=(list||[]).find(item=>item.id===Number(parts[1]));
+  if(!record){toast('记录不存在',true);return}
+  openSheet(parts[0],record);return
+ }
  if(event.target.closest('[data-close-sheet]')||event.target===$('#sheetMask')){closeSheet();return}
  /* 密码显示/隐藏切换：隐藏时闭眼图标，明文时睁眼图标 */
  const eye=event.target.closest('[data-pwd]');

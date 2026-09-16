@@ -68,6 +68,62 @@ export function buildFormConfigs(data: CloudData): Record<string, FormConfig> {
   ]
   const requiredBatchOptions: FieldOption[] = data.batches.map((item) => ({ label: item.code, value: item.id }))
 
+  /** 发布供应：修改时复用同一批字段 */
+  const productFields: FormField[] = [
+    {
+      name: 'batch_id',
+      label: '所属批次',
+      type: 'select',
+      required: true,
+      options: requiredBatchOptions,
+      placeholder: '请选择批次'
+    },
+    { name: 'name', label: '产品名称', required: true, placeholder: '例如：鲜香菇' },
+    { name: 'icon', label: '产品图标', type: 'icons', defaultValue: '🍄' },
+    { name: 'quantity', label: '数量', type: 'number', required: true },
+    {
+      name: 'unit',
+      label: '单位',
+      type: 'select',
+      options: UNITS.map((item) => ({ label: item, value: item })),
+      defaultValue: 'kg'
+    },
+    { name: 'price', label: '参考价格（元）', type: 'number' },
+    { name: 'available_date', label: '可售日期', type: 'date', defaultValue: today() },
+    { name: 'description', label: '产品说明', type: 'textarea' }
+  ]
+  const productForm: FormConfig = {
+    key: 'product',
+    title: '发布供应信息',
+    desc: '供应信息必须关联真实批次，产品图标可选择预设或上传图片。',
+    endpoint: '/api/products',
+    fields: productFields
+  }
+
+  /** 发布采购需求：修改时复用同一批字段 */
+  const demandFields: FormField[] = [
+    { name: 'buyer_name', label: '采购方名称', required: true },
+    { name: 'product_name', label: '采购产品', required: true },
+    { name: 'quantity', label: '采购数量', type: 'number', required: true },
+    {
+      name: 'unit',
+      label: '单位',
+      type: 'select',
+      options: UNITS.map((item) => ({ label: item, value: item })),
+      defaultValue: 'kg'
+    },
+    { name: 'price', label: '意向价格（元）', type: 'number' },
+    { name: 'contact', label: '联系方式' },
+    { name: 'requirements', label: '具体要求', type: 'textarea' }
+  ]
+  const demandForm: FormConfig = {
+    key: 'demand',
+    title: '发布采购需求',
+    desc: '首期只做信息撮合，不在平台内结算。',
+    endpoint: '/api/demands',
+    fields: demandFields
+  }
+
   return {
     base: {
       key: 'base',
@@ -207,55 +263,27 @@ export function buildFormConfigs(data: CloudData): Record<string, FormConfig> {
         { name: 'description', label: '事件说明', type: 'textarea' }
       ]
     },
-    product: {
-      key: 'product',
-      title: '发布供应信息',
-      desc: '供应信息必须关联真实批次，产品图标可选择预设或上传图片。',
-      endpoint: '/api/products',
-      fields: [
-        {
-          name: 'batch_id',
-          label: '所属批次',
-          type: 'select',
-          required: true,
-          options: requiredBatchOptions,
-          placeholder: '请选择批次'
-        },
-        { name: 'name', label: '产品名称', required: true, placeholder: '例如：鲜香菇' },
-        { name: 'icon', label: '产品图标', type: 'icons', defaultValue: '🍄' },
-        { name: 'quantity', label: '数量', type: 'number', required: true },
-        {
-          name: 'unit',
-          label: '单位',
-          type: 'select',
-          options: UNITS.map((item) => ({ label: item, value: item })),
-          defaultValue: 'kg'
-        },
-        { name: 'price', label: '参考价格（元）', type: 'number' },
-        { name: 'available_date', label: '可售日期', type: 'date', defaultValue: today() },
-        { name: 'description', label: '产品说明', type: 'textarea' }
-      ]
+    product: productForm,
+    demand: demandForm,
+    /** 修改自己发布的供应信息：带出原内容，保存后覆盖原记录 */
+    productEdit: {
+      ...productForm,
+      key: 'productEdit',
+      title: '修改供应信息',
+      desc: '带出原来填写的内容，改完保存会覆盖这条记录。',
+      endpoint: (payload) => `/api/products/${payload.id}`,
+      method: 'PUT',
+      fields: [{ name: 'id', label: '记录编号', hidden: true, required: true }, ...productFields]
     },
-    demand: {
-      key: 'demand',
-      title: '发布采购需求',
-      desc: '首期只做信息撮合，不在平台内结算。',
-      endpoint: '/api/demands',
-      fields: [
-        { name: 'buyer_name', label: '采购方名称', required: true },
-        { name: 'product_name', label: '采购产品', required: true },
-        { name: 'quantity', label: '采购数量', type: 'number', required: true },
-        {
-          name: 'unit',
-          label: '单位',
-          type: 'select',
-          options: UNITS.map((item) => ({ label: item, value: item })),
-          defaultValue: 'kg'
-        },
-        { name: 'price', label: '意向价格（元）', type: 'number' },
-        { name: 'contact', label: '联系方式' },
-        { name: 'requirements', label: '具体要求', type: 'textarea' }
-      ]
+    /** 修改自己发布的采购需求：带出原内容，保存后覆盖原记录 */
+    demandEdit: {
+      ...demandForm,
+      key: 'demandEdit',
+      title: '修改采购需求',
+      desc: '带出原来填写的内容，改完保存会覆盖这条记录。',
+      endpoint: (payload) => `/api/demands/${payload.id}`,
+      method: 'PUT',
+      fields: [{ name: 'id', label: '记录编号', hidden: true, required: true }, ...demandFields]
     },
     task: {
       key: 'task',
@@ -281,12 +309,12 @@ export function buildFormConfigs(data: CloudData): Record<string, FormConfig> {
         { name: 'contact', label: '联系方式' }
       ]
     },
-    /** 更换产品图标：只更新 icon 字段 */
+    /** 更换产品图标：只更新 icon 字段（transform 会去掉 id，所以地址从 values 里取） */
     icon: {
       key: 'icon',
       title: '更换产品图标',
       desc: '选择预设图标，或上传自己的图片，保存后写入后台。',
-      endpoint: (payload) => `/api/products/${payload.id}`,
+      endpoint: (_payload, values) => `/api/products/${values.id}`,
       method: 'PUT',
       fields: [
         { name: 'id', label: '产品编号', hidden: true, required: true },

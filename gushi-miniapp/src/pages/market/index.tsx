@@ -11,6 +11,32 @@ import { batchCodeOf, useCloudData } from '@/hooks/useCloudData'
 import { FORM_MODULE, can, guard } from '@/utils/permission'
 import { assetUrl } from '@/utils/request'
 import { dateOnly, money } from '@/utils/format'
+import type { Demand, Product } from '@/types'
+
+/** 修改供应信息时，把原记录转成表单默认值（空值用空串，避免显示 undefined） */
+const productPreset = (product: Product): Record<string, string> => ({
+  id: String(product.id),
+  batch_id: product.batch_id === null || product.batch_id === undefined ? '' : String(product.batch_id),
+  name: product.name || '',
+  icon: product.icon || '🍄',
+  quantity: product.quantity === null || product.quantity === undefined ? '' : String(product.quantity),
+  unit: product.unit || 'kg',
+  price: product.price === null || product.price === undefined ? '' : String(product.price),
+  available_date: dateOnly(product.available_date),
+  description: product.description || ''
+})
+
+/** 修改采购需求时，把原记录转成表单默认值 */
+const demandPreset = (demand: Demand): Record<string, string> => ({
+  id: String(demand.id),
+  buyer_name: demand.buyer_name || '',
+  product_name: demand.product_name || '',
+  quantity: demand.quantity === null || demand.quantity === undefined ? '' : String(demand.quantity),
+  unit: demand.unit || 'kg',
+  price: demand.price === null || demand.price === undefined ? '' : String(demand.price),
+  contact: demand.contact || '',
+  requirements: demand.requirements || ''
+})
 
 export default function Market() {
   const { data, loading, error, reload } = useCloudData()
@@ -101,9 +127,12 @@ export default function Market() {
                   </View>
                 </View>
                 <Text className='meta'>{product.description || '暂无说明'}</Text>
-                {/* 仅基地管理员与平台管理员可修改保存产品图标（后端同样校验 products 写权限） */}
+                {/* 仅基地管理员与平台管理员可修改自己发布的供应（后端同样校验 products 写权限） */}
                 {can('products', 'w') ? (
                   <View className='toolbar' style='margin-bottom:0'>
+                    <View className='btn secondary' onClick={() => openForm('productEdit', productPreset(product))}>
+                      修改
+                    </View>
                     <View
                       className='btn secondary'
                       onClick={() => openForm('icon', { id: String(product.id), icon: product.icon || '🍄' })}
@@ -141,6 +170,14 @@ export default function Market() {
                   {demand.requirements || '暂无补充要求'}
                   {demand.contact ? ` · 联系方式：${demand.contact}` : ''}
                 </Text>
+                {/* 仅采购商、基地管理员与平台管理员可修改自己发布的采购需求 */}
+                {can('demands', 'w') ? (
+                  <View className='toolbar' style='margin-bottom:0'>
+                    <View className='btn secondary' onClick={() => openForm('demandEdit', demandPreset(demand))}>
+                      修改
+                    </View>
+                  </View>
+                ) : null}
               </View>
             ))
           ) : (
