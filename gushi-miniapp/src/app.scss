@@ -418,6 +418,8 @@ page {
   border-radius: 26px;
   font-size: 26px;
   font-weight: 900;
+  /* 让带边框的按钮与不带边框的按钮高度一致（否则微信按钮会高出 2px） */
+  box-sizing: border-box;
 }
 
 .btn.primary {
@@ -432,15 +434,40 @@ page {
   border: 1px solid var(--line);
 }
 
-.btn + .btn {
+/**
+ * 并排按钮之间才需要左间距。
+ * 注意不能写成全局 `.btn + .btn`：登录页的「登录 / 微信一键登录」是上下排列，
+ * 那样会给下面那个按钮加上左边距，导致它比上面窄一截、两边不对齐。
+ */
+.toolbar .btn + .btn,
+.sheet-actions .btn + .btn {
   margin-left: 16px;
 }
 
 .btn.wechat {
-  margin-top: 20px;
+  margin-top: 0;
   background: #f1f7f2;
   color: var(--g800);
   border: 1px solid #d9e8dd;
+}
+
+/* 登录方式分隔线：把「账号密码登录」与「微信一键登录」分开，层次更清楚 */
+.login-divider {
+  display: flex;
+  align-items: center;
+  margin: 28px 0;
+}
+
+.login-divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.login-divider-text {
+  font-size: 22px;
+  color: var(--muted);
+  padding: 0 20px;
 }
 
 /* ---------- 搜索 ---------- */

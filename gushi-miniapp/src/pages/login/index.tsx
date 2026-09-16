@@ -160,8 +160,15 @@ export default function Login() {
         </View>
 
         {mode === 'login' ? (
-          <View className='btn wechat' onClick={handleWechatLogin}>
-            微信一键登录
+          <View>
+            <View className='login-divider'>
+              <View className='login-divider-line' />
+              <Text className='login-divider-text'>或</Text>
+              <View className='login-divider-line' />
+            </View>
+            <View className='btn wechat' onClick={handleWechatLogin}>
+              微信一键登录
+            </View>
           </View>
         ) : null}
 
