@@ -24,7 +24,6 @@ npm run dev:weapp                            # 微信开发者工具导入本目
 # 或浏览器预览：npm run build:h5 && npm run preview:h5   → http://localhost:5173
 ```
 
-后台启动后也可直接打开 http://localhost:3000 使用手机风格原型。
 
 `.env` 可选配置（不填也能跑，AI 会自动降级为规则知识库）：
 
