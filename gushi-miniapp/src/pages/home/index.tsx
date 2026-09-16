@@ -236,6 +236,23 @@ export default function Home() {
 
   return (
     <View className='page'>
+      {/* 最顶部左侧的常用入口：账号管理（管理员直接打开分配，其他角色先验证管理员身份）、
+          溯源查询、退出登录 —— 集中在页面最上方，不用往下找 */}
+      <View className='top-actions'>
+        <View
+          className='top-action'
+          onClick={() => (can('users', 'w') ? openUserSheet() : setAdminSheet(true))}
+        >
+          账号管理
+        </View>
+        <View className='top-action' onClick={() => Taro.switchTab({ url: '/pages/trace/index' })}>
+          溯源查询
+        </View>
+        <View className='top-action' onClick={handleLogout}>
+          退出登录
+        </View>
+      </View>
+
       <BrandBar title='菇事云管家' sub='真实业务数据管理' onAdd={() => setMenuVisible(true)} />
 
       {loading || error ? (
@@ -272,23 +289,6 @@ export default function Home() {
             <View className='quick-item' onClick={() => Taro.navigateTo({ url: '/pages/expert/index' })}>
               <Text className='quick-icon'>🤖</Text>
               <Text className='quick-label'>AI 问答</Text>
-            </View>
-          </View>
-
-          {/* 常用入口集中在一排：账号管理（管理员直接打开分配，其他角色先验证管理员身份）、
-              溯源查询、退出登录 */}
-          <View className='toolbar' style='margin-top:20px'>
-            <View
-              className='btn secondary'
-              onClick={() => (can('users', 'w') ? openUserSheet() : setAdminSheet(true))}
-            >
-              账号管理
-            </View>
-            <View className='btn secondary' onClick={() => Taro.switchTab({ url: '/pages/trace/index' })}>
-              溯源查询
-            </View>
-            <View className='btn secondary' onClick={handleLogout}>
-              退出登录
             </View>
           </View>
 
