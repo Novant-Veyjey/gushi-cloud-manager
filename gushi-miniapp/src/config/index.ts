@@ -15,7 +15,11 @@ const envApiBase =
 function resolveBaseUrl(): string {
   if (envApiBase) return envApiBase
   if (getEnv() === ENV_TYPE.WEB && typeof window !== 'undefined' && window.location && window.location.hostname) {
-    return window.location.protocol + '//' + window.location.hostname + ':3000'
+    const { protocol, hostname, port } = window.location
+    // 线上部署走标准端口（80/443），页面与接口同源，用相对地址即可；
+    // 本地 / 局域网预览跑在 5173、接口在 3000，按主机名拼出后台地址。
+    if (!port || port === '80' || port === '443') return ''
+    return protocol + '//' + hostname + ':3000'
   }
   return 'http://localhost:3000'
 }

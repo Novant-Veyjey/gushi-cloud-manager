@@ -579,9 +579,21 @@ app.post('/api/ai/suggest-priority', requireAuth, requirePermission('ai', 'r'), 
 
 for (const [name, config] of Object.entries(configs)) app.use(`/api/${name}`, makeCrudRouter(name, config));
 
+/**
+ * 一体部署：设置环境变量 H5_DIST 时，把小程序浏览器版产物直接挂到根路径（含 SPA 兜底）。
+ * 这样静态页面与接口共用同一个端口，云端部署只需要暴露一个端口即可访问完整应用。
+ */
+const H5_DIST = process.env.H5_DIST ? path.resolve(process.env.H5_DIST) : '';
+const H5_INDEX = H5_DIST ? path.join(H5_DIST, 'index.html') : '';
+const HAS_H5 = Boolean(H5_INDEX) && fs.existsSync(H5_INDEX);
+if (HAS_H5) {
+  app.use(express.static(H5_DIST));
+}
+
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
+  if (HAS_H5) return res.sendFile(H5_INDEX);
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 app.use((error, req, res, next) => {
