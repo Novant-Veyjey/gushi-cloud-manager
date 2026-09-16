@@ -142,10 +142,6 @@ export default function Login() {
           <View className='field-input-wrap'>
             <Input
               className='field-input field-input-password'
-              /** 明文/密文切换：H5 端直接用 type='password' / 'text'；
-               *  小程序端 Input 的 type 不支持 password 值，由下方 password 布尔属性兜底，两端表现一致。
-               *  Taro 的类型定义未把 password 列进 type 联合类型（H5 运行时实际支持），断言绕过 */
-              type={(showPassword ? 'text' : 'password') as any}
               password={!showPassword}
               value={password}
               placeholder='至少 6 位'
