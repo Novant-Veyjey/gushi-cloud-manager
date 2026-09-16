@@ -309,25 +309,42 @@ function roleChips(containerId){
 }
 function openUserManage(){
  $('#sheetTitle').textContent='账号管理 · 分配职务';
- $('#sheetDesc').textContent='方式一：输入对方账号和它的密码，核验后直接分配职务；分配后对方重新登录生效。';
+ $('#sheetDesc').textContent='管理员无需对方密码：搜索账号并点选，再点一个新职位即可直接修改；修改后对方重新登录生效。';
  $('#sheetBody').innerHTML=`
-  <div class="notice success">仅平台管理员可以分配职务。下方列表可核对每个账号的当前身份。</div>
-  <div class="field" style="margin-top:10px"><label>目标账号</label><input id="assignUser" placeholder="对方的登录账号"></div>
-  <div class="field"><label>目标账号密码</label><div class="pwd-wrap"><input id="assignPwd" type="password" placeholder="该账号的登录密码"><button type="button" class="pwd-toggle" data-pwd="assignPwd" aria-label="显示或隐藏密码">${EYE_CLOSED}</button></div></div>
+  <div class="notice success">仅平台管理员可以分配职务。搜索到账号后点「选择」，再点选新职位，点「确认分配」完成修改。也可以直接点下方列表里的职位标签修改。</div>
+  <div class="field" style="margin-top:10px"><label>搜索账号</label><div style="display:flex;gap:8px"><input id="assignUser" placeholder="输入账号关键字，例如：wang" style="flex:1"><button type="button" id="assignSearch" style="height:42px;padding:0 12px;border:1px solid var(--line);border-radius:12px;background:#f5f8f6;color:#53685c;font-size:11px;font-weight:800;flex:0 0 auto;cursor:pointer">搜索账号</button></div></div>
+  <div id="assignResults"></div>
   <div class="field"><label>分配职务（点选其中一个）</label><div class="role-options" id="assignRoles"></div></div>
-  <button class="primary full" id="assignSubmit" style="margin-top:12px">核验并分配</button>
+  <button class="primary full" id="assignSubmit" style="margin-top:12px">确认分配</button>
   <div style="font-size:13px;font-weight:900;margin:18px 0 6px">全部账号</div>
   <div id="userList"><div class="loading">正在读取账号列表...</div></div>
   <div class="sheet-actions"><button class="secondary" data-close-sheet>关闭</button></div>`;
  $('#sheetMask').classList.add('open');
+ let target=null;
  const getRole=roleChips('#assignRoles');
- $('#assignSubmit').addEventListener('click',async()=>{
-  const username=$('#assignUser').value.trim(),password=$('#assignPwd').value;
-  if(!username||!password){toast('请填写目标账号和它的密码',true);return}
+ $('#assignSearch').addEventListener('click',async()=>{
+  const keyword=$('#assignUser').value.trim();
+  if(!keyword){toast('请输入要搜索的账号',true);return}
   try{
-   await api('/api/admin/users/assign',{method:'POST',body:JSON.stringify({username,password,role:getRole()})});
-   toast('角色已更新，对方重新登录后生效');await loadUsers();
+   const users=await api('/api/admin/users');
+   const list=(users||[]).filter(u=>u.username.includes(keyword)||(u.display_name||'').includes(keyword));
+   target=null;
+   $('#assignResults').innerHTML=list.length?list.map(u=>`<div class="pick-user" data-pick-user="${u.id}" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 10px;border:1px solid #dfe9e2;border-radius:12px;margin-bottom:6px;cursor:pointer"><div><b style="font-size:11px">${esc(u.username)}</b><p style="font-size:9px;color:var(--muted);margin:2px 0 0">${esc(u.display_name||'未填称呼')} · 当前：${esc(u.role_label||u.role)}</p></div><span class="badge">选择</span></div>`).join(''):'<div class="notice">没有找到匹配的账号</div>';
+   $$('#assignResults .pick-user').forEach(item=>item.addEventListener('click',()=>{
+    target=users.find(u=>u.id===Number(item.dataset.pickUser));
+    $$('#assignResults .pick-user').forEach(x=>(x.style.borderColor='#dfe9e2'));
+    item.style.borderColor='var(--g600)';
+    toast('已选择：'+target.username);
+   }));
   }catch(error){toast(error.message,true)}
+ });
+ $('#assignSubmit').addEventListener('click',async()=>{
+  if(!target){toast('请先搜索并选择要修改的账号',true);return}
+  const role=getRole();
+  const label=(ALL_ROLES.find(r=>r.value===role)||{}).label||role;
+  if(!window.confirm('职位分配提醒：确定把「'+target.username+'」的职务改为「'+label+'」吗？对方重新登录后生效。'))return;
+  try{await api('/api/admin/users/'+target.id+'/role',{method:'PUT',body:JSON.stringify({role})});toast('角色已更新，对方重新登录后生效');await loadUsers()}
+  catch(error){toast(error.message,true)}
  });
  loadUsers();
 }

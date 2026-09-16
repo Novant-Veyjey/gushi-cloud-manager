@@ -31,7 +31,8 @@ export default function Home() {
   const [adminPwd, setAdminPwd] = useState('')
   const [adminSubmitting, setAdminSubmitting] = useState(false)
   const [assignUser, setAssignUser] = useState('')
-  const [assignPwd, setAssignPwd] = useState('')
+  const [assignResults, setAssignResults] = useState<any[]>([])
+  const [assignTarget, setAssignTarget] = useState<any>(null)
   const [assignRoleIndex, setAssignRoleIndex] = useState(0)
   const [assigning, setAssigning] = useState(false)
   const [permSheet, setPermSheet] = useState(false)
@@ -104,25 +105,51 @@ export default function Home() {
   }
 
   /**
-   * 按账号密码分配：输入目标账号及其密码，核验通过后直接为该账号指定职务。
-   * 与下方列表方式并存：列表适合浏览全量账号，输账号密码适合精确指定某个账号。
+   * 搜索账号：管理员输入账号关键字，从全部账号里筛选出匹配结果，点选后直接修改职位。
+   * 管理员操作不需要对方密码。
    */
-  const handleAssignByCredentials = async () => {
+  const handleSearchUser = async () => {
+    const keyword = assignUser.trim()
+    if (!keyword) {
+      Taro.showToast({ title: '请输入要搜索的账号', icon: 'none' })
+      return
+    }
+    try {
+      const list = await api<any[]>('/api/admin/users')
+      const matched = (list || []).filter(
+        (item) => item.username.includes(keyword) || (item.display_name || '').includes(keyword)
+      )
+      setAssignResults(matched)
+      setAssignTarget(null)
+      if (!matched.length) Taro.showToast({ title: '没有找到匹配的账号', icon: 'none' })
+    } catch (err) {
+      Taro.showToast({ title: (err as Error).message, icon: 'none' })
+    }
+  }
+
+  /** 点选搜索结果中的账号作为分配目标 */
+  const pickAssignTarget = (target: any) => {
+    setAssignTarget(target)
+    setAssignResults((prev) => prev.map((item) => ({ ...item, _picked: item.id === target.id })))
+  }
+
+  /** 确认分配：把选中的账号改为点选的职位（管理员无需对方密码） */
+  const handleAssignByRole = async () => {
     if (assigning) return
-    const name = assignUser.trim()
-    if (!name || !assignPwd) {
-      Taro.showToast({ title: '请填写目标账号和它的密码', icon: 'none' })
+    if (!assignTarget) {
+      Taro.showToast({ title: '请先搜索并点选要修改的账号', icon: 'none' })
       return
     }
     setAssigning(true)
     try {
-      await api('/api/admin/users/assign', {
-        method: 'POST',
-        data: { username: name, password: assignPwd, role: ROLE_OPTIONS[assignRoleIndex].value },
+      await api(`/api/admin/users/${assignTarget.id}/role`, {
+        method: 'PUT',
+        data: { role: ROLE_OPTIONS[assignRoleIndex].value },
         successText: '角色已更新，对方重新登录后生效'
       })
+      setAssignTarget(null)
       setAssignUser('')
-      setAssignPwd('')
+      setAssignResults([])
       const list = await api<any[]>('/api/admin/users')
       setUsers(list || [])
       await reload()
@@ -428,33 +455,54 @@ export default function Home() {
       {userSheet ? (
         <View className='sheet-mask' onClick={() => setUserSheet(false)}>
           <View className='sheet' onClick={(event) => event.stopPropagation()}>
-            <Text className='sheet-title'>账号管理</Text>
-            <Text className='sheet-desc'>点「分配职务」给注册账号设置身份，保存后对方重新登录生效。</Text>
+            <Text className='sheet-title'>账号管理 · 分配职务</Text>
+            <Text className='sheet-desc'>搜索账号并点选，再点一个职位即可直接修改，无需对方密码；修改后对方重新登录生效。</Text>
             <ScrollView className='sheet-body' scrollY>
-              {/* 按账号密码分配：输入目标账号与密码，核验后直接指定职务 */}
-              <View className='notice success'>
-                按账号密码分配：填入目标账号和它的密码，核验通过后即为该账号设置所选职务。
-              </View>
+              {/* 搜索账号：管理员输入关键字，点选结果后直接改职位 */}
               <View className='field' style='margin-top:20px'>
-                <Text className='field-label'>目标账号</Text>
+                <Text className='field-label'>搜索账号</Text>
                 <Input
                   className='field-input'
                   value={assignUser}
-                  placeholder='例如：wangshiren'
+                  placeholder='输入账号关键字，例如：wang'
                   onInput={(event) => setAssignUser(event.detail.value)}
                 />
               </View>
-              <View className='field'>
-                <Text className='field-label'>目标账号密码</Text>
-                <Input
-                  className='field-input'
-                  password
-                  value={assignPwd}
-                  placeholder='该账号的登录密码'
-                  onInput={(event) => setAssignPwd(event.detail.value)}
-                />
+              <View className='btn secondary full' style='margin-top:2px' onClick={handleSearchUser}>
+                搜索账号
               </View>
-              <View className='field'>
+              {assignResults.length ? (
+                <View className='card' style='padding:6px 14px;margin-top:14px'>
+                  {assignResults.map((item) => (
+                    <View
+                      key={item.id}
+                      className='todo-row'
+                      style={item._picked ? 'background:#f2f9f4;border-radius:12px;padding:12px 10px' : ''}
+                      onClick={() => pickAssignTarget(item)}
+                    >
+                      <View className='todo-icon green'>{item._picked ? '✓' : '○'}</View>
+                      <View className='todo-copy'>
+                        <Text className='todo-title'>
+                          {item.username}
+                          {item.id === account?.id ? '（我）' : ''}
+                        </Text>
+                        <Text className='todo-desc'>
+                          {item.display_name || '未填称呼'} · 当前：{item.role_label || roleLabel(item.role)}
+                        </Text>
+                      </View>
+                      <Text className='todo-action'>{item._picked ? '已选择' : '选择'}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+              {assignTarget ? (
+                <View className='notice success'>
+                  已选择：{assignTarget.username}（当前：{assignTarget.role_label || roleLabel(assignTarget.role)}），请在下方点选新职位。
+                </View>
+              ) : (
+                <View className='notice'>先搜索并点选一个账号，再在下方点选新职位。</View>
+              )}
+              <View className='field' style='margin-top:14px'>
                 <Text className='field-label'>分配职务（点选其中一个）</Text>
                 <View className='role-options'>
                   {ROLE_OPTIONS.map((item, index) => (
@@ -468,8 +516,8 @@ export default function Home() {
                   ))}
                 </View>
               </View>
-              <View className='btn primary' onClick={handleAssignByCredentials}>
-                {assigning ? '分配中...' : '核验并分配'}
+              <View className='btn primary' onClick={handleAssignByRole}>
+                {assigning ? '分配中...' : '确认分配'}
               </View>
               <View className='section-title'>
                 <View>
