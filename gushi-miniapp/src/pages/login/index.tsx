@@ -12,6 +12,7 @@ export default function Login() {
   const [mode, setMode] = useState<Mode>('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [displayName, setDisplayName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [checking, setChecking] = useState(true)
@@ -134,13 +135,18 @@ export default function Login() {
           <Text className='field-label'>
             密码<Text className='required'>*</Text>
           </Text>
-          <Input
-            className='field-input'
-            password
-            value={password}
-            placeholder='至少 6 位'
-            onInput={(event) => setPassword(event.detail.value)}
-          />
+          <View className='field-input-wrap'>
+            <Input
+              className='field-input field-input-password'
+              password={!showPassword}
+              value={password}
+              placeholder='至少 6 位'
+              onInput={(event) => setPassword(event.detail.value)}
+            />
+            <View className='field-password-toggle' onClick={() => setShowPassword((value) => !value)}>
+              {showPassword ? '隐藏' : '显示'}
+            </View>
+          </View>
         </View>
 
         {mode === 'register' ? (

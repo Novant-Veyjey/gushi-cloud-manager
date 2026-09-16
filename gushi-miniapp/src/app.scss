@@ -659,6 +659,30 @@ page {
   box-sizing: border-box;
 }
 
+/* 密码框：右侧放「显示/隐藏」切换，输入区留出空间避免文字压到按钮 */
+.field-input-wrap {
+  position: relative;
+}
+
+.field-input-password {
+  padding-right: 136px;
+}
+
+.field-password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 56px;
+  line-height: 56px;
+  padding: 0 20px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--g700);
+  border-radius: 18px;
+  background: #eef5f0;
+}
+
 .field-textarea {
   width: 100%;
   min-height: 160px;
