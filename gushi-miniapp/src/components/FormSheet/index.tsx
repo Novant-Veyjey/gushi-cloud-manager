@@ -127,7 +127,7 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
       const finalPayload = config.transform ? config.transform(payload, values) : payload
       const endpoint = typeof config.endpoint === 'function' ? config.endpoint(finalPayload, values) : config.endpoint
       const saved = await api(endpoint, { method: config.method || 'POST', data: finalPayload })
-      Taro.showToast({ title: '已保存到后台', icon: 'success' })
+      Taro.showToast({ title: config.successText || '已保存到后台', icon: 'success' })
       await onSaved(saved)
       onClose()
     } catch (error) {
@@ -304,7 +304,7 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
             取消
           </View>
           <View className='btn primary' onClick={handleSubmit}>
-            {submitting ? '保存中...' : '保存到后台'}
+            {submitting ? '提交中...' : config.submitText || '保存到后台'}
           </View>
         </View>
       </View>

@@ -168,6 +168,44 @@ CREATE TABLE IF NOT EXISTS tasks (
   FOREIGN KEY(batch_id) REFERENCES batches(id) ON DELETE SET NULL
 );
 
+/**
+ * 订单：采购商针对某条供应信息下单，形成「下单 → 支付 → 发货 → 收货」的完整交易链路。
+ * 与其它业务表不同，订单同时属于买卖双方（buyer_id / seller_id），不能按 user_id 单向隔离。
+ */
+CREATE TABLE IF NOT EXISTS orders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_no TEXT NOT NULL UNIQUE,
+  product_id INTEGER,
+  product_name TEXT NOT NULL,
+  product_icon TEXT DEFAULT '',
+  unit TEXT NOT NULL DEFAULT 'kg',
+  price REAL DEFAULT 0,
+  quantity REAL NOT NULL DEFAULT 0,
+  amount REAL NOT NULL DEFAULT 0,
+  batch_id INTEGER,
+  batch_code TEXT DEFAULT '',
+  base_name TEXT DEFAULT '',
+  seller_id INTEGER NOT NULL,
+  seller_name TEXT DEFAULT '',
+  buyer_id INTEGER NOT NULL,
+  buyer_name TEXT DEFAULT '',
+  buyer_contact TEXT DEFAULT '',
+  address TEXT DEFAULT '',
+  remark TEXT DEFAULT '',
+  /** created=待付款 paid=待发货 shipped=待收货 received=已完成 cancelled=已取消 */
+  status TEXT NOT NULL DEFAULT 'created',
+  /** online=在线支付(演示) offline=货到付款 */
+  pay_method TEXT NOT NULL DEFAULT 'online',
+  pay_time TEXT DEFAULT '',
+  ship_time TEXT DEFAULT '',
+  receive_time TEXT DEFAULT '',
+  cancel_time TEXT DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE SET NULL,
+  FOREIGN KEY(batch_id) REFERENCES batches(id) ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS devices (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER,
@@ -205,6 +243,9 @@ CREATE INDEX IF NOT EXISTS idx_readings_base_time ON readings(base_id, recorded_
 CREATE INDEX IF NOT EXISTS idx_alerts_status ON alerts(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_trace_batch ON trace_events(batch_id, event_date);
 CREATE INDEX IF NOT EXISTS idx_products_batch ON products(batch_id);
+CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_seller ON orders(seller_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, created_at);
 `;
 
 db.exec(schema);

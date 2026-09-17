@@ -11,6 +11,7 @@ const { db } = require('./db');
 const auth = require('./auth');
 const deviceService = require('./devices');
 const aiService = require('./ai');
+const orderService = require('./orders');
 const { evaluateReadingAlerts } = require('./alerts');
 const { requireAuth, requirePermission, requireRole } = auth;
 
@@ -642,6 +643,72 @@ app.get('/api/products/shared', requireAuth, requirePermission('products', 'r'),
     ok(res, rows);
   } catch (error) {
     fail(res, 400, error.message);
+  }
+});
+
+/**
+ * ---------- 产销对接：订单交易 ----------
+ * 采购商在「市场」里对供应信息下单，走完整链路：下单 → 支付 → 发货 → 收货。
+ * 订单同时属于买卖双方，因此不走通用 CRUD 的 user_id 单向隔离，单独实现。
+ */
+app.get('/api/orders', requireAuth, requirePermission('orders', 'r'), (req, res) => {
+  try {
+    ok(res, orderService.listOrders(req.user, req.query || {}));
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+app.post('/api/orders', requireAuth, requirePermission('orders', 'w'), (req, res) => {
+  try {
+    const order = orderService.createOrder(req.user, req.body || {});
+    ok(res, order, order.pay_method === 'offline' ? '下单成功，等待供货方发货' : '下单成功，请完成支付');
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+app.get('/api/orders/:id', requireAuth, requirePermission('orders', 'r'), (req, res) => {
+  try {
+    ok(res, orderService.getOrder(req.user, req.params.id));
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+/** 买家支付（演示环境无真实支付通道，点确认即视为已支付） */
+app.post('/api/orders/:id/pay', requireAuth, requirePermission('orders', 'w'), (req, res) => {
+  try {
+    ok(res, orderService.payOrder(req.user, req.params.id), '支付成功，等待供货方发货');
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+/** 卖家发货 */
+app.post('/api/orders/:id/ship', requireAuth, requirePermission('orders', 'w'), (req, res) => {
+  try {
+    ok(res, orderService.shipOrder(req.user, req.params.id), '已标记发货');
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+/** 买家确认收货 */
+app.post('/api/orders/:id/receive', requireAuth, requirePermission('orders', 'w'), (req, res) => {
+  try {
+    ok(res, orderService.receiveOrder(req.user, req.params.id), '已确认收货，订单完成');
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
+  }
+});
+
+/** 取消订单（发货前买卖双方均可，库存自动回补） */
+app.post('/api/orders/:id/cancel', requireAuth, requirePermission('orders', 'w'), (req, res) => {
+  try {
+    ok(res, orderService.cancelOrder(req.user, req.params.id, req.body?.reason), '订单已取消');
+  } catch (error) {
+    fail(res, error.status || 400, error.message);
   }
 });
 

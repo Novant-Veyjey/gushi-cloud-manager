@@ -30,6 +30,10 @@ export interface FormConfig {
   method?: 'POST' | 'PUT'
   fields: FormField[]
   transform?: (payload: Record<string, any>, values: Record<string, string>) => Record<string, any>
+  /** 保存成功后的提示文案，默认「已保存到后台」（下单等场景改成更贴切的文案） */
+  successText?: string
+  /** 提交按钮文案，默认「保存到后台」（下单场景改成「提交订单」） */
+  submitText?: string
 }
 
 /** 首页“＋”面板里的记录类型 */
@@ -123,6 +127,37 @@ export function buildFormConfigs(data: CloudData): Record<string, FormConfig> {
     desc: '首期只做信息撮合，不在平台内结算。',
     endpoint: '/api/demands',
     fields: demandFields
+  }
+
+  /**
+   * 采购下单：在「市场」里点某条供应信息的「立即采购」后打开。
+   * product_id 由商品卡片带过来（隐藏字段），标题与数量上限在打开时按商品动态生成。
+   */
+  const orderForm: FormConfig = {
+    key: 'order',
+    title: '确认采购下单',
+    desc: '填写采购数量与收货信息，提交后生成订单。',
+    notice: '在线支付为演示功能（点击确认即完成支付，不产生真实扣款）；也可选择货到付款，收货时再结算。',
+    endpoint: '/api/orders',
+    successText: '下单成功',
+    submitText: '提交订单',
+    fields: [
+      { name: 'product_id', label: '供应信息', hidden: true },
+      { name: 'quantity', label: '采购数量', type: 'number', required: true, placeholder: '不能超过可供应数量' },
+      { name: 'contact', label: '联系电话', required: true, placeholder: '方便供货方联系发货' },
+      { name: 'address', label: '收货地址', type: 'textarea', required: true, placeholder: '省 / 市 / 县 + 详细地址' },
+      {
+        name: 'pay_method',
+        label: '支付方式',
+        type: 'select',
+        options: [
+          { label: '在线支付（演示）', value: 'online' },
+          { label: '货到付款', value: 'offline' }
+        ],
+        defaultValue: 'online'
+      },
+      { name: 'remark', label: '买家留言', type: 'textarea', placeholder: '例如：需要泡沫箱包装、预计到货时间' }
+    ]
   }
 
   return {
@@ -266,6 +301,8 @@ export function buildFormConfigs(data: CloudData): Record<string, FormConfig> {
     },
     product: productForm,
     demand: demandForm,
+    /** 采购下单：从市场里的「立即采购」进入 */
+    order: orderForm,
     /** 修改自己发布的供应信息：带出原内容，保存后覆盖原记录 */
     productEdit: {
       ...productForm,

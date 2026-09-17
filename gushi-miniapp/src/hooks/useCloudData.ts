@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { useDidShow } from '@tarojs/taro'
 
 import { api } from '@/utils/request'
+import { can, currentRole } from '@/utils/permission'
 import type { Alert, Base, Batch, CloudData, Dashboard, Demand, Device, ExpertQuestion, Product, Reading, Task } from '@/types'
 
 /** 空数据结构：后台没有数据时页面显示空状态，绝不填充虚构数字 */
@@ -30,6 +31,16 @@ export const EMPTY_CLOUD_DATA: CloudData = {
 }
 
 /**
+ * 无权限的模块直接返回空列表，不发请求。
+ * 关键：采购商、专家、政府等角色对部分模块（设备 / 环境数据 / 预警 / 任务）没有读权限，
+ * 若照常请求会返回 403，而 Promise.all 一失败整页就变成「后台连接失败」——
+ * 表现就是「采购商页面打不开、看不到任何内容」。
+ */
+function fetchIfAllowed<T>(allowed: boolean, request: () => Promise<T[]>): Promise<T[]> {
+  return allowed ? request() : Promise.resolve([])
+}
+
+/**
  * 页面进入时并发拉取后台全部业务数据，与 HTML 原型保持同一套接口。
  * 拉取失败只提示失败，不回退到任何编造数据。
  */
@@ -47,17 +58,19 @@ export function useCloudData() {
       setError('')
     }
     try {
+      const role = currentRole()
+      const allow = (moduleName: Parameters<typeof can>[0]) => can(moduleName, 'r', role)
       const [dashboard, bases, batches, devices, readings, alerts, questions, products, demands, tasks] = await Promise.all([
         api<Dashboard>('/api/dashboard'),
-        api<Base[]>('/api/bases'),
-        api<Batch[]>('/api/batches'),
-        api<Device[]>('/api/devices'),
-        api<Reading[]>('/api/readings?limit=100'),
-        api<Alert[]>('/api/alerts?limit=100'),
-        api<ExpertQuestion[]>('/api/questions'),
-        api<Product[]>('/api/products'),
-        api<Demand[]>('/api/demands'),
-        api<Task[]>('/api/tasks')
+        fetchIfAllowed(allow('bases'), () => api<Base[]>('/api/bases')),
+        fetchIfAllowed(allow('batches'), () => api<Batch[]>('/api/batches')),
+        fetchIfAllowed(allow('devices'), () => api<Device[]>('/api/devices')),
+        fetchIfAllowed(allow('readings'), () => api<Reading[]>('/api/readings?limit=100')),
+        fetchIfAllowed(allow('alerts'), () => api<Alert[]>('/api/alerts?limit=100')),
+        fetchIfAllowed(allow('questions'), () => api<ExpertQuestion[]>('/api/questions')),
+        fetchIfAllowed(allow('products'), () => api<Product[]>('/api/products')),
+        fetchIfAllowed(allow('demands'), () => api<Demand[]>('/api/demands')),
+        fetchIfAllowed(allow('tasks'), () => api<Task[]>('/api/tasks'))
       ])
       setData({ dashboard, bases, batches, devices, readings, alerts, questions, products, demands, tasks })
     } catch (err) {

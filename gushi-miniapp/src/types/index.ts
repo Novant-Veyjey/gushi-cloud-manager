@@ -193,6 +193,49 @@ export interface Task {
   updated_at: string
 }
 
+/**
+ * 订单：采购商对某条供应信息下单，走「下单 → 支付 → 发货 → 收货」完整链路。
+ * 平台没有对接真实支付通道，在线支付为演示（点击即视为已支付），也可选择货到付款。
+ */
+export interface Order {
+  id: number
+  order_no: string
+  product_id: number | null
+  product_name: string
+  product_icon: string
+  unit: string
+  price: number
+  quantity: number
+  /** 订单总额 = 单价 × 数量 */
+  amount: number
+  batch_id: number | null
+  batch_code: string
+  base_name: string
+  seller_id: number
+  seller_name: string
+  buyer_id: number
+  buyer_name: string
+  buyer_contact: string
+  address: string
+  remark: string
+  status: 'created' | 'paid' | 'shipped' | 'received' | 'cancelled' | string
+  status_label: string
+  pay_method: 'online' | 'offline' | string
+  pay_method_label: string
+  pay_time: string
+  ship_time: string
+  receive_time: string
+  cancel_time: string
+  created_at: string
+  updated_at: string
+  is_buyer: boolean
+  is_seller: boolean
+  /** 当前账号在该订单中的身份：buyer=我采购的订单，seller=我收到的订单 */
+  side: 'buyer' | 'seller'
+  /** 后端根据状态与身份算好的可执行操作，前端据此渲染按钮 */
+  actions: { pay: boolean; ship: boolean; receive: boolean; cancel: boolean }
+}
+
 /** 登录账号：每个账号只能看到自己录入的数据 */
 export interface AuthUser {
   id: number

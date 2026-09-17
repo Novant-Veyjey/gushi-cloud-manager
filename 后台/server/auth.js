@@ -42,26 +42,28 @@ const PERMISSIONS = {
   base: {
     bases: 'rw', batches: 'rw', readings: 'rw', alerts: 'rw', 'trace-events': 'rw',
     questions: 'rw', products: 'rw', demands: 'rw', tasks: 'rw', partners: 'rw',
-    devices: 'rw', dashboard: 'r', uploads: 'w', ai: 'r', users: 'r'
+    devices: 'rw', dashboard: 'r', uploads: 'w', ai: 'r', users: 'r', orders: 'rw'
   },
+  // 菇农：自己的货可以卖（接单发货），也可以作为买家采购别人的货
   farmer: {
     bases: 'rw', batches: 'rw', readings: 'rw', alerts: 'rw', 'trace-events': 'rw',
     questions: 'rw', products: 'r', demands: 'r', tasks: 'rw', partners: 'r',
-    devices: 'rw', dashboard: 'r', uploads: 'w', ai: 'r'
+    devices: 'rw', dashboard: 'r', uploads: 'w', ai: 'r', orders: 'rw'
   },
   expert: {
     bases: 'r', batches: 'r', readings: 'r', alerts: 'r', 'trace-events': 'r',
     questions: 'rw', products: 'r', demands: 'r', tasks: 'r', partners: 'r',
-    devices: 'r', dashboard: 'r', uploads: 'w', ai: 'r'
+    devices: 'r', dashboard: 'r', uploads: 'w', ai: 'r', orders: 'r'
   },
+  // 采购商：核心角色，必须能在市场里真实下单、支付、确认收货
   buyer: {
     bases: 'r', batches: 'r', 'trace-events': 'r', questions: 'rw',
-    products: 'r', demands: 'rw', dashboard: 'r', uploads: 'w', ai: 'r'
+    products: 'r', demands: 'rw', dashboard: 'r', uploads: 'w', ai: 'r', orders: 'rw'
   },
   government: {
     bases: 'r', batches: 'r', readings: 'r', alerts: 'r', 'trace-events': 'r',
     questions: 'r', products: 'r', demands: 'r', tasks: 'r', partners: 'r',
-    devices: 'r', dashboard: 'r', ai: 'r'
+    devices: 'r', dashboard: 'r', ai: 'r', orders: 'r'
   }
 };
 

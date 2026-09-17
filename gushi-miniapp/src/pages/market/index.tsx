@@ -10,8 +10,8 @@ import { buildFormConfigs, type FormConfig } from '@/config/forms'
 import { batchCodeOf, useCloudData } from '@/hooks/useCloudData'
 import { FORM_MODULE, can, guard } from '@/utils/permission'
 import { api, assetUrl } from '@/utils/request'
-import { dateOnly, money, today } from '@/utils/format'
-import type { Demand, Product } from '@/types'
+import { dateOnly, money, readableTime, today } from '@/utils/format'
+import type { Demand, Order, Product } from '@/types'
 
 /**
  * 平台其他账号发布的供应信息：跨账号可见，但只读。
@@ -48,6 +48,23 @@ const productPreset = (product: Product): Record<string, string> => ({
   description: product.description || ''
 })
 
+/** 订单状态徽章配色：待付款/待发货=橙色提醒，待收货=绿色，已完成/已取消=灰色 */
+const ORDER_BADGE: Record<string, string> = {
+  created: ' warn',
+  paid: ' warn',
+  shipped: '',
+  received: ' plain',
+  cancelled: ' plain'
+}
+
+/** 订单可执行操作：按钮文案与二次确认提示 */
+const ORDER_ACTIONS: Record<string, { label: string; confirm: string; success: string }> = {
+  pay: { label: '立即支付', confirm: '演示环境不产生真实扣款，确认后订单进入「待发货」。', success: '支付成功' },
+  ship: { label: '确认发货', confirm: '确认该订单已经安排发货？', success: '已标记发货' },
+  receive: { label: '确认收货', confirm: '确认已经收到货物？确认后订单完成。', success: '订单已完成' },
+  cancel: { label: '取消订单', confirm: '取消后预占的库存会回补给供应信息，确认取消？', success: '订单已取消' }
+}
+
 /** 修改采购需求时，把原记录转成表单默认值 */
 const demandPreset = (demand: Demand): Record<string, string> => ({
   id: String(demand.id),
@@ -67,6 +84,10 @@ export default function Market() {
   const [activeForm, setActiveForm] = useState<FormConfig | null>(null)
   const [sharedProducts, setSharedProducts] = useState<SharedProduct[]>([])
   const [sharedLoading, setSharedLoading] = useState(true)
+  const [orders, setOrders] = useState<Order[]>([])
+  const [ordersLoading, setOrdersLoading] = useState(true)
+  /** 订单分区：buyer=我采购的，seller=我收到的（作为供货方） */
+  const [orderTab, setOrderTab] = useState<'buyer' | 'seller'>('buyer')
 
   /** 拉取平台其他账号上架的供应信息（只读，用于产销对接） */
   const loadShared = useCallback(async () => {
@@ -81,9 +102,71 @@ export default function Market() {
     }
   }, [])
 
+  /** 拉取与我相关的订单（我采购的 + 我作为供货方收到的） */
+  const loadOrders = useCallback(async () => {
+    if (!can('orders', 'r')) {
+      setOrders([])
+      setOrdersLoading(false)
+      return
+    }
+    try {
+      const rows = await api<Order[]>('/api/orders')
+      setOrders(rows || [])
+    } catch (err) {
+      setOrders([])
+    } finally {
+      setOrdersLoading(false)
+    }
+  }, [])
+
   useDidShow(() => {
     loadShared()
+    loadOrders()
   })
+
+  /**
+   * 立即采购：把当前商品带进下单表单。
+   * 标题与数量上限按这条供应信息的实际库存生成，避免用户填了超量再被后台拒绝。
+   */
+  const openPurchase = (item: Product | SharedProduct) => {
+    if (!guard('orders', 'w')) return
+    const config = forms.order
+    if (!config) return
+    const stock = Number(item.quantity || 0)
+    const unit = item.unit || 'kg'
+    if (!(stock > 0)) {
+      Taro.showToast({ title: '该供应信息已售罄', icon: 'none' })
+      return
+    }
+    setActiveForm({
+      ...config,
+      title: '确认采购',
+      desc: `${item.name} · 可供应 ${stock} ${unit} · ¥${money(item.price)}/${unit}`,
+      fields: config.fields.map((field) => {
+        if (field.name === 'product_id') return { ...field, defaultValue: String(item.id) }
+        if (field.name === 'quantity') return { ...field, defaultValue: '1', placeholder: `不能超过 ${stock} ${unit}` }
+        return field
+      })
+    })
+  }
+
+  /** 订单操作：支付 / 发货 / 确认收货 / 取消（具体能不能做由后端按身份与状态判定） */
+  const handleOrderAction = async (order: Order, action: 'pay' | 'ship' | 'receive' | 'cancel') => {
+    if (!guard('orders', 'w')) return
+    const meta = ORDER_ACTIONS[action]
+    const confirm = await Taro.showModal({ title: meta.label, content: meta.confirm })
+    if (!confirm.confirm) return
+    try {
+      await api(`/api/orders/${order.id}/${action}`, {
+        method: 'POST',
+        data: action === 'cancel' ? { reason: '' } : {},
+        successText: meta.success
+      })
+      await Promise.all([loadOrders(), reload(true)])
+    } catch (err) {
+      Taro.showToast({ title: (err as Error).message, icon: 'none' })
+    }
+  }
 
   const openForm = (key: string, preset?: Record<string, string>) => {
     const config = forms[key]
@@ -100,6 +183,11 @@ export default function Market() {
     )
   }
 
+  /** 订单按当前身份分区展示：我采购的 / 我作为供货方收到的 */
+  const buyerOrders = orders.filter((item) => item.side === 'buyer')
+  const sellerOrders = orders.filter((item) => item.side === 'seller')
+  const visibleOrders = orderTab === 'buyer' ? buyerOrders : sellerOrders
+
   const renderIcon = (icon: string, name: string) => {
     const url = assetUrl(icon)
     if (url) {
@@ -110,16 +198,137 @@ export default function Market() {
 
   return (
     <View className='page'>
-      <BrandBar title='产销对接' sub='真实供应与采购需求' onAdd={() => openForm('product')} />
+      {/* 顶部「＋」= 发布供应，需要供应信息写权限；采购商没有该权限时不显示，避免点了才报错 */}
+      <BrandBar
+        title='产销对接'
+        sub='真实供应与采购需求'
+        onAdd={can('products', 'w') ? () => openForm('product') : undefined}
+      />
 
       <View className='toolbar'>
-        <View className='btn primary' onClick={() => openForm('product')}>
-          ＋ 发布供应
-        </View>
-        <View className='btn secondary' onClick={() => openForm('demand')}>
-          发布采购需求
-        </View>
+        {can('products', 'w') ? (
+          <View className='btn primary' onClick={() => openForm('product')}>
+            ＋ 发布供应
+          </View>
+        ) : null}
+        {can('demands', 'w') ? (
+          <View className={`btn ${can('products', 'w') ? 'secondary' : 'primary'}`} onClick={() => openForm('demand')}>
+            发布采购需求
+          </View>
+        ) : null}
       </View>
+
+      {/* 我的订单：把「下单 → 支付 → 发货 → 收货」的闭环放在最上面，下单后立刻能看到状态与待办 */}
+      {can('orders', 'r') ? (
+        <View>
+          <View className='section-title'>
+            <View>
+              <Text className='section-title-main'>我的订单</Text>
+              <Text className='section-title-sub'>
+                {can('orders', 'w')
+                  ? '下单后可在这里完成支付、发货与确认收货，全流程留痕'
+                  : '当前角色可查看订单，采购下单需要采购权限'}
+              </Text>
+            </View>
+            <Text className='badge plain'>{orders.length} 单</Text>
+          </View>
+
+          <View className='seg-tabs' style='margin-bottom:16px'>
+            <View className={`seg-tab${orderTab === 'buyer' ? ' active' : ''}`} onClick={() => setOrderTab('buyer')}>
+              我采购的（{buyerOrders.length}）
+            </View>
+            <View className={`seg-tab${orderTab === 'seller' ? ' active' : ''}`} onClick={() => setOrderTab('seller')}>
+              我收到的（{sellerOrders.length}）
+            </View>
+          </View>
+
+          {ordersLoading ? (
+            <Text className='meta'>正在加载订单...</Text>
+          ) : visibleOrders.length ? (
+            visibleOrders.map((order) => (
+              <View className='card' key={order.id}>
+                <View className='row-top'>
+                  <View className='product-row'>
+                    <View className='product-icon'>{renderIcon(order.product_icon, order.product_name)}</View>
+                    <View>
+                      <Text className='row-title'>{order.product_name}</Text>
+                      <Text className='row-desc'>
+                        订单号：{order.order_no}
+                        {'\n'}
+                        {order.side === 'buyer'
+                          ? `供货方：${order.seller_name || '其他账号'}`
+                          : `采购方：${order.buyer_name || '其他账号'}`}
+                        {order.base_name ? ` · ${order.base_name}` : ''}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text className={`badge${ORDER_BADGE[order.status] || ''}`}>{order.status_label}</Text>
+                </View>
+
+                <View className='metric-line'>
+                  <View className='metric-line-item'>
+                    <Text className='metric-line-label'>数量</Text>
+                    <Text className='metric-line-value'>
+                      {order.quantity} {order.unit}
+                    </Text>
+                  </View>
+                  <View className='metric-line-item'>
+                    <Text className='metric-line-label'>单价</Text>
+                    <Text className='metric-line-value'>¥{money(order.price)}</Text>
+                  </View>
+                  <View className='metric-line-item'>
+                    <Text className='metric-line-label'>总额</Text>
+                    <Text className='metric-line-value'>¥{money(order.amount)}</Text>
+                  </View>
+                </View>
+
+                <Text className='meta'>
+                  {order.pay_method_label}
+                  {order.buyer_contact ? ` · 联系：${order.buyer_contact}` : ''}
+                  {'\n'}收货地址：{order.address || '未填写'}
+                  {order.remark ? `\n备注：${order.remark}` : ''}
+                  {'\n'}下单时间：{readableTime(order.created_at)}
+                </Text>
+
+                {/* 操作按钮由后端按「当前身份 + 订单状态」下发，避免出现点了必然失败的按钮 */}
+                {order.actions.pay || order.actions.ship || order.actions.receive || order.actions.cancel ? (
+                  <View className='toolbar' style='margin-bottom:0'>
+                    {order.actions.pay ? (
+                      <View className='btn primary' onClick={() => handleOrderAction(order, 'pay')}>
+                        {ORDER_ACTIONS.pay.label}
+                      </View>
+                    ) : null}
+                    {order.actions.ship ? (
+                      <View className='btn primary' onClick={() => handleOrderAction(order, 'ship')}>
+                        {ORDER_ACTIONS.ship.label}
+                      </View>
+                    ) : null}
+                    {order.actions.receive ? (
+                      <View className='btn primary' onClick={() => handleOrderAction(order, 'receive')}>
+                        {ORDER_ACTIONS.receive.label}
+                      </View>
+                    ) : null}
+                    {order.actions.cancel ? (
+                      <View className='btn secondary' onClick={() => handleOrderAction(order, 'cancel')}>
+                        {ORDER_ACTIONS.cancel.label}
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
+            ))
+          ) : (
+            <EmptyState
+              title={orderTab === 'buyer' ? '暂无采购订单' : '暂无销售订单'}
+              text={
+                orderTab === 'buyer'
+                  ? '在下方「其他供应商的供应信息」里点「立即采购」即可下单。'
+                  : '别人采购你的供应信息后，订单会出现在这里。'
+              }
+            />
+          )}
+        </View>
+      ) : null}
 
       {loading || error ? (
         <StateHint loading={loading} error={error} onRetry={reload} />
@@ -272,6 +481,14 @@ export default function Market() {
                   </View>
                 </View>
                 <Text className='meta'>{item.description || '暂无说明'}</Text>
+                {/* 有采购权限的账号可以直接下单，走完整交易流程（不能采购自己发布的，后端会拦截） */}
+                {can('orders', 'w') ? (
+                  <View className='toolbar' style='margin-bottom:0'>
+                    <View className='btn primary' onClick={() => openPurchase(item)}>
+                      立即采购
+                    </View>
+                  </View>
+                ) : null}
               </View>
             ))
           ) : (
@@ -283,7 +500,15 @@ export default function Market() {
         </View>
       )}
 
-      <FormSheet visible={!!activeForm} config={activeForm} onClose={() => setActiveForm(null)} onSaved={reload} />
+      <FormSheet
+        visible={!!activeForm}
+        config={activeForm}
+        onClose={() => setActiveForm(null)}
+        onSaved={async () => {
+          // 下单/发布后同时刷新业务数据与订单列表，库存与订单状态立刻同步
+          await Promise.all([loadOrders(), reload(true)])
+        }}
+      />
     </View>
   )
 }
