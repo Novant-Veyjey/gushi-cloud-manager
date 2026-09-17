@@ -774,10 +774,16 @@ textarea,
 .field-password-toggle {
   position: absolute;
   right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+  /**
+   * 定位刻意不用 transform：
+   * 之前是 top: 50% + translateY(-50%)，一旦某端（浏览器/小程序）忽略 transform，
+   * 或与 :active 的 scale 相互覆盖，按钮就会整体下沉、图标看起来「歪斜」。
+   * 现在用 top/bottom 同时贴边自适应高度（输入框高 84，上下各留 4 → 按钮高 76），
+   * 位置完全由布局决定，不依赖任何变换。
+   */
+  top: 4px;
+  bottom: 4px;
   width: 100px;
-  height: 76px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -807,9 +813,9 @@ textarea,
   background: #cfe5d4;
 }
 
-/* 按下反馈：轻微缩小，明确告知点击已生效 */
+/* 按下反馈：轻微缩小，明确告知点击已生效（按钮不再依赖 translateY，这里只做缩放） */
 .field-password-toggle:active {
-  transform: translateY(-50%) scale(0.92);
+  transform: scale(0.94);
 }
 
 /* 键盘聚焦：清晰的焦点环，方便纯键盘 / 无障碍操作 */
@@ -818,8 +824,17 @@ textarea,
 }
 
 .field-password-eye {
+  /**
+   * 图标自身绝对居中：不再依赖父级 flex。
+   * Taro H5 把 Image 渲染成自定义元素，各浏览器对自定义元素 + flex 的处理不完全一致，
+   * 用 left/top 50% + translate(-50%, -50%) 定位，水平垂直都严格居中，且不含任何旋转。
+   */
+  position: absolute;
+  left: 50%;
+  top: 50%;
   width: 52px;
   height: 52px;
+  transform: translate(-50%, -50%);
   /* 睁眼 / 闭眼切换时轻微淡入，避免生硬跳变 */
   transition: opacity 0.15s ease;
 }
