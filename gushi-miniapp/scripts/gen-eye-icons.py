@@ -4,9 +4,10 @@
 - eye-open.png   密码以明文显示时：睁眼（椭圆眼眶 + 瞳孔）
 - eye-closed.png 密码隐藏时：闭眼（下弯眼睑 + 睫毛，无瞳孔）
 
-关键：绘制完成后会把图形内容**裁剪并居中**贴到正方形画布上。
-早期版本直接使用绘制坐标，图形整体偏向画布下方，
-在手机上看就是「图标歪斜、没有垂直居中」。
+输出为**紧凑图**：先按内容裁剪，只留 3% 的均匀白边，再等比缩放到宽度 96。
+这样图片里几乎不含透明留白，可见图形就是图片本身——
+避免「图形只占画布一小块」在各种缩放/适配下看起来偏斜或偏小。
+（早期版本图形落在画布偏下位置，手机上就是「图标歪斜」。）
 
 用法（需要 Pillow）：python scripts/gen-eye-icons.py
 """
@@ -18,8 +19,8 @@ os.makedirs(OUT, exist_ok=True)
 
 S = 4                          # 超采样倍数，缩小后边缘平滑
 SIZE = 64 * S                  # 绘制用画布边长（256）
-OUTPUT = 96                    # 输出边长：图标显示约 26px 实际，96 足够高分屏清晰
-MARGIN = 0.06                  # 内容四周留白比例，避免贴边
+OUTPUT_W = 96                  # 输出宽度；高度按内容比例，不强制正方形
+PAD_RATIO = 0.03               # 均匀小白边，避免抗锯齿边缘被裁掉
 W = 18                         # 线宽（绘制坐标系）
 GREEN = (39, 132, 90, 255)     # #27845a，与主题 --g700 一致
 
@@ -40,30 +41,22 @@ def draw_eye(closed: bool) -> Image.Image:
     return img
 
 
-def center_on_canvas(img: Image.Image, size: int, margin: float = MARGIN) -> Image.Image:
-    """把非透明内容裁出来再居中贴进正方形画布。
-
-    两个图标都以画布中心为视觉中心，且都按最长边等比缩放，
-    所以「睁眼 / 闭眼」切换时大小一致、不会跳动。
-    """
+def to_compact(img: Image.Image) -> Image.Image:
+    """按内容裁剪 → 加均匀白边 → 等比缩放到固定宽度。"""
     bbox = img.getbbox()
-    canvas = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-    if not bbox:
-        return canvas
-    content = img.crop(bbox)
-    limit = size * (1 - 2 * margin)
-    ratio = min(limit / content.width, limit / content.height)
-    target = (max(1, round(content.width * ratio)), max(1, round(content.height * ratio)))
-    content = content.resize(target, Image.LANCZOS)
-    canvas.paste(content, ((size - target[0]) // 2, (size - target[1]) // 2), content)
-    return canvas
+    content = img.crop(bbox) if bbox else img
+    pad = max(2, round(max(content.size) * PAD_RATIO))
+    canvas = Image.new('RGBA', (content.width + pad * 2, content.height + pad * 2), (0, 0, 0, 0))
+    canvas.paste(content, (pad, pad), content)
+    height = max(1, round(canvas.height * OUTPUT_W / canvas.width))
+    return canvas.resize((OUTPUT_W, height), Image.LANCZOS)
 
 
 for name, closed in (('eye-open', False), ('eye-closed', True)):
-    icon = center_on_canvas(draw_eye(closed), OUTPUT)
+    icon = to_compact(draw_eye(closed))
     target = os.path.join(OUT, f'{name}.png')
     icon.save(target, 'PNG')
     box = icon.getbbox()
-    print(f'生成 {os.path.basename(target)}  {icon.size}  '
-          f'内容框={box}  左右留白={box[0]}/{OUTPUT - box[2]}  上下留白={box[1]}/{OUTPUT - box[3]}  '
+    print(f'生成 {os.path.basename(target)}  {icon.size}  内容框={box}  '
+          f'上下留白={box[1]}/{icon.height - box[3]}  左右留白={box[0]}/{icon.width - box[2]}  '
           f'{os.path.getsize(target)} bytes')

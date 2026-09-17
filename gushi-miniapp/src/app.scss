@@ -63,6 +63,30 @@ textarea,
   text-align: left;
 }
 
+/**
+ * 修复 Taro H5 图片的居中偏移（也正是密码显隐图标「偏右 / 歪斜」的真凶）：
+ * mode=aspectFit 时 Taro 给内部 img 设的是 position:absolute + left:50% + top:50% +
+ * transform: translateY(-50%)，唯独漏了 translateX(-50%)，图片因此整体右移半个自身宽度。
+ * 这里统一改成「填满容器 + object-fit 居中」，不再依赖 Taro 的定位，
+ * 在任何容器里都严格居中且不变形（aspectFit 按比例包含，aspectFill 裁剪填满）。
+ */
+.taro-img__mode-aspectfit,
+.taro-img__mode-aspectfill {
+  left: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  transform: none !important;
+}
+
+.taro-img__mode-aspectfit {
+  object-fit: contain !important;
+}
+
+.taro-img__mode-aspectfill {
+  object-fit: cover !important;
+}
+
 /* ---------- 二级页面左上角返回入口 ---------- */
 .back-row {
   display: flex;
@@ -832,8 +856,13 @@ textarea,
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 52px;
-  height: 52px;
+  /**
+   * 尺寸按图标的真实比例给（图片是紧凑图，约 96×52，没有透明留白）：
+   * 宽 64 / 高 36（设计稿）≈ 1.78 的比例，两个状态（睁眼 96×50、闭眼 96×53）
+   * 都会按比例适配并居中，切换时不跳动。
+   */
+  width: 64px;
+  height: 36px;
   transform: translate(-50%, -50%);
   /* 睁眼 / 闭眼切换时轻微淡入，避免生硬跳变 */
   transition: opacity 0.15s ease;
