@@ -29,7 +29,7 @@ JWT_SECRET=                                # 留空则自动生成到 server/dat
 
 - 业务接口都需要 `Authorization: Bearer <JWT>`，未登录 401；JWT 含 `sub/username/role/jti/exp`，`jti` 记在 `sessions` 表，**退出后 token 立即失效**，密钥持久化所以重启不掉线。
 - 数据按 `user_id` 隔离；公开接口只有 `/api/health` 与 `/api/trace/:code`（消费者扫码溯源）。
-- 角色能力：菇农（基地/批次/设备/环境/预警/溯源/任务读写）、基地管理员（除账号管理外全部）、专家（问答读写，其余只读）、采购商（采购需求读写、供应只读、无设备权限）、政府机构（全部只读+统计）、平台管理员（全部+账号管理）。
+- 角色能力：菇农（基地/批次/设备/环境/预警/溯源/任务读写，订单读写）、基地管理员（除账号管理外全部，订单读写）、专家（问答读写，其余只读，订单只读）、采购商（采购需求读写、订单读写、供应只读、无设备权限）、政府机构（全部只读+统计）、平台管理员（全部+账号管理）。
 - **自助注册一律创建普通菇农**：客户端传 `role` 不生效（`register()` 固定使用 `SELF_REGISTER_ROLE`）。专家、采购商、基地管理员等角色只能由平台管理员通过 `PUT /api/admin/users/:id/role` 分配。
 - **提问与回复分开授权**：拥有 `questions` 写权限只代表能**提问**（`POST /api/questions` 保存时会自动调用 AI 作答）；**人工专家回复**（`PUT /api/questions/:id` 带 `answer`）只有专家与平台管理员可执行，其它角色返回 `403 当前角色（…）不能代替专家回复问题`，规则见 `auth.canAnswerQuestion`。
 - 越权返回 403 并带明确提示。
@@ -112,6 +112,13 @@ GET/POST/PUT/DELETE /api/trace-events    溯源事件
 GET/POST/PUT/DELETE /api/questions       问答记录
 GET/POST/PUT/DELETE /api/products        供应信息
 GET/POST/PUT/DELETE /api/demands         采购需求
+GET  /api/orders                 订单列表（买卖双方 + 管理员）
+POST /api/orders                 下单（校验可售期与库存，条件更新扣库存）
+GET  /api/orders/:id             订单详情
+POST /api/orders/:id/pay         买家支付
+POST /api/orders/:id/ship        卖家发货
+POST /api/orders/:id/receive     买家确认收货
+POST /api/orders/:id/cancel      取消订单（发货前双方均可，库存回补）
 GET/POST/PUT/DELETE /api/tasks           生产任务
 GET/POST/PUT/DELETE /api/partners        合作方
 POST /api/uploads                图片上传（按账号分目录）

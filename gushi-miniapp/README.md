@@ -56,11 +56,11 @@ JWT 登录态本地缓存 7 天，退出后服务端立即撤销。角色由**�
 
 | 角色 | 可写模块 |
 |---|---|
-| 菇农 `farmer` | 基地 / 批次 / 设备 / 环境 / 预警 / 溯源 / 任务（供应、采购需求、合作方只读） |
-| 基地管理员 `base` | 除账号管理外全部 |
-| 专家 `expert` | 只有问答可写，其余只读 |
-| 采购商 `buyer` | 采购需求、问答 |
-| 政府机构 `government` | 全部只读 + 统计 |
+| 菇农 `farmer` | 基地 / 批次 / 设备 / 环境 / 预警 / 溯源 / 任务 / 订单（供应、采购需求、合作方只读） |
+| 基地管理员 `base` | 除账号管理外全部（含订单） |
+| 专家 `expert` | 只有问答可写，其余只读（订单只读） |
+| 采购商 `buyer` | 采购需求、问答、**订单（下单 / 支付 / 确认收货）** |
+| 政府机构 `government` | 全部只读 + 统计（订单只读） |
 | 平台管理员 `admin` | 全部 + 账号管理 |
 
 两点细节：
@@ -84,8 +84,8 @@ gushi-miniapp/
     ├── assets/tabbar/             # TabBar 图标（home / production / monitor / trace / market）
     ├── config/                    # BASE_URL/阈值等常量、录入表单配置与首页「＋」菜单
     ├── types/                     # 数据模型与账号模型
-    ├── utils/                     # request（携带 JWT、可配超时、401 跳登录）、auth、storage、permission、format
-    ├── hooks/useCloudData.ts      # 并发拉取本账号数据（支持静默刷新）
+    ├── utils/                     # request（携带 JWT、可配超时、401 跳登录）、auth、storage、permission、format、tabbar（弹层期间收起 TabBar）
+    ├── hooks/useCloudData.ts      # 并发拉取本账号数据（支持静默刷新，无权限模块自动跳过）
     ├── components/                # BrandBar / FormSheet / EmptyState / StateHint
     └── pages/                     # login、home、production、monitor、trace、market、expert(AI 问答)
 ```
@@ -127,7 +127,7 @@ npm run type-check     # TypeScript 类型检查
 
 ## 七、功能与需求对应
 
-基地管理、批次台账、环境自动上报与阈值预警、AI 问答、质量溯源（扫码/编号）、供应与采购需求、任务管理（AI 优先级建议）、统计汇总、JWT+RBAC 权限、微信小程序——分别对应需求文档 FR-01 ~ FR-14，接口均复用后台 REST API。
+基地管理、批次台账、环境自动上报与阈值预警、AI 问答、质量溯源（扫码/编号）、供应与采购需求、**市场交易（立即采购、下单、支付、发货、确认收货、我的订单）**、任务管理（AI 优先级建议）、统计汇总、JWT+RBAC 权限、微信小程序——接口均复用后台 REST API。
 
 ## 八、数据真实性原则
 
@@ -139,3 +139,6 @@ npm run type-check     # TypeScript 类型检查
 2. **主题变量要同时挂 `page` 与 `:root`**：H5 没有 `page` 元素，只写 `page` 会让 H5 里所有 `var(--g*)` 失效（表现为按钮白字白底）。
 3. **新增 TabBar 图标**：图标放 `src/assets/tabbar/`，`app.config.ts` 里用 `assets/tabbar/xxx.png` 相对路径；改完跑一次 `npm run build:h5` 让 `copy-tabbar.js` 补齐产物。
 4. **弹层加长内容**：把滚动部分放进 `.sheet-body`，底部按钮留在 `.sheet-actions`，否则内容会溢出屏幕、按钮点不到。
+5. **不要在页面里无条件 `Promise.all` 拉全部接口**：采购商、专家、政府角色对设备 / 环境 / 预警 / 任务没有读权限，403 会让整个 `Promise.all` 失败，页面表现为「后台连接失败、看不到任何内容」。`useCloudData` 已用 `fetchIfAllowed` 按 `can()` 跳过无权限模块——新增接口时请沿用同一写法。
+6. **Taro 的 `View` 绑 `onKeyDown` 不生效**：Taro 只把触摸 / 点击类事件透传到真实 DOM，键盘事件需要在 `document` 上监听并判断 `document.activeElement`（参考登录页密码显隐按钮）。
+7. **弹层底部被底部 TabBar 盖住**：H5 的 TabBar 是固定层且层级高于页面内弹层，弹层打开时用 `utils/tabbar.ts` 的 `useHideTabBarWhen(visible)` 收起它，关闭后自动恢复。
