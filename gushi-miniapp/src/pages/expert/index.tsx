@@ -10,7 +10,8 @@ import { buildFormConfigs, type FormConfig } from '@/config/forms'
 import { baseNameOf, useCloudData } from '@/hooks/useCloudData'
 import { api } from '@/utils/request'
 import { readableTime } from '@/utils/format'
-import { FORM_MODULE, guard } from '@/utils/permission'
+import { FORM_MODULE, canAnswerQuestion, currentRole, guard } from '@/utils/permission'
+import { roleLabel } from '@/utils/auth'
 import type { AiAnswer, AiStatus, ExpertQuestion } from '@/types'
 
 const QUICK_QUESTIONS = [
@@ -200,7 +201,11 @@ export default function Expert() {
           <View className='section-title'>
             <View>
               <Text className='section-title-main'>问答记录</Text>
-              <Text className='section-title-sub'>共 {questions.length} 条，每次提问 AI 都会立即作答并存档</Text>
+              <Text className='section-title-sub'>
+                {canAnswerQuestion()
+                  ? `共 ${questions.length} 条 · 你是${roleLabel(currentRole())}，可查看全部账号的提问并人工回复`
+                  : `共 ${questions.length} 条 · 仅显示本账号的提问，其他账号看不到你提的问题`}
+              </Text>
             </View>
           </View>
 
@@ -211,6 +216,8 @@ export default function Expert() {
                   <View>
                     <Text className='row-title'>{item.title}</Text>
                     <Text className='row-desc'>
+                      {/* 专家 / 管理员会看到全部账号的提问，这里标出提问者，避免分不清是谁提的 */}
+                      {item.is_mine === false && item.owner_name ? `提问者：${item.owner_name} · ` : ''}
                       {baseNameOf(data.bases, item.base_id)} · {readableTime(item.created_at)}
                     </Text>
                   </View>

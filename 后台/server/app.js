@@ -155,7 +155,24 @@ function makeCrudRouter(name, config) {
         }
       }
       const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
-      const rows = db.prepare(`SELECT * FROM ${table} ${clause} ORDER BY ${config.order} LIMIT @limit`).all({ ...params, limit });
+      let rows = db.prepare(`SELECT * FROM ${table} ${clause} ORDER BY ${config.order} LIMIT @limit`).all({ ...params, limit });
+      /**
+       * 提问列表：专家 / 平台管理员会看到全部账号的提问（人工回复需要），
+       * 但表里只有 user_id，界面上分不清哪条是谁提的。这里补上提问者账号与称呼，
+       * 普通角色看不到别人的数据，自然也不会带上这个字段。
+       */
+      if (seeAll && name === 'questions' && rows.length) {
+        const owners = new Map(db.prepare('SELECT id, username, display_name FROM users').all().map((u) => [u.id, u]));
+        rows = rows.map((row) => {
+          const owner = owners.get(row.user_id);
+          return {
+            ...row,
+            owner_name: owner ? text(owner.display_name) || text(owner.username) : '',
+            owner_username: owner ? text(owner.username) : '',
+            is_mine: row.user_id === req.user.id
+          };
+        });
+      }
       ok(res, rows);
     } catch (error) {
       fail(res, 400, error.message);

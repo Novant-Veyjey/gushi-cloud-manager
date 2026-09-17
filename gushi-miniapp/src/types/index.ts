@@ -113,6 +113,13 @@ export interface ExpertQuestion {
   answer_source?: 'ai' | 'rule' | 'expert' | string
   ai_model?: string
   base_name?: string
+  /**
+   * 仅专家 / 平台管理员会拿到这三个字段：他们能看到全部账号的提问以便人工回复，
+   * 需要知道哪条是谁提的。普通角色只返回本账号数据，因此不会有这些字段。
+   */
+  owner_name?: string
+  owner_username?: string
+  is_mine?: boolean
 }
 
 /** 设备历史曲线（等长分桶聚合） */
