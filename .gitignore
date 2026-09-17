@@ -1,6 +1,9 @@
 # ---------- 依赖 ----------
 node_modules/
 **/node_modules/
+# SWC 编译器的下载缓存（首次构建自动生成，不是项目文件）
+gushi-miniapp/.swc/
+**/.swc/
 
 # ---------- 构建产物 ----------
 gushi-miniapp/dist/
