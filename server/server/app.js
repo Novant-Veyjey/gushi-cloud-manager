@@ -731,6 +731,12 @@ app.post('/api/orders/:id/cancel', requireAuth, requirePermission('orders', 'w')
 
 for (const [name, config] of Object.entries(configs)) app.use(`/api/${name}`, makeCrudRouter(name, config));
 
+// 本地开发时直接复用仓库根目录的品牌资源，部署目录则由 scripts/prep-deploy.js 复制到 public/assets。
+const SHARED_ASSETS = path.join(__dirname, '..', '..', 'assets');
+if (fs.existsSync(SHARED_ASSETS)) {
+  app.use('/assets', express.static(SHARED_ASSETS));
+}
+
 /**
  * 一体部署：设置环境变量 H5_DIST 时，把小程序浏览器版产物直接挂到根路径（含 SPA 兜底）。
  * 这样静态页面与接口共用同一个端口，云端部署只需要暴露一个端口即可访问完整应用。

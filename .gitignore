@@ -2,21 +2,23 @@
 node_modules/
 **/node_modules/
 # SWC 编译器的下载缓存（首次构建自动生成，不是项目文件）
-gushi-miniapp/.swc/
+miniapp/.swc/
 **/.swc/
 
 # ---------- 构建产物 ----------
-gushi-miniapp/dist/
-gushi-miniapp/dist-h5/
+miniapp/dist/
+miniapp/dist-h5/
 dist/
 dist-h5/
 # Taro copy 插件会把 TabBar 图标复制到包根目录，属构建产物（源文件在 src/assets/tabbar/）
-/gushi-miniapp/assets/
+/miniapp/assets/
+# 共享品牌资源在小程序构建前自动同步，唯一源文件是 /assets/logo.jpg
+/miniapp/src/assets/logo.jpg
 
 # ---------- 运行期数据（数据库、JWT 密钥、备份、上传图片）----------
-# 数据库可通过 `cd 后台 && npm run seed:demo` 重新生成演示数据
-后台/server/data/
-后台/public/uploads/
+# 数据库可通过 `npm run seed:demo` 重新生成演示数据
+server/server/data/
+server/public/uploads/
 **/server/data/
 **/public/uploads/
 
@@ -34,6 +36,8 @@ _*.js
 _*.py
 # 生成 Word 版介绍书时的临时依赖目录
 /_docxtools/
+# Word 版介绍书是本地生成的交付物，源文件是 docs/功能说明.md
+/docs/generated/
 *.log
 *.out.log
 *.err.log
@@ -43,7 +47,7 @@ Thumbs.db
 *.tmp
 
 # ---------- 部署产物与 IDE 状态 ----------
-# _deploy 是 Cloud Studio 部署用的工作目录（源码与数据在 后台/ 和 gushi-miniapp/ 中）
+# _deploy 是 Cloud Studio 部署用的工作目录（源码与数据在 server/ 和 miniapp/ 中）
 /_deploy/
 # CodeBuddy IDE 的本地状态与集成数据
 .codebuddy/

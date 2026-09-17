@@ -49,5 +49,5 @@ http
   })
   .listen(port, () => {
     console.log(`菇事云管家浏览器预览：http://localhost:${port}`);
-    console.log('请确保后台已启动（后台目录执行 npm start，地址 http://localhost:3000）');
+    console.log('请确保服务端已启动（在 server/ 目录执行 npm start，地址 http://localhost:3000）');
   });

@@ -1,18 +1,18 @@
 # 菇事云管家 · 微信小程序
 
-Taro 4 + React 18 + TypeScript，复用「后台」的 Express + better-sqlite3 接口。五个 Tab：首页、生产、监测、溯源、市场，另含 AI 问答页与登录注册。
+Taro 4 + React 18 + TypeScript，复用 `server/` 的 Express + better-sqlite3 接口。五个 Tab：首页、生产、监测、溯源、市场，另含 AI 问答页与登录注册。
 
 ## 一、怎么查看
 
 **微信开发者工具（正式）**
 
 ```bash
-cd 后台 && npm install && npm start      # 必须先启动后台
-cd gushi-miniapp && npm install
+cd server && npm install && npm start   # 必须先启动服务端
+cd miniapp && npm install
 npm run dev:weapp                        # 或 npm run build:weapp 只编译一次
 ```
 
-导入项目选 `gushi-miniapp` 目录 → AppID 用测试号 → 详情/本地设置勾选 **不校验合法域名** → 编译。
+导入项目选 `miniapp` 目录 → AppID 用测试号 → 详情/本地设置勾选 **不校验合法域名** → 编译。
 
 **浏览器预览（不用开发者工具）**
 
@@ -20,7 +20,7 @@ npm run dev:weapp                        # 或 npm run build:weapp 只编译一�
 npm run build:h5 && npm run preview:h5    # http://localhost:5173
 ```
 
-Windows 上也可直接双击 `启动浏览器预览.cmd`：首次会自动构建，然后启动预览并打开浏览器。
+Windows 上也可直接双击 `scripts/windows/start-browser-preview.cmd`：首次会自动构建，然后启动预览并打开浏览器。
 
 扫码、图片上传等小程序专有能力需在开发者工具里体验。
 
@@ -71,7 +71,7 @@ JWT 登录态本地缓存 7 天，退出后服务端立即撤销。角色由**�
 ## 三、目录结构
 
 ```
-gushi-miniapp/
+miniapp/
 ├── config/                        # Taro 编译配置（@ → src 别名、小程序/H5 输出目录、defineConstants、TabBar 图标复制）
 ├── scripts/
 │   ├── serve-h5.js                # 浏览器预览用的零依赖静态服务器

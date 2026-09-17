@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-cd /d "%~dp0"
+cd /d "%~dp0..\..\server"
 title gushi-cloud-backend-3000
 
 echo ============================================

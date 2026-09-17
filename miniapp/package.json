@@ -10,9 +10,14 @@
     "framework": "react"
   },
   "scripts": {
+    "sync:assets": "node scripts/sync-assets.js",
+    "prebuild:weapp": "npm run sync:assets",
     "build:weapp": "taro build --type weapp && node scripts/copy-tabbar.js",
+    "predev:weapp": "npm run sync:assets",
     "dev:weapp": "npm run build:weapp -- --watch",
+    "prebuild:h5": "npm run sync:assets",
     "build:h5": "cross-env TARO_OUTPUT_ROOT=dist-h5 taro build --type h5 && node scripts/copy-tabbar.js",
+    "predev:h5": "npm run sync:assets",
     "dev:h5": "cross-env TARO_OUTPUT_ROOT=dist-h5 taro build --type h5 --watch",
     "preview:h5": "node scripts/serve-h5.js",
     "type-check": "tsc --noEmit"

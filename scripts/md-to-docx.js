@@ -1,7 +1,7 @@
 /**
- * 把《小程序介绍书.md》转成 Word 版《菇事云管家-功能介绍书.docx》。
- * 这样文档内容永远与 Markdown 保持一致，改完 md 重新跑一次即可。
- * 用法：node _docxtools/gen.js
+ * 把 docs/功能说明.md 转成可打印的 Word 版介绍书。
+ * Markdown 是唯一源文件，生成结果放在 docs/generated/，不提交到 Git。
+ * 用法：npm install --no-save docx && node scripts/md-to-docx.js
  */
 const fs = require('fs');
 const path = require('path');
@@ -11,8 +11,9 @@ const {
 } = require('docx');
 
 const ROOT = path.join(__dirname, '..');
-const SRC = path.join(ROOT, '小程序介绍书.md');
-const OUT = path.join(ROOT, '菇事云管家-功能介绍书.docx');
+const SRC = path.join(ROOT, 'docs', '功能说明.md');
+const OUT_DIR = path.join(ROOT, 'docs', 'generated');
+const OUT = path.join(OUT_DIR, '菇事云管家-功能介绍书.docx');
 
 // US Letter（12240×15840 DXA）左右各 1 英寸边距后的正文宽度
 const CONTENT_WIDTH = 9360;
@@ -204,6 +205,7 @@ const doc = new Document({
 });
 
 Packer.toBuffer(doc).then((buffer) => {
+  fs.mkdirSync(OUT_DIR, { recursive: true });
   fs.writeFileSync(OUT, buffer);
   console.log('已生成 ' + path.basename(OUT) + '，' + (buffer.length / 1024).toFixed(1) + ' KB');
 });

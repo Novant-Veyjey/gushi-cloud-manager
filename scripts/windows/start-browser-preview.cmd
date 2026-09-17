@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-cd /d "%~dp0"
+cd /d "%~dp0..\..\miniapp"
 
 echo ============================================
 echo  Gu Shi Cloud Manager - Browser Preview
@@ -18,7 +18,7 @@ echo.
 echo [2/3] Starting preview server on http://localhost:5173
 echo       Keep this window open. Close it to stop the preview.
 echo.
-start "gushi-preview-5173" cmd /k "cd /d "%~dp0" && npm run preview:h5"
+start "gushi-preview-5173" cmd /k "cd /d "%~dp0..\..\miniapp" && npm run preview:h5"
 
 timeout /t 4 /nobreak >nul
 
