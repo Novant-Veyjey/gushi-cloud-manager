@@ -742,6 +742,8 @@ if (HAS_H5) {
   app.use(express.static(H5_DIST));
 }
 
+// 一体部署时根路径给小程序浏览器版，网页版管理端从 /admin/ 进入
+app.use('/admin', express.static(path.join(__dirname, '..', 'public')));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
