@@ -12,12 +12,18 @@ const DEMO_PASSWORD = 'demo123456';
 
 function ensureDemoUser() {
   let user = db.prepare('SELECT * FROM users WHERE username = ?').get(DEMO_USERNAME);
-  if (user) return user;
-  const { hash, salt } = hashPassword(DEMO_PASSWORD);
-  const result = db
-    .prepare('INSERT INTO users (username, display_name, role, password_hash, password_salt) VALUES (?, ?, ?, ?, ?)')
-    .run(DEMO_USERNAME, '演示账号', 'farmer', hash, salt);
-  user = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid);
+  if (!user) {
+    // 功能书附录：demo / demo123456 为平台管理员演示账号
+    const { hash, salt } = hashPassword(DEMO_PASSWORD);
+    const result = db
+      .prepare('INSERT INTO users (username, display_name, role, password_hash, password_salt) VALUES (?, ?, ?, ?, ?)')
+      .run(DEMO_USERNAME, '演示账号', 'admin', hash, salt);
+    user = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid);
+  } else if (user.role !== 'admin') {
+    // 老版本把 demo 建为菇农：幂等提升为平台管理员，不重置密码、不影响其已有数据
+    db.prepare("UPDATE users SET role = 'admin', updated_at = ? WHERE id = ?").run(new Date().toISOString(), user.id);
+    user = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
+  }
   return user;
 }
 

@@ -217,8 +217,14 @@ function authenticateDevice(code, secret) {
     error.status = 401;
     throw error;
   }
+  const provided = text(secret);
   const device = deviceByCode(code);
-  if (!device || device.secret !== text(secret)) {
+  // 密钥使用常量时间比较，避免通过响应耗时差异推测密钥
+  const secretOk = device
+    ? provided.length === device.secret.length &&
+      crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(device.secret))
+    : false;
+  if (!device || !secretOk) {
     const error = new Error('设备编号或密钥不正确');
     error.status = 401;
     throw error;

@@ -1,0 +1,64 @@
+# 菇事云管家 · 生产部署
+#
+# 在 _deploy/ 目录执行（该目录由 node scripts/prep-deploy.js 组装）：
+#   mkdir -p data uploads && chown -R 1000:1000 data uploads   # 容器内以 node(uid=1000) 运行
+#   docker compose up -d --build
+#
+# 三个容器共同保证"无人值守"：
+#   app    —— 业务服务，restart: unless-stopped 保证崩溃/宿主机重启后自动拉起
+#   caddy  —— 反代 + 自动申请/续期 HTTPS 证书，证书存在命名卷里
+#   备份    —— 不放在 compose 里，用宿主机 cron 调 `docker compose exec app node server/backup.js`
+#             （复用项目已有的 WAL 安全备份逻辑，备份文件落在 ./data/backups/）
+
+services:
+  app:
+    build: .
+    image: gushi-cloud-manager:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: "3000"
+      H5_DIST: dist-h5
+      NODE_ENV: production
+    volumes:
+      - ./data:/app/server/data        # SQLite 数据库、jwt.secret、backups
+      - ./uploads:/app/public/uploads  # 用户上传的图片
+    expose:
+      - "3000"
+    # 不用域名、想直接 http://服务器IP:3000 访问时，改成打开下面两行并删掉 caddy 服务
+    # ports:
+    #   - "3000:3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      # 在 .env 里写 DOMAIN=gushi.example.com 即自动签发 HTTPS 证书；
+      # 不配域名时用 :80，直接用 http://服务器IP 访问。
+      DOMAIN: ${DOMAIN:-:80}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data       # 必须持久化：证书丢了会反复重签，触发 Let's Encrypt 限流
+      - caddy_config:/config
+
+  # 可选：让"健康检查失败"也能自愈。Docker 引擎本身只按进程退出码重启，
+  # 进程活着但接口 500 / 卡死时不会重启，靠这个容器兜底。
+  # 需要的话取消注释，并给 app 加标签：labels: [autoheal=true]
+  # autoheal:
+  #   image: willfarrell/autoheal:latest
+  #   restart: unless-stopped
+  #   environment:
+  #     AUTOHEAL_CONTAINER_LABEL: autoheal
+  #     AUTOHEAL_INTERVAL: "30"
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  caddy_data:
+  caddy_config:

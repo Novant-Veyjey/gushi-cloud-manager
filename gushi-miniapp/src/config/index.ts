@@ -55,3 +55,10 @@ export const PRIORITY_LABELS: Record<string, string> = {
   medium: '中',
   low: '低'
 }
+
+/** 批次状态文案，与后台 batches.status 默认值保持一致 */
+export const BATCH_STATUS_LABELS: Record<string, string> = {
+  active: '进行中',
+  completed: '已完成',
+  archived: '已归档'
+}

@@ -25,8 +25,14 @@ function evaluateReadingAlerts(reading, thresholds = {}) {
   const insert = db.prepare(
     `INSERT INTO alerts (base_id, reading_id, alert_type, level, message, status, user_id) VALUES (?, ?, ?, ?, ?, 'open', ?)`
   );
+  // 设备每 30 秒上报一次，异常不解除时同类型预警会被刷爆。
+  // 同一基地存在未处理（open）的同类型预警时先去重，处理后再次超阈值才会重新预警。
+  const findOpen = db.prepare(
+    `SELECT id FROM alerts WHERE status = 'open' AND COALESCE(base_id, 0) = COALESCE(?, 0) AND alert_type = ? LIMIT 1`
+  );
   const created = [];
   for (const alert of alerts) {
+    if (findOpen.get(reading.base_id || null, alert.type)) continue;
     const result = insert.run(reading.base_id || null, reading.id, alert.type, alert.level, alert.message, reading.user_id || null);
     created.push({
       id: Number(result.lastInsertRowid),

@@ -41,7 +41,8 @@ export const REGISTER_ROLE_OPTIONS: Array<{ label: string; value: string; desc: 
 
 /**
  * 注册新账号，成功后后台直接返回登录 token。
- * 注意：后台固定把新账号建为普通菇农，传 role 也不会生效（专家等角色由平台管理员分配）。
+ * role 仅限 REGISTER_ROLE_OPTIONS 中的菇农 / 基地管理员 / 采购商；
+ * 传专家、政府或管理员会被后台忽略并回落为菇农，这些职务只能由平台管理员分配。
  */
 export async function register(payload: {
   username: string

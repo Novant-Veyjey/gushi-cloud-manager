@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react'
-import { Picker, Text, Textarea, View } from '@tarojs/components'
+import { Input, Picker, Text, Textarea, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 
 import BrandBar from '@/components/BrandBar'
 import EmptyState from '@/components/EmptyState'
 import FormSheet from '@/components/FormSheet'
 import StateHint from '@/components/StateHint'
+import { QUESTION_CATEGORIES } from '@/config'
 import { buildFormConfigs, type FormConfig } from '@/config/forms'
 import { baseNameOf, useCloudData } from '@/hooks/useCloudData'
+import { deleteRecord } from '@/utils/deleteRecord'
 import { api } from '@/utils/request'
 import { readableTime } from '@/utils/format'
-import { FORM_MODULE, canAnswerQuestion, currentRole, guard } from '@/utils/permission'
+import { FORM_MODULE, can, canAnswerQuestion, currentRole, guard } from '@/utils/permission'
 import { roleLabel } from '@/utils/auth'
 import type { AiAnswer, AiStatus, ExpertQuestion } from '@/types'
 
@@ -53,11 +55,19 @@ export default function Expert() {
   const forms = buildFormConfigs(data)
 
   const [activeForm, setActiveForm] = useState<FormConfig | null>(null)
+  const [questionTitle, setQuestionTitle] = useState('')
   const [question, setQuestion] = useState('')
+  const [categoryIndex, setCategoryIndex] = useState(0)
   const [baseIndex, setBaseIndex] = useState(0) // 0 = 不指定基地
   const [asking, setAsking] = useState(false)
   const [answer, setAnswer] = useState<AiAnswer | null>(null)
   const [aiStatus, setAiStatus] = useState<AiStatus | null>(null)
+  // 专家人工回复：每条问题一个草稿输入框
+  const [replyDrafts, setReplyDrafts] = useState<Record<number, string>>({})
+  const [replySendingId, setReplySendingId] = useState(0)
+
+  const canAsk = can('questions', 'w')
+  const canReply = canAnswerQuestion()
 
   // 读取 AI 配置状态（是否已接入大模型）
   useEffect(() => {
@@ -80,22 +90,32 @@ export default function Expert() {
   }
 
   const ask = async () => {
-    if (!guard('ai', 'r')) return
+    if (!guard('questions', 'w')) return
+    if (!can('ai', 'r')) return
     const value = question.trim()
     if (value.length < 4) {
       Taro.showToast({ title: '请把问题描述得再具体一些', icon: 'none' })
       return
     }
+    // 标题单独填写，未填时用问题前 30 个字兜底，保证问答记录列表一眼能看出问的是什么
+    const title = questionTitle.trim() || value.slice(0, 30)
     setAsking(true)
     try {
       const result = await api<AiAnswer>('/api/ai/ask', {
         method: 'POST',
-        data: { question: value, base_id: baseOptions[baseIndex].value || null, save: true },
+        data: {
+          title,
+          question: value,
+          category: QUESTION_CATEGORIES[categoryIndex],
+          base_id: baseOptions[baseIndex].value || null,
+          save: true
+        },
         // 大模型作答偶尔会超过默认 10 秒，单独放宽到 60 秒，避免被中断后误报“无法连接后台”
         timeout: 60000
       })
       setAnswer(result)
       setQuestion('')
+      setQuestionTitle('')
       Taro.showToast({ title: result.source === 'ai' ? 'AI 已回答' : '已给出知识库答复', icon: 'none' })
       await reload(true)
     } catch (err) {
@@ -103,6 +123,42 @@ export default function Expert() {
     } finally {
       setAsking(false)
     }
+  }
+
+  /** 专家 / 平台管理员人工回复（或补充修正 AI 回答），后端只允许写回答相关字段 */
+  const submitReply = async (item: ExpertQuestion) => {
+    const value = (replyDrafts[item.id] || '').trim()
+    if (!value) {
+      Taro.showToast({ title: '请先输入回复内容', icon: 'none' })
+      return
+    }
+    setReplySendingId(item.id)
+    try {
+      await api(`/api/questions/${item.id}`, { method: 'PUT', data: { answer: value } })
+      setReplyDrafts((prev) => {
+        const next = { ...prev }
+        delete next[item.id]
+        return next
+      })
+      Taro.showToast({ title: '回复已提交', icon: 'success' })
+      await reload(true)
+    } catch (err) {
+      Taro.showToast({ title: (err as Error).message, icon: 'none' })
+    } finally {
+      setReplySendingId(0)
+    }
+  }
+
+  /** 删除问答记录：只能删自己账号的提问，专家看到的他人提问不显示删除入口 */
+  const removeQuestion = (item: ExpertQuestion) => {
+    if (item.is_mine === false) return
+    void deleteRecord({
+      module: 'questions',
+      resource: 'questions',
+      id: item.id,
+      label: '问答',
+      onDone: () => reload(true)
+    })
   }
 
   const questions: ExpertQuestion[] = data.questions
@@ -118,25 +174,27 @@ export default function Expert() {
 
   return (
     <View className='page'>
-      {/* 左上角返回箭头：回到上一级页面 */}
+      {/* 顶部一行左右布局：左边返回上一级，右边直达质量溯源 */}
       <View className='back-row'>
-        <View className='back-bar' onClick={goBack} aria-role='button' aria-label='返回上一级'>
+        <View className='back-bar' onClick={goBack} role='button' aria-label='返回上一级'>
           <Text className='back-arrow'>←</Text>
           <Text className='back-label'>返回</Text>
+        </View>
+        <View
+          className='back-bar back-bar-action'
+          onClick={() => Taro.switchTab({ url: '/pages/trace/index' })}
+          role='button'
+          aria-label='前往质量溯源'
+        >
+          <Text className='back-label'>溯源</Text>
         </View>
       </View>
 
       <BrandBar
         title='AI 智能问答'
         sub={aiStatus?.configured ? `已接入大模型 ${aiStatus.model}` : '未配置大模型时使用规则知识库'}
-        onAdd={() => openForm('question')}
+        onAdd={canAsk ? () => openForm('question') : undefined}
       />
-
-      <View className='toolbar'>
-        <View className='btn secondary' onClick={() => Taro.switchTab({ url: '/pages/home/index' })}>
-          返回首页
-        </View>
-      </View>
 
       {loading || error ? (
         <StateHint loading={loading} error={error} onRetry={reload} />
@@ -148,37 +206,71 @@ export default function Expert() {
               : '后台尚未配置 AI_API_KEY，当前使用内置规则知识库回答；配置后自动切换为大模型回答，无需改小程序。'}
           </View>
 
-          <View className='card'>
-            <View className='field'>
-              <Text className='field-label'>问题描述</Text>
-              <Textarea
-                className='field-textarea'
-                value={question}
-                maxlength={1000}
-                placeholder='例如：菌棒表面发绿霉，温度 28℃、湿度 92%，应该怎么处理？'
-                onInput={(event) => setQuestion(event.detail.value)}
-              />
-            </View>
+          {canAsk ? (
+            <View className='card'>
+              <View className='field'>
+                <Text className='field-label'>问题标题</Text>
+                <Input
+                  className='field-input'
+                  value={questionTitle}
+                  maxlength={80}
+                  placeholder='一句话概括问题，例如：菌棒绿霉处置咨询'
+                  onInput={(event) => setQuestionTitle(event.detail.value)}
+                />
+              </View>
 
-            <View className='field'>
-              <Text className='field-label'>关联基地（可选，用于结合最近数据作答）</Text>
-              <Picker mode='selector' range={baseOptions.map((item) => item.label)} value={baseIndex} onChange={(event) => setBaseIndex(Number(event.detail.value))}>
-                <View className='field-picker filled'>{baseOptions[baseIndex].label}</View>
-              </Picker>
-            </View>
+              <View className='field'>
+                <Text className='field-label'>问题类型</Text>
+                <Picker
+                  mode='selector'
+                  range={QUESTION_CATEGORIES}
+                  value={categoryIndex}
+                  onChange={(event) => setCategoryIndex(Number(event.detail.value))}
+                >
+                  <View className='field-picker filled'>{QUESTION_CATEGORIES[categoryIndex]}</View>
+                </Picker>
+              </View>
 
-            <View className='btn primary' onClick={ask}>
-              {asking ? 'AI 思考中...' : '向 AI 提问'}
-            </View>
+              <View className='field'>
+                <Text className='field-label'>问题描述</Text>
+                <Textarea
+                  className='field-textarea'
+                  value={question}
+                  maxlength={1000}
+                  placeholder='例如：菌棒表面发绿霉，温度 28℃、湿度 92%，应该怎么处理？'
+                  onInput={(event) => setQuestion(event.detail.value)}
+                />
+              </View>
 
-            <View className='preset-icons' style='margin-top:24px'>
-              {QUICK_QUESTIONS.map((item) => (
-                <View className='quick-question' key={item} onClick={() => setQuestion(item)}>
-                  <Text>{item}</Text>
-                </View>
-              ))}
+              <View className='field'>
+                <Text className='field-label'>关联基地（可选，用于结合最近数据作答）</Text>
+                <Picker mode='selector' range={baseOptions.map((item) => item.label)} value={baseIndex} onChange={(event) => setBaseIndex(Number(event.detail.value))}>
+                  <View className='field-picker filled'>{baseOptions[baseIndex].label}</View>
+                </Picker>
+              </View>
+
+              <View className='btn primary' onClick={ask}>
+                {asking ? 'AI 思考中...' : '向 AI 提问'}
+              </View>
+
+              <View className='preset-icons' style='margin-top:24px'>
+                {QUICK_QUESTIONS.map((item) => (
+                  <View
+                    className='quick-question'
+                    key={item}
+                    onClick={() => {
+                      setQuestion(item)
+                      setQuestionTitle((prev) => prev || item.slice(0, 20))
+                    }}
+                  >
+                    <Text>{item}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
-          </View>
+          ) : (
+            <View className='notice'>当前角色（{roleLabel(currentRole())}）只能查看问答记录，不能提交提问。</View>
+          )}
 
           {answer ? (
             <View className='card'>
@@ -218,6 +310,7 @@ export default function Expert() {
                     <Text className='row-desc'>
                       {/* 专家 / 管理员会看到全部账号的提问，这里标出提问者，避免分不清是谁提的 */}
                       {item.is_mine === false && item.owner_name ? `提问者：${item.owner_name} · ` : ''}
+                      {item.category ? `${item.category} · ` : ''}
                       {baseNameOf(data.bases, item.base_id)} · {readableTime(item.created_at)}
                     </Text>
                   </View>
@@ -236,6 +329,32 @@ export default function Expert() {
                     该记录暂无回答，可在上方重新提问，AI 会立即作答。
                   </View>
                 )}
+
+                {canReply ? (
+                  <View className='field' style='margin-top:18px'>
+                    <Text className='field-label'>{item.answer ? '人工补充 / 修正回复' : '专家人工回复'}</Text>
+                    <Textarea
+                      className='field-textarea'
+                      value={replyDrafts[item.id] || ''}
+                      maxlength={1000}
+                      placeholder='以专家身份给出处置建议，提交后覆盖展示为人工回复'
+                      onInput={(event) =>
+                        setReplyDrafts((prev) => ({ ...prev, [item.id]: event.detail.value }))
+                      }
+                    />
+                    <View className='btn secondary' onClick={() => submitReply(item)}>
+                      {replySendingId === item.id ? '提交中...' : '提交人工回复'}
+                    </View>
+                  </View>
+                ) : null}
+
+                {item.is_mine !== false ? (
+                  <View className='row-actions'>
+                    <Text className='link-danger' onClick={() => removeQuestion(item)}>
+                      删除
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             ))
           ) : (

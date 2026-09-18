@@ -17,18 +17,17 @@ const ROLES = [
 ];
 
 /**
- * 自助注册固定为普通菇农：专家、采购商、基地管理员等角色由平台管理员在后台分配。
- * 之前允许注册时自选角色，导致任何人选“专家”注册后就拿到问题回复权限。
- */
-const SELF_REGISTER_ROLE = 'farmer';
-const SELF_REGISTER_ROLES = ROLES.filter((item) => item.value === SELF_REGISTER_ROLE);
-
-/**
  * 注册身份选择：注册时可自选的身份，仅限「菇农 / 基地管理员 / 采购商」。
- * 「政府/服务机构」「专家」「平台管理员」不可自选，仍只能由平台管理员分配；
+ * 「政府/服务机构」「专家」「平台管理员」不可自选，只能由平台管理员分配；
  * 未传 role 或传了不允许的角色时，一律落到普通菇农。
  */
 const REGISTRATION_ROLE_VALUES = ['farmer', 'base', 'buyer'];
+
+/** 未传 role 或传入不允许的角色时的兜底身份 */
+const SELF_REGISTER_ROLE = 'farmer';
+
+/** /api/auth/roles 对外公布的可自助注册身份，必须与 REGISTRATION_ROLE_VALUES 保持一致 */
+const SELF_REGISTER_ROLES = ROLES.filter((item) => REGISTRATION_ROLE_VALUES.includes(item.value));
 
 /**
  * 角色权限矩阵（RBAC）：
@@ -55,10 +54,12 @@ const PERMISSIONS = {
     questions: 'rw', products: 'r', demands: 'r', tasks: 'r', partners: 'r',
     devices: 'r', dashboard: 'r', uploads: 'w', ai: 'r', orders: 'r'
   },
-  // 采购商：核心角色，必须能在市场里真实下单、支付、确认收货
+  // 采购商：核心角色，必须能在市场里真实下单、支付、确认收货；
+  // 生产/监测类数据按功能书第十节为「只能看」，授予只读权限
   buyer: {
-    bases: 'r', batches: 'r', 'trace-events': 'r', questions: 'rw',
-    products: 'r', demands: 'rw', dashboard: 'r', uploads: 'w', ai: 'r', orders: 'rw'
+    bases: 'r', batches: 'r', readings: 'r', alerts: 'r', 'trace-events': 'r', questions: 'rw',
+    products: 'r', demands: 'rw', tasks: 'r', devices: 'r',
+    dashboard: 'r', uploads: 'w', ai: 'r', orders: 'rw'
   },
   government: {
     bases: 'r', batches: 'r', readings: 'r', alerts: 'r', 'trace-events': 'r',
@@ -241,16 +242,37 @@ function register(payload = {}) {
   return { user: sanitizeUser(user), ...issueToken(user) };
 }
 
+/**
+ * 登录失败保护：同一账号连续失败达到上限后短时锁定，降低在线爆破风险。
+ * 仅保存在进程内存中，重启即清空；登录成功后计数清零。
+ */
+const LOGIN_FAIL_LIMIT = 5;
+const LOGIN_LOCK_MS = 5 * 60 * 1000;
+const loginAttempts = new Map();
+
 /** 账号密码登录 */
 function login(payload = {}) {
   const name = String(payload.username || '').trim();
   const secret = String(payload.password || '');
+  const attempt = loginAttempts.get(name);
+  if (attempt?.lockUntil && Date.now() < attempt.lockUntil) {
+    const remain = Math.ceil((attempt.lockUntil - Date.now()) / 60000);
+    const error = new Error(`连续登录失败次数过多，请 ${remain} 分钟后再试或联系管理员重置密码`);
+    error.status = 429;
+    throw error;
+  }
   const row = db.prepare('SELECT * FROM users WHERE username = ?').get(name);
   if (!row || !verifyPassword(secret, row.password_salt, row.password_hash)) {
-    const error = new Error('账号或密码不正确');
+    const count = (attempt?.count || 0) + 1;
+    const lockUntil = count >= LOGIN_FAIL_LIMIT ? Date.now() + LOGIN_LOCK_MS : 0;
+    loginAttempts.set(name, { count, lockUntil });
+    const error = lockUntil
+      ? new Error('连续登录失败次数过多，账号已临时锁定 5 分钟，也可联系管理员重置密码')
+      : new Error(`账号或密码不正确，连续失败 ${LOGIN_FAIL_LIMIT} 次将临时锁定（还剩 ${LOGIN_FAIL_LIMIT - count} 次）`);
     error.status = 401;
     throw error;
   }
+  loginAttempts.delete(name);
   return { user: sanitizeUser(row), ...issueToken(row) };
 }
 

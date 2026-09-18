@@ -62,28 +62,32 @@ const configs = {
     columns: ['code', 'base_id', 'mushroom_type', 'variety', 'quantity', 'stage', 'start_date', 'expected_harvest_date', 'status', 'notes'],
     required: ['code', 'mushroom_type', 'start_date'],
     order: 'created_at DESC',
-    numeric: ['base_id', 'quantity']
+    numeric: ['base_id', 'quantity'],
+    refs: [{ column: 'base_id', table: 'bases', label: '基地' }]
   },
   readings: {
     columns: ['base_id', 'device_name', 'temperature', 'humidity', 'co2', 'light', 'recorded_at', 'notes'],
     required: ['recorded_at'],
     updatedAt: false,
     order: 'recorded_at DESC, id DESC',
-    numeric: ['base_id', 'temperature', 'humidity', 'co2', 'light']
+    numeric: ['base_id', 'temperature', 'humidity', 'co2', 'light'],
+    refs: [{ column: 'base_id', table: 'bases', label: '基地' }]
   },
   alerts: {
     columns: ['base_id', 'reading_id', 'alert_type', 'level', 'message', 'status', 'handled_at'],
     required: ['alert_type', 'message'],
     updatedAt: false,
     order: 'created_at DESC',
-    numeric: ['base_id', 'reading_id']
+    numeric: ['base_id', 'reading_id'],
+    refs: [{ column: 'base_id', table: 'bases', label: '基地' }]
   },
   'trace-events': {
     table: 'trace_events',
     columns: ['batch_id', 'event_type', 'title', 'description', 'event_date', 'operator'],
     required: ['batch_id', 'event_type', 'title', 'event_date'],
     order: 'event_date ASC, id ASC',
-    numeric: ['batch_id']
+    numeric: ['batch_id'],
+    refs: [{ column: 'batch_id', table: 'batches', label: '批次' }]
   },
   questions: {
     table: 'expert_questions',
@@ -91,13 +95,15 @@ const configs = {
     required: ['title', 'content'],
     updatedAt: false,
     order: 'created_at DESC',
-    numeric: ['base_id']
+    numeric: ['base_id'],
+    refs: [{ column: 'base_id', table: 'bases', label: '基地' }]
   },
   products: {
     columns: ['batch_id', 'name', 'icon', 'quantity', 'unit', 'price', 'available_date', 'off_shelf_date', 'status', 'description'],
     required: ['name'],
     order: 'created_at DESC',
     numeric: ['batch_id', 'quantity', 'price'],
+    refs: [{ column: 'batch_id', table: 'batches', label: '批次' }],
     // 供应信息用 'available' 表示「可供应」，与其它模块的 'active' 不同，单独指定兜底值
     defaultStatus: 'available'
   },
@@ -105,21 +111,63 @@ const configs = {
     columns: ['buyer_name', 'product_name', 'quantity', 'unit', 'price', 'requirements', 'contact', 'status'],
     required: ['buyer_name', 'product_name'],
     order: 'created_at DESC',
-    numeric: ['quantity', 'price']
+    numeric: ['quantity', 'price'],
+    // 采购需求用 'open' 表示「收购中」，与建表默认值保持一致
+    defaultStatus: 'open'
   },
   tasks: {
     columns: ['title', 'description', 'batch_id', 'priority', 'due_date', 'status'],
     required: ['title'],
     order: 'created_at DESC',
-    numeric: ['batch_id']
+    numeric: ['batch_id'],
+    refs: [{ column: 'batch_id', table: 'batches', label: '批次' }]
   }
 };
+
+/**
+ * 校验记录引用的关联资源（基地 / 批次）是否属于当前账号。
+ * 新增 / 修改时都要校验：否则任意账号可以把溯源事件、供应信息挂到别人的批次下，
+ * 公开溯源页就会展示伪造的质检 / 运输信息（溯源造假、跨账号数据注入）。
+ * 空值（未关联）直接放行。
+ */
+function assertRefsOwned(row, config, userId) {
+  for (const ref of config.refs || []) {
+    if (row[ref.column] === undefined || row[ref.column] === null) continue;
+    const refId = Number(row[ref.column]);
+    if (!Number.isFinite(refId) || refId <= 0) continue;
+    const found = db.prepare(`SELECT id FROM ${ref.table} WHERE id = ? AND user_id = ?`).get(refId, userId);
+    if (!found) {
+      const error = new Error(`关联的${ref.label}不存在或不属于当前账号，无法保存`);
+      error.status = 400;
+      throw error;
+    }
+  }
+}
+
+/** 把数据库底层错误转成不泄露 SQL 细节的提示，业务层主动抛出的中文提示原样透传 */
+function friendlyStoreError(error) {
+  if (/UNIQUE constraint/i.test(error.message)) {
+    return { status: 409, message: '记录已存在（编号等唯一信息重复），请调整后再试' };
+  }
+  if (/FOREIGN KEY|constraint|SQLITE/i.test(error.message)) {
+    return { status: 400, message: '数据校验失败，请检查关联的基地 / 批次是否存在' };
+  }
+  return { status: 400, message: error.message };
+}
 
 function normalizeRow(config, body, partial = false) {
   const row = {};
   for (const key of config.columns) {
     if (body[key] === undefined) continue;
-    row[key] = (config.numeric || []).includes(key) ? number(body[key]) : text(body[key]);
+    if ((config.numeric || []).includes(key)) {
+      // 数字字段传了非数字内容（且不是空值）直接报错，避免静默存成 0（如温度/价格被存为 0）
+      if (body[key] !== null && body[key] !== '' && !Number.isFinite(Number(body[key]))) {
+        throw new Error(`字段「${key}」必须是数字`);
+      }
+      row[key] = number(body[key]);
+    } else {
+      row[key] = text(body[key]);
+    }
   }
   if (!partial) {
     for (const key of config.required) {
@@ -139,7 +187,8 @@ function makeCrudRouter(name, config) {
 
   router.get('/', requirePermission(name, 'r'), (req, res) => {
     try {
-      const limit = Math.min(Math.max(Number(req.query.limit || 100), 1), 500);
+      const limitRaw = Number(req.query.limit || 100);
+      const limit = Math.min(Math.max(Number.isFinite(limitRaw) ? limitRaw : 100, 1), 500);
       const where = [];
       const params = {};
       // 提问模块对专家/管理员开放：他们要能看到所有人的问题才能人工回复；其它数据仍按账号隔离
@@ -191,13 +240,21 @@ function makeCrudRouter(name, config) {
   router.post('/', requirePermission(name, 'w'), async (req, res) => {
     try {
       const row = normalizeRow(config, req.body || {});
+      // 提问类资源的回答相关字段只能由服务端生成：禁止提问时自带 answer / answer_source='expert'，
+      // 否则菇农可以提交一条“专家回复”冒充专家答题。
+      if (name === 'questions') {
+        for (const key of ['answer', 'status', 'answered_at', 'answer_source', 'ai_model']) delete row[key];
+      }
+      // 关联的基地 / 批次必须属于当前账号，防止跨账号挂记录（溯源造假等）
+      assertRefsOwned(row, config, req.user.id);
       // 提问类资源：不管是从「AI 问答」提问还是「向专家提问」表单提交，
       // 保存时就顺手自动回答一次，避免记录落库后一直停在“待回复”。
       // 有 AI 密钥走大模型，否则走规则知识库；自动回答失败也不影响提问本身保存，专家仍可人工补充回复。
-      if (name === 'questions' && !row.answer) {
+      if (name === 'questions') {
         try {
           const auto = await aiService.answerQuestion({
             question: row.content,
+            title: row.title,
             userId: req.user.id,
             baseId: row.base_id || null,
             category: row.category || '',
@@ -220,8 +277,8 @@ function makeCrudRouter(name, config) {
       if (name === 'readings') evaluateReadingAlerts(created);
       ok(res, created, '保存成功');
     } catch (error) {
-      const status = /UNIQUE constraint/.test(error.message) ? 409 : 400;
-      fail(res, status, error.message);
+      const mapped = friendlyStoreError(error);
+      fail(res, error.status || mapped.status, mapped.message);
     }
   });
 
@@ -239,19 +296,40 @@ function makeCrudRouter(name, config) {
       if (name === 'questions' && !isOwner && !auth.canAnswerQuestion(req.user.role)) {
         return fail(res, 403, `当前角色（${req.user.role_label}）不能代替专家回复问题`);
       }
-      const row = normalizeRow(config, req.body || {}, true);
+      let row = normalizeRow(config, req.body || {}, true);
       if (!Object.keys(row).length) return fail(res, 400, '没有可更新字段');
-      // 专家回复只能由专家/平台管理员执行：
-      // questions 的写权限代表能“提问”，不能拿来替专家“回复”，否则菇农也能冒充专家答题。
-      if (name === 'questions' && row.answer && !auth.canAnswerQuestion(req.user.role)) {
-        return fail(res, 403, `当前角色（${req.user.role_label}）不能代替专家回复问题`);
+      if (name === 'questions') {
+        if (!replying && !auth.canAnswerQuestion(req.user.role) && text(req.body?.answer)) {
+          // 非专家角色（含提问者本人）在写入请求里携带回答内容，一律显式拒绝，
+          // 不能静默吞掉让调用方误以为回复成功。
+          return fail(res, 403, `当前角色（${req.user.role_label}）不能代替专家回复问题`);
+        }
+        if (replying) {
+          // 专家 / 管理员给别人的问题补充人工回复：只允许写回答相关字段，
+          // 不能借回复之机篡改他人问题的标题、内容、关联基地等字段。
+          const REPLY_FIELDS = ['answer', 'answer_source', 'status', 'answered_at'];
+          for (const key of Object.keys(row)) {
+            if (!REPLY_FIELDS.includes(key)) delete row[key];
+          }
+          if (!Object.keys(row).length) return fail(res, 400, '没有可更新字段');
+        } else if (!auth.canAnswerQuestion(req.user.role)) {
+          // 本人编辑自己的提问：回答 / 状态字段由服务端与专家维护，提问者不能自行伪造
+          for (const key of ['answer', 'answer_source', 'ai_model', 'answered_at', 'status']) delete row[key];
+        }
+        // 专家回复只能由专家/平台管理员执行：
+        // questions 的写权限代表能“提问”，不能拿来替专家“回复”，否则菇农也能冒充专家答题。
+        if (row.answer && !auth.canAnswerQuestion(req.user.role)) {
+          return fail(res, 403, `当前角色（${req.user.role_label}）不能代替专家回复问题`);
+        }
+        // 专家人工补充回复：自动补上回答来源与状态，避免出现“已有回答但界面仍显示待回复”
+        if (row.answer && !row.answer_source) {
+          row.answer_source = 'expert';
+          if (!row.status) row.status = 'answered';
+          if (!row.answered_at) row.answered_at = new Date().toISOString();
+        }
       }
-      // 专家人工补充回复：自动补上回答来源与状态，避免出现“已有回答但界面仍显示待回复”
-      if (name === 'questions' && row.answer && !row.answer_source) {
-        row.answer_source = 'expert';
-        if (!row.status) row.status = 'answered';
-        if (!row.answered_at) row.answered_at = new Date().toISOString();
-      }
+      // 修改时带上的关联资源同样必须属于当前账号（专家代回复已白名单剔除 base_id）
+      assertRefsOwned(row, config, req.user.id);
       if (config.updatedAt !== false) row.updated_at = new Date().toISOString();
       const assignments = Object.keys(row).map((key) => `${key} = @${key}`).join(', ');
       // 只允许改自己账号的数据：UPDATE 带 user_id 条件，影响 0 行说明这条记录不属于当前账号，
@@ -265,7 +343,8 @@ function makeCrudRouter(name, config) {
       const updated = db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(id);
       ok(res, updated, '更新成功');
     } catch (error) {
-      fail(res, 400, error.message);
+      const mapped = friendlyStoreError(error);
+      fail(res, error.status || mapped.status, mapped.message);
     }
   });
 
@@ -541,10 +620,32 @@ app.get('/api/dashboard', requireAuth, requirePermission('dashboard', 'r'), (req
  */
 app.get('/api/trace/:code', (req, res) => {
   const code = text(req.params.code);
-  const batch = db.prepare(`SELECT b.*, o.name AS base_name, o.address AS base_address FROM batches b LEFT JOIN bases o ON o.id = b.base_id WHERE b.code = ?`).get(code);
-  if (!batch) return fail(res, 404, '未找到该批次');
-  const events = db.prepare('SELECT * FROM trace_events WHERE batch_id = ? ORDER BY event_date ASC, id ASC').all(batch.id);
-  const products = db.prepare('SELECT * FROM products WHERE batch_id = ? ORDER BY id DESC').all(batch.id);
+  const rawBatch = db.prepare(`SELECT b.*, o.name AS base_name, o.address AS base_address FROM batches b LEFT JOIN bases o ON o.id = b.base_id WHERE b.code = ?`).get(code);
+  if (!rawBatch) return fail(res, 404, '未找到该批次');
+  // 公开接口：只输出消费者需要的溯源字段，剥离 user_id、备注等账号侧内部信息
+  const batch = {
+    id: rawBatch.id,
+    code: rawBatch.code,
+    base_id: rawBatch.base_id,
+    mushroom_type: rawBatch.mushroom_type,
+    variety: rawBatch.variety,
+    quantity: rawBatch.quantity,
+    stage: rawBatch.stage,
+    start_date: rawBatch.start_date,
+    expected_harvest_date: rawBatch.expected_harvest_date,
+    status: rawBatch.status,
+    base_name: rawBatch.base_name,
+    base_address: rawBatch.base_address
+  };
+  const pick = (row, fields) => Object.fromEntries(fields.map((key) => [key, row[key]]));
+  const events = db
+    .prepare('SELECT * FROM trace_events WHERE batch_id = ? ORDER BY event_date ASC, id ASC')
+    .all(batch.id)
+    .map((row) => pick(row, ['id', 'batch_id', 'event_type', 'title', 'description', 'event_date', 'operator']));
+  const products = db
+    .prepare('SELECT * FROM products WHERE batch_id = ? ORDER BY id DESC')
+    .all(batch.id)
+    .map((row) => pick(row, ['id', 'batch_id', 'name', 'icon', 'quantity', 'unit', 'price', 'available_date', 'off_shelf_date', 'status', 'description']));
   ok(res, { batch, events, products });
 });
 
@@ -580,10 +681,21 @@ app.get('/api/ai/status', requireAuth, requirePermission('ai', 'r'), (req, res) 
 
 app.post('/api/ai/ask', requireAuth, requirePermission('ai', 'r'), async (req, res) => {
   try {
+    // ai:r 只代表能使用 AI 能力；是否能“提问落库”以 questions 写权限为准，
+    // 否则只读角色（如政府机构）可借这个接口绕过 questions 的只读限制。
+    if (!auth.can(req.user.role, 'questions', 'w')) {
+      return fail(res, 403, `当前角色（${req.user.role_label}）只能查看问答，不能提交提问`);
+    }
+    const baseId = req.body?.base_id ? Number(req.body.base_id) : null;
+    if (baseId) {
+      const ownBase = db.prepare('SELECT id FROM bases WHERE id = ? AND user_id = ?').get(baseId, req.user.id);
+      if (!ownBase) return fail(res, 400, '关联的基地不存在或不属于当前账号');
+    }
     const result = await aiService.answerQuestion({
       question: text(req.body?.question),
+      title: text(req.body?.title),
       userId: req.user.id,
-      baseId: req.body?.base_id || null,
+      baseId,
       category: text(req.body?.category),
       save: req.body?.save !== false
     });
@@ -664,6 +776,31 @@ app.get('/api/products/shared', requireAuth, requirePermission('products', 'r'),
 });
 
 /**
+ * 产销对接：其他账号发布的采购需求互通可见（只读），供货方据此对接货源。
+ * 仅返回仍在收购中的需求（status='open'，兼容早期版本写入的 'active'）；
+ * 修改 / 删除仍只能作用于自己的记录。
+ */
+app.get('/api/demands/shared', requireAuth, requirePermission('demands', 'r'), (req, res) => {
+  try {
+    const rows = db
+      .prepare(`
+        SELECT d.*,
+               u.display_name AS owner_name,
+               u.username AS owner_username
+        FROM demands d
+        LEFT JOIN users u ON u.id = d.user_id
+        WHERE d.user_id <> ? AND COALESCE(d.status, 'open') IN ('open', 'active')
+        ORDER BY d.created_at DESC, d.id DESC
+        LIMIT 100
+      `)
+      .all(req.user.id);
+    ok(res, rows);
+  } catch (error) {
+    fail(res, 400, error.message);
+  }
+});
+
+/**
  * ---------- 产销对接：订单交易 ----------
  * 采购商在「市场」里对供应信息下单，走完整链路：下单 → 支付 → 发货 → 收货。
  * 订单同时属于买卖双方，因此不走通用 CRUD 的 user_id 单向隔离，单独实现。
@@ -730,6 +867,12 @@ app.post('/api/orders/:id/cancel', requireAuth, requirePermission('orders', 'w')
 });
 
 for (const [name, config] of Object.entries(configs)) app.use(`/api/${name}`, makeCrudRouter(name, config));
+
+// 本地开发时直接复用仓库根目录的品牌资源，部署目录则由 scripts/prep-deploy.js 复制到 public/assets。
+const SHARED_ASSETS = path.join(__dirname, '..', '..', 'assets');
+if (fs.existsSync(SHARED_ASSETS)) {
+  app.use('/assets', express.static(SHARED_ASSETS));
+}
 
 /**
  * 一体部署：设置环境变量 H5_DIST 时，把小程序浏览器版产物直接挂到根路径（含 SPA 兜底）。

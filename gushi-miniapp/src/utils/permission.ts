@@ -47,10 +47,12 @@ const MATRIX: Record<string, Rule> = {
     questions: 'rw', products: 'r', demands: 'r', tasks: 'r', partners: 'r',
     devices: 'r', dashboard: 'r', uploads: 'w', ai: 'r', orders: 'r'
   },
-  // 采购商：核心角色，可在市场下单、支付、确认收货
+  // 采购商：核心角色，可在市场下单、支付、确认收货；
+  // 生产/监测类数据按功能书第十节为「只能看」
   buyer: {
-    bases: 'r', batches: 'r', 'trace-events': 'r', questions: 'rw',
-    products: 'r', demands: 'rw', dashboard: 'r', uploads: 'w', ai: 'r', orders: 'rw'
+    bases: 'r', batches: 'r', readings: 'r', alerts: 'r', 'trace-events': 'r', questions: 'rw',
+    products: 'r', demands: 'rw', tasks: 'r', devices: 'r',
+    dashboard: 'r', uploads: 'w', ai: 'r', orders: 'rw'
   },
   government: {
     bases: 'r', batches: 'r', readings: 'r', alerts: 'r', 'trace-events': 'r',

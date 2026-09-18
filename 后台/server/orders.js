@@ -52,12 +52,12 @@ function today() {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-/** 订单号：GS + 年月日时分秒 + 3 位随机，方便口头核对 */
+/** 订单号：GS + 年月日时分秒 + 6 位随机，方便口头核对；随机位足够长以降低并单碰撞 */
 function makeOrderNo() {
   const now = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-  return `GS${stamp}${Math.floor(Math.random() * 900 + 100)}`;
+  return `GS${stamp}${Math.floor(100000 + Math.random() * 900000)}`;
 }
 
 /** 供应信息是否处于可供应期（与小程序端展示的「可供应」判定保持一致） */
@@ -165,6 +165,17 @@ function createOrder(user, payload = {}) {
       .run(quantity, productId, quantity);
     if (!updated.changes) throw httpError(409, '库存不足，请刷新后重试');
 
+    // 极端并发下订单号仍可能碰撞，插入前检查并重试生成
+    let orderNo = '';
+    for (let i = 0; i < 5; i += 1) {
+      const candidate = makeOrderNo();
+      if (!db.prepare('SELECT 1 FROM orders WHERE order_no = ?').get(candidate)) {
+        orderNo = candidate;
+        break;
+      }
+    }
+    if (!orderNo) throw httpError(500, '订单号生成冲突，请稍后重试');
+
     const info = db
       .prepare(`
         INSERT INTO orders (
@@ -178,7 +189,7 @@ function createOrder(user, payload = {}) {
         )
       `)
       .run({
-        order_no: makeOrderNo(),
+        order_no: orderNo,
         product_id: productId,
         product_name: text(product.name, '供应产品'),
         product_icon: text(product.icon),

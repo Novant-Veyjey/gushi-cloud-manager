@@ -8,6 +8,7 @@ const path = require('path');
  */
 function loadEnvFile(file = path.join(__dirname, '..', '.env')) {
   if (!fs.existsSync(file)) return false;
+  if (process.env.GUSHI_SKIP_ENV_FILE === '1') return false;
   const content = fs.readFileSync(file, 'utf8');
   for (const rawLine of content.split(/\r?\n/)) {
     const line = rawLine.trim();

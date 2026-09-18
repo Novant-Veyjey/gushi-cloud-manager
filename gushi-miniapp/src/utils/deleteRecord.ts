@@ -23,8 +23,8 @@ export async function deleteRecord({ module, resource, id, label, onDone }: Dele
   if (!guard(module, 'w')) return
 
   const confirmed = await Taro.showModal({
-    title: '删除提醒',
-    content: `确定删除这条${label}吗？删除后不可恢复。`,
+    title: '删除记录',
+    content: '确定删除吗？删除后不可恢复',
     confirmText: '删除',
     confirmColor: '#bf4545'
   })

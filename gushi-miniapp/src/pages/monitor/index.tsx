@@ -11,7 +11,7 @@ import { THRESHOLDS } from '@/config'
 import { baseNameOf, useCloudData } from '@/hooks/useCloudData'
 import { api } from '@/utils/request'
 import { readableTime } from '@/utils/format'
-import { FORM_MODULE, guard } from '@/utils/permission'
+import { FORM_MODULE, can, guard } from '@/utils/permission'
 import { deleteRecord } from '@/utils/deleteRecord'
 import { useHideTabBarWhen } from '@/utils/tabbar'
 import type { Device, DeviceSeries } from '@/types'
@@ -146,18 +146,39 @@ export default function Monitor() {
   const openAlerts = data.alerts.filter((alert) => alert.status === 'open')
   const deviceReported = readings.filter((item) => item.source === 'device').length
 
+  const canWriteDevices = can('devices', 'w')
+  const canWriteReadings = can('readings', 'w')
+  const canWriteAlerts = can('alerts', 'w')
+
+  /** 查看设备密钥：失败时明确提示（如无权限），避免点击后毫无反应 */
+  const revealSecret = (device: Device) => {
+    api<{ code: string; secret: string }>(`/api/devices/${device.id}/secret`)
+      .then((res) => setCredential({ ...device, code: res.code, secret: res.secret }))
+      .catch((err) => Taro.showToast({ title: (err as Error).message, icon: 'none' }))
+  }
+
   return (
     <View className='page'>
-      <BrandBar title='环境监测' sub='大棚设备自动上报 · 超阈值自动预警' onAdd={() => openForm('device')} />
+      <BrandBar
+        title='环境监测'
+        sub='大棚设备自动上报 · 超阈值自动预警'
+        onAdd={canWriteDevices ? () => openForm('device') : undefined}
+      />
 
-      <View className='toolbar'>
-        <View className='btn primary' onClick={() => openForm('device')}>
-          ＋ 接入大棚设备
+      {canWriteDevices || canWriteReadings ? (
+        <View className='toolbar'>
+          {canWriteDevices ? (
+            <View className='btn primary' onClick={() => openForm('device')}>
+              ＋ 接入大棚设备
+            </View>
+          ) : null}
+          {canWriteReadings ? (
+            <View className='btn secondary' onClick={() => openForm('reading')}>
+              手动补录
+            </View>
+          ) : null}
         </View>
-        <View className='btn secondary' onClick={() => openForm('reading')}>
-          手动补录
-        </View>
-      </View>
+      ) : null}
 
       {loading || error ? (
         <StateHint loading={loading} error={error} onRetry={reload} />
@@ -180,19 +201,18 @@ export default function Monitor() {
 
           {devices.length ? (
             devices.map((device) => (
-              <View className='card' key={device.id}>
-                <View className='row-top'>
-                  <View>
-                    <Text className='row-title'>{device.name}</Text>
-                    <Text className='row-desc'>
-                      编号 {device.code}
-                      {device.model ? ` · ${device.model}` : ''}
-                      {'\n'}
-                      {device.base_name || baseNameOf(data.bases, device.base_id)}
-                    </Text>
-                  </View>
-                  <Text className={`badge${device.online ? '' : ' plain'}`}>{device.online ? '在线' : '离线'}</Text>
-                </View>
+              <View className='card card-center' key={device.id}>
+                {/* 设备名与编号居中显示，状态徽标另起一行，与批次 / 基地卡片对齐方式统一 */}
+                <Text className='row-title card-center-title'>{device.name}</Text>
+                <Text className={`badge card-center-badge${device.online ? '' : ' plain'}`}>
+                  {device.online ? '在线' : '离线'}
+                </Text>
+                <Text className='row-desc card-center-desc'>
+                  编号 {device.code}
+                  {device.model ? ` · ${device.model}` : ''}
+                  {'\n'}
+                  {device.base_name || baseNameOf(data.bases, device.base_id)}
+                </Text>
 
                 <View className='metric-line'>
                   <View className='metric-line-item'>
@@ -218,20 +238,34 @@ export default function Monitor() {
                 </Text>
 
                 <View className='toolbar' style='margin-bottom:0'>
-                  <View
-                    className='btn secondary'
-                    onClick={() =>
-                      api<{ code: string; secret: string }>(`/api/devices/${device.id}/secret`).then((res) =>
-                        setCredential({ ...device, code: res.code, secret: res.secret })
-                      )
-                    }
-                  >
-                    查看设备密钥
-                  </View>
+                  {canWriteDevices ? (
+                    <View className='btn secondary' onClick={() => revealSecret(device)}>
+                      查看设备密钥
+                    </View>
+                  ) : null}
                   <View className='btn secondary' onClick={() => toggleSeries(device.id)}>
                     {seriesLoading === device.id ? '加载中...' : seriesMap[device.id] ? '收起曲线' : '近 24 小时曲线'}
                   </View>
                 </View>
+
+                {canWriteDevices ? (
+                  <View className='row-actions'>
+                    <Text
+                      className='link-danger'
+                      onClick={() =>
+                        deleteRecord({
+                          module: 'devices',
+                          resource: 'devices',
+                          id: device.id,
+                          label: '设备',
+                          onDone: () => reload(true)
+                        })
+                      }
+                    >
+                      删除设备
+                    </Text>
+                  </View>
+                ) : null}
 
                 {seriesMap[device.id] ? (
                   <View>
@@ -257,18 +291,15 @@ export default function Monitor() {
 
           {readings.length ? (
             readings.map((reading) => (
-              <View className='card' key={reading.id}>
-                <View className='row-top'>
-                  <View>
-                    <Text className='row-title'>{reading.device_name || '未命名设备'}</Text>
-                    <Text className='row-desc'>
-                      {baseNameOf(data.bases, reading.base_id)} · {readableTime(reading.recorded_at)}
-                    </Text>
-                  </View>
-                  <Text className={`badge${reading.source === 'device' ? '' : ' plain'}`}>
-                    {reading.source === 'device' ? '硬件自动' : '手动补录'}
-                  </Text>
-                </View>
+              <View className='card card-center' key={reading.id}>
+                {/* 记录卡片与设备卡片保持同一套居中规则 */}
+                <Text className='row-title card-center-title'>{reading.device_name || '未命名设备'}</Text>
+                <Text className={`badge card-center-badge${reading.source === 'device' ? '' : ' plain'}`}>
+                  {reading.source === 'device' ? '硬件自动' : '手动补录'}
+                </Text>
+                <Text className='row-desc card-center-desc'>
+                  {baseNameOf(data.bases, reading.base_id)} · {readableTime(reading.recorded_at)}
+                </Text>
                 <View className='metric-line'>
                   <View className='metric-line-item'>
                     <Text className='metric-line-label'>温度</Text>
@@ -284,22 +315,24 @@ export default function Monitor() {
                   </View>
                 </View>
                 {reading.light !== null && reading.light !== undefined ? <Text className='meta'>光照：{reading.light} lux</Text> : null}
-                <View className='row-actions'>
-                  <Text
-                    className='link-danger'
-                    onClick={() =>
-                      deleteRecord({
-                        module: 'readings',
-                        resource: 'readings',
-                        id: reading.id,
-                        label: '环境记录',
-                        onDone: reload
-                      })
-                    }
-                  >
-                    删除记录
-                  </Text>
-                </View>
+                {canWriteReadings ? (
+                  <View className='row-actions'>
+                    <Text
+                      className='link-danger'
+                      onClick={() =>
+                        deleteRecord({
+                          module: 'readings',
+                          resource: 'readings',
+                          id: reading.id,
+                          label: '环境记录',
+                          onDone: reload
+                        })
+                      }
+                    >
+                      删除记录
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             ))
           ) : (
@@ -325,9 +358,11 @@ export default function Monitor() {
                       {alert.base_name || baseNameOf(data.bases, alert.base_id)} · {readableTime(alert.created_at)}
                     </Text>
                   </View>
-                  <Text className='todo-action' onClick={() => handleAck(alert.id)}>
-                    处理
-                  </Text>
+                  {canWriteAlerts ? (
+                    <Text className='todo-action' onClick={() => handleAck(alert.id)}>
+                      处理
+                    </Text>
+                  ) : null}
                 </View>
               ))}
             </View>

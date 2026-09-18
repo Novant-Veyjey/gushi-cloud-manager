@@ -7,6 +7,7 @@ import EmptyState from '@/components/EmptyState'
 import FormSheet from '@/components/FormSheet'
 import StateHint from '@/components/StateHint'
 import { buildFormConfigs, RECORD_MENU, type FormConfig } from '@/config/forms'
+import { PRIORITY_LABELS } from '@/config'
 import { baseNameOf, useCloudData } from '@/hooks/useCloudData'
 import { logout, ROLE_OPTIONS, roleLabel } from '@/utils/auth'
 import { deleteRecord } from '@/utils/deleteRecord'
@@ -55,7 +56,7 @@ export default function Home() {
     if (!guard(FORM_MODULE[key] || 'bases', 'w')) return
 
     // 与后台外键约束保持一致：缺少前置数据时给出明确提示，而不是保存一条无效记录
-    if (['batch', 'reading'].includes(key) && !data.bases.length) {
+    if (['batch', 'reading', 'device'].includes(key) && !data.bases.length) {
       Taro.showToast({ title: '请先新增基地', icon: 'none' })
       return
     }
@@ -150,6 +151,16 @@ export default function Home() {
       Taro.showToast({ title: '请先搜索并点选要修改的账号', icon: 'none' })
       return
     }
+    const nextRole = ROLE_OPTIONS[assignRoleIndex]
+    if (assignTarget.role === nextRole.value) {
+      Taro.showToast({ title: `该账号当前已经是「${nextRole.label}」`, icon: 'none' })
+      return
+    }
+    const confirmed = await Taro.showModal({
+      title: '分配职务',
+      content: `确定把账号「${assignTarget.username}」的职务改为「${nextRole.label}」吗？对方重新登录后生效。`
+    })
+    if (!confirmed.confirm) return
     setAssigning(true)
     try {
       await api(`/api/admin/users/${assignTarget.id}/role`, {
@@ -239,7 +250,21 @@ export default function Home() {
   const dashboard = data.dashboard
   const latestReadings = (dashboard.latestReadings || []).slice(0, 4)
   const openAlerts = (dashboard.alerts || []).slice(0, 4)
-  const tasks = data.tasks.slice(0, 4)
+  // 首页只提示「今天到期或已逾期」的未完成任务；未设截止日期的任务也一并提醒
+  const todayStr = dateOnly(new Date().toISOString())
+  const tasks = data.tasks
+    .filter((task) => task.status !== 'done' && task.status !== 'completed')
+    .filter((task) => !task.due_date || dateOnly(task.due_date) <= todayStr)
+    .slice(0, 4)
+
+  // 各区块的写权限：只读角色看不到录入 / 处理 / 删除入口
+  const canWriteBases = can('bases', 'w')
+  const canWriteBatches = can('batches', 'w')
+  const canWriteReadings = can('readings', 'w')
+  const canWriteAlerts = can('alerts', 'w')
+  const canWriteTasks = can('tasks', 'w')
+  const canViewDevices = can('devices', 'r')
+  const isAdmin = can('users', 'w')
 
   return (
     <View className='page'>
@@ -247,9 +272,9 @@ export default function Home() {
       <View className='top-actions'>
         <View
           className='top-action'
-          onClick={() => (can('users', 'w') ? openUserSheet() : setAdminSheet(true))}
+          onClick={() => (isAdmin ? openUserSheet() : setAdminSheet(true))}
         >
-          账号管理
+          {isAdmin ? '职位分配' : '账号管理'}
         </View>
         <View className='top-action' onClick={handleLogout}>
           退出登录
@@ -277,18 +302,24 @@ export default function Home() {
           </View>
 
           <View className='quick'>
-            <View className='quick-item' onClick={() => openForm('base')}>
-              <Text className='quick-icon'>＋</Text>
-              <Text className='quick-label'>新增基地</Text>
-            </View>
-            <View className='quick-item' onClick={() => openForm('batch')}>
-              <Text className='quick-icon'>▤</Text>
-              <Text className='quick-label'>新增批次</Text>
-            </View>
-            <View className='quick-item' onClick={() => openForm('device')}>
-              <Text className='quick-icon'>📡</Text>
-              <Text className='quick-label'>大棚设备</Text>
-            </View>
+            {canWriteBases ? (
+              <View className='quick-item' onClick={() => openForm('base')}>
+                <Text className='quick-icon'>＋</Text>
+                <Text className='quick-label'>新增基地</Text>
+              </View>
+            ) : null}
+            {canWriteBatches ? (
+              <View className='quick-item' onClick={() => openForm('batch')}>
+                <Text className='quick-icon'>▤</Text>
+                <Text className='quick-label'>新增批次</Text>
+              </View>
+            ) : null}
+            {canViewDevices ? (
+              <View className='quick-item' onClick={() => Taro.switchTab({ url: '/pages/monitor/index' })}>
+                <Text className='quick-icon'>📡</Text>
+                <Text className='quick-label'>看大棚</Text>
+              </View>
+            ) : null}
             <View className='quick-item' onClick={() => Taro.navigateTo({ url: '/pages/expert/index' })}>
               <Text className='quick-icon'>🤖</Text>
               <Text className='quick-label'>AI 问答</Text>
@@ -319,13 +350,13 @@ export default function Home() {
               <Text className='stat-foot'>已保存批次</Text>
             </View>
             <View className='stat'>
-              <Text className='stat-label'>监测设备</Text>
+              <Text className='stat-label'>在线设备</Text>
               <Text className='stat-value'>
-                {dashboard.devices}
+                {dashboard.devicesOnline ?? 0}
                 <Text className='stat-unit'>台</Text>
               </Text>
               <Text className='stat-foot'>
-                在线 {dashboard.devicesOnline ?? 0} 台 · 自动上报 {dashboard.deviceReadings ?? 0} 条
+                共 {dashboard.devices} 台设备 · 自动上报 {dashboard.deviceReadings ?? 0} 条
               </Text>
             </View>
             <View className='stat'>
@@ -363,20 +394,22 @@ export default function Home() {
                   </View>
                   <View className='todo-side'>
                     <Text className='todo-action'>{dateOnly(reading.recorded_at)}</Text>
-                    <Text
-                      className='link-danger'
-                      onClick={() =>
-                        deleteRecord({
-                          module: 'readings',
-                          resource: 'readings',
-                          id: reading.id,
-                          label: '环境记录',
-                          onDone: reload
-                        })
-                      }
-                    >
-                      删除
-                    </Text>
+                    {canWriteReadings ? (
+                      <Text
+                        className='link-danger'
+                        onClick={() =>
+                          deleteRecord({
+                            module: 'readings',
+                            resource: 'readings',
+                            id: reading.id,
+                            label: '环境记录',
+                            onDone: reload
+                          })
+                        }
+                      >
+                        删除
+                      </Text>
+                    ) : null}
                   </View>
                 </View>
               ))
@@ -407,9 +440,11 @@ export default function Home() {
                       {alert.base_name || baseNameOf(data.bases, alert.base_id)} · {alert.alert_type} · {readableTime(alert.created_at)}
                     </Text>
                   </View>
-                  <Text className='todo-action' onClick={() => handleAck(alert.id)}>
-                    处理
-                  </Text>
+                  {canWriteAlerts ? (
+                    <Text className='todo-action' onClick={() => handleAck(alert.id)}>
+                      处理
+                    </Text>
+                  ) : null}
                 </View>
               ))
             ) : (
@@ -419,31 +454,55 @@ export default function Home() {
 
           <View className='section-title'>
             <View>
-              <Text className='section-title-main'>生产任务</Text>
-              <Text className='section-title-sub'>任务建议由规则引擎或 AI 生成</Text>
+              <Text className='section-title-main'>今日任务</Text>
+              <Text className='section-title-sub'>今天到期或已逾期的未完成任务</Text>
             </View>
-            <Text className='section-title-action' onClick={() => openForm('task')}>
-              新增任务
-            </Text>
+            {canWriteTasks ? (
+              <Text className='section-title-action' onClick={() => openForm('task')}>
+                新增任务
+              </Text>
+            ) : null}
           </View>
           <View className='card'>
             {tasks.length ? (
-              tasks.map((task) => (
-                <View className='todo-row' key={task.id}>
-                  <View className={`todo-icon${task.priority === 'high' ? ' red' : ''}`}>
-                    <Text>{task.priority === 'high' ? '!' : '✓'}</Text>
+              tasks.map((task) => {
+                const overdue = !!task.due_date && dateOnly(task.due_date) < todayStr
+                return (
+                  <View className='todo-row' key={task.id}>
+                    <View className={`todo-icon${task.priority === 'high' || overdue ? ' red' : ''}`}>
+                      <Text>{task.priority === 'high' || overdue ? '!' : '✓'}</Text>
+                    </View>
+                    <View className='todo-copy'>
+                      <Text className='todo-title'>{task.title}</Text>
+                      <Text className='todo-desc'>
+                        {task.description || '无补充说明'} · 截止 {dateOnly(task.due_date) || '未设置'}
+                        {overdue ? ' · 已逾期' : ''}
+                      </Text>
+                    </View>
+                    <View className='todo-side'>
+                      <Text className='todo-action'>{PRIORITY_LABELS[task.priority] || task.priority}优先级</Text>
+                      {canWriteTasks ? (
+                        <Text
+                          className='link-danger'
+                          onClick={() =>
+                            deleteRecord({
+                              module: 'tasks',
+                              resource: 'tasks',
+                              id: task.id,
+                              label: '任务',
+                              onDone: reload
+                            })
+                          }
+                        >
+                          删除
+                        </Text>
+                      ) : null}
+                    </View>
                   </View>
-                  <View className='todo-copy'>
-                    <Text className='todo-title'>{task.title}</Text>
-                    <Text className='todo-desc'>
-                      {task.description || '无补充说明'} · 截止 {dateOnly(task.due_date) || '未设置'}
-                    </Text>
-                  </View>
-                  <Text className='todo-action'>{task.priority}</Text>
-                </View>
-              ))
+                )
+              })
             ) : (
-              <EmptyState title='暂无生产任务' text='点击新增任务，可先调用优先级建议接口。' />
+              <EmptyState title='今日暂无到期任务' text='今天到期或已逾期的任务会显示在这里，也可手动新增任务。' />
             )}
           </View>
 
@@ -453,18 +512,15 @@ export default function Home() {
               <Text className='section-title-sub'>数据按账号隔离，保存在后台数据库</Text>
             </View>
           </View>
-          <View className='card'>
-            <View className='row-top'>
-              <View>
-                <Text className='row-title'>{account?.display_name || account?.username || '未登录'}</Text>
-                <Text className='row-desc'>
-                  账号：{account?.username || '--'} · 角色：{account?.role_label || roleLabel(account?.role)}
-                  {'\n'}
-                  本账号已保存基地 {dashboard.bases} 处、批次 {dashboard.batches} 批，记录仅本账号可见
-                </Text>
-              </View>
-              <Text className='badge'>数据独立保存</Text>
-            </View>
+          <View className='card card-center'>
+            {/* 账号名单独占一行并居中；徽标另起一行，避免把标题挤得偏离卡片中线 */}
+            <Text className='row-title card-center-title'>{account?.display_name || account?.username || '未登录'}</Text>
+            <Text className='badge card-center-badge'>数据独立保存</Text>
+            <Text className='row-desc card-center-desc'>
+              账号：{account?.username || '--'} · 角色：{account?.role_label || roleLabel(account?.role)}
+              {'\n'}
+              本账号已保存基地 {dashboard.bases} 处、批次 {dashboard.batches} 批，记录仅本账号可见
+            </Text>
             <View className='toolbar' style='margin-bottom:0'>
               <View className='btn secondary' onClick={() => setPermSheet(true)}>
                 角色权限说明
@@ -510,52 +566,65 @@ export default function Home() {
               密码是加密保存的，任何人都看不到原密码；用户忘记密码时，点其账号下方的「重置密码」设置一个新密码即可。
             </View>
             <ScrollView className='sheet-body' scrollY>
-              {/* 搜索账号：管理员输入关键字，点选结果后直接改职位 */}
-              <View className='field' style='margin-top:20px'>
-                <Text className='field-label'>搜索账号</Text>
-                <Input
-                  className='field-input'
-                  value={assignUser}
-                  placeholder='输入账号关键字，例如：wang'
-                  onInput={(event) => setAssignUser(event.detail.value)}
-                />
-              </View>
-              <View className='btn secondary full' style='margin-top:2px' onClick={handleSearchUser}>
-                搜索账号
-              </View>
-              {assignResults.length ? (
-                <View className='card' style='padding:6px 14px;margin-top:14px'>
-                  {assignResults.map((item) => (
-                    <View
-                      key={item.id}
-                      className='todo-row'
-                      style={item._picked ? 'background:#f2f9f4;border-radius:12px;padding:12px 10px' : ''}
-                      onClick={() => pickAssignTarget(item)}
-                    >
-                      <View className='todo-icon green'>{item._picked ? '✓' : '○'}</View>
-                      <View className='todo-copy'>
-                        <Text className='todo-title'>
-                          {item.username}
-                          {item.id === account?.id ? '（我）' : ''}
-                        </Text>
-                        <Text className='todo-desc'>
-                          {item.display_name || '未填称呼'} · 当前：{item.role_label || roleLabel(item.role)}
-                        </Text>
+              {/* 第 1 步：搜索并选择账号 —— 独立成块，与后续步骤留出明显界限 */}
+              <View className='assign-section'>
+                <View className='assign-section-head'>
+                  <Text className='assign-step'>1</Text>
+                  <Text className='assign-section-title'>搜索并选择账号</Text>
+                </View>
+                <View className='field' style='margin-bottom:14px'>
+                  <Text className='field-label'>账号关键字</Text>
+                  <Input
+                    className='field-input'
+                    value={assignUser}
+                    placeholder='输入账号关键字，例如：wang'
+                    onInput={(event) => setAssignUser(event.detail.value)}
+                  />
+                </View>
+                <View className='btn primary' onClick={handleSearchUser}>
+                  搜索账号
+                </View>
+                {assignResults.length ? (
+                  <View className='assign-list'>
+                    {assignResults.map((item) => (
+                      <View
+                        key={item.id}
+                        className='todo-row'
+                        style={item._picked ? 'background:#f2f9f4;border-radius:12px;padding:12px 10px' : ''}
+                        onClick={() => pickAssignTarget(item)}
+                      >
+                        <View className='todo-icon green'>{item._picked ? '✓' : '○'}</View>
+                        <View className='todo-copy'>
+                          <Text className='todo-title'>
+                            {item.username}
+                            {item.id === account?.id ? '（我）' : ''}
+                          </Text>
+                          <Text className='todo-desc'>
+                            {item.display_name || '未填称呼'} · 当前：{item.role_label || roleLabel(item.role)}
+                          </Text>
+                        </View>
+                        <Text className='todo-action'>{item._picked ? '已选择' : '选择'}</Text>
                       </View>
-                      <Text className='todo-action'>{item._picked ? '已选择' : '选择'}</Text>
-                    </View>
-                  ))}
+                    ))}
+                  </View>
+                ) : null}
+                {assignTarget ? (
+                  <View className='notice success' style='margin-top:16px;margin-bottom:0'>
+                    已选择：{assignTarget.username}（当前：{assignTarget.role_label || roleLabel(assignTarget.role)}），请在下方点选新职位。
+                  </View>
+                ) : (
+                  <View className='notice' style='margin-top:16px;margin-bottom:0'>
+                    先搜索并点选一个账号，再在下方点选新职位。
+                  </View>
+                )}
+              </View>
+
+              {/* 第 2 步：点选新职位 —— 与第 1 步分成两块，避免混在一起看不清层次 */}
+              <View className='assign-section'>
+                <View className='assign-section-head'>
+                  <Text className='assign-step'>2</Text>
+                  <Text className='assign-section-title'>点选新职位</Text>
                 </View>
-              ) : null}
-              {assignTarget ? (
-                <View className='notice success'>
-                  已选择：{assignTarget.username}（当前：{assignTarget.role_label || roleLabel(assignTarget.role)}），请在下方点选新职位。
-                </View>
-              ) : (
-                <View className='notice'>先搜索并点选一个账号，再在下方点选新职位。</View>
-              )}
-              <View className='field' style='margin-top:14px'>
-                <Text className='field-label'>分配职务（点选其中一个）</Text>
                 <View className='role-options'>
                   {ROLE_OPTIONS.map((item, index) => (
                     <View
@@ -567,16 +636,18 @@ export default function Home() {
                     </View>
                   ))}
                 </View>
-              </View>
-              <View className='btn primary' onClick={handleAssignByRole}>
-                {assigning ? '分配中...' : '确认分配'}
-              </View>
-              <View className='section-title'>
-                <View>
-                  <Text className='section-title-main'>全部账号</Text>
-                  <Text className='section-title-sub'>也可以在列表里直接点「分配职务」</Text>
+                <View className='btn primary' style='margin-top:20px' onClick={handleAssignByRole}>
+                  {assigning ? '分配中...' : '确认分配'}
                 </View>
               </View>
+
+              {/* 第 3 步：全部账号 —— 单独分区，与上面的操作区分隔开 */}
+              <View className='assign-section'>
+                <View className='assign-section-head'>
+                  <Text className='assign-step'>3</Text>
+                  <Text className='assign-section-title'>全部账号</Text>
+                </View>
+                <Text className='assign-section-sub'>也可以在列表里直接点「分配职务」</Text>
               {usersLoading ? (
                 <Text className='user-sub'>加载中...</Text>
               ) : (
@@ -626,6 +697,8 @@ export default function Home() {
                   </View>
                 ))
               )}
+              </View>
+
               <View className='sheet-actions'>
                 <View className='btn secondary' onClick={() => setUserSheet(false)}>
                   关闭
@@ -691,13 +764,13 @@ export default function Home() {
                 合作社/基地管理员：基地、批次、环境监测、预警、溯源事件、生产任务、大棚设备、供应、采购需求、合作方全部可录；账号列表只读；只能提问，不能回复。
               </View>
               <View className='notice'>
-                菇农（注册默认）：基地、批次、环境、预警、溯源、任务、设备可录；供应信息与采购需求只能浏览，不能发布采购需求；只能提问，不能回复他人提问。
+                菇农：基地、批次、环境、预警、溯源、任务、设备可录；供应信息与采购需求只能浏览，也可在市场下单采购；只能提问，不能回复他人提问。
               </View>
               <View className='notice'>
                 专家：业务数据全部只读；提问模块可写（用于回复用户提问）；不能修改生产与设备数据。
               </View>
               <View className='notice'>
-                采购商：基地、批次、溯源、供应信息只读；采购需求可发布；可提问。
+                采购商：基地、批次、环境、监测、溯源、供应信息只读；采购需求可发布；可在市场下单采购；可提问。
               </View>
               <View className='notice'>
                 政府/服务机构：全部业务数据只读，用于监管与统计查看，不能录入任何数据。

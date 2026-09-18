@@ -215,6 +215,12 @@ export default function Login() {
           {submitting ? '提交中...' : mode === 'login' ? '登录' : '注册并登录'}
         </View>
 
+        {mode === 'login' ? (
+          <Text className='field-hint' style='display:block;margin-top:16px;text-align:center'>
+            忘记密码？请联系平台管理员重置。
+          </Text>
+        ) : null}
+
         <View className='notice' style='margin:24px 0 0'>
           演示账号：demo / demo123456（数据带“演示”标记，可直接删除）。<br />
           注册时可选择菇农 / 基地管理员 / 采购商；「政府/服务机构」「专家」「平台管理员」不可自选，由平台管理员分配。

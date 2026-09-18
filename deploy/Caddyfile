@@ -1,0 +1,19 @@
+# 域名由 .env 里的 DOMAIN 控制：
+#   DOMAIN=gushi.example.com  ->  自动申请并续期 HTTPS 证书（80/443 需要放行，国内服务器需先备案）
+#   不配置（默认 :80）        ->  http://服务器IP 直接访问
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy app:3000
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+	}
+}

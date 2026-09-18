@@ -10,6 +10,8 @@
 > **GitHub 网页不支持预览 Word 文件**（点开只会提示下载），在线看请用上面的 Markdown 版。
 > Word 版由 `scripts/md-to-docx.js` 从 Markdown 生成，改完介绍书后执行
 > `npm install docx && node scripts/md-to-docx.js` 即可同步。
+>
+> 浏览器直接预览：打开 [`菇事云管家-功能预览.html`](./菇事云管家-功能预览.html)。
 
 | 目录 | 内容 |
 |---|---|

@@ -151,23 +151,37 @@ function buildContext(userId, baseId) {
   return { summary: parts.join('\n'), hasData: parts.length > 0 };
 }
 
+/** 外呼大模型的超时时间：对端挂起时快速降级到规则知识库，不长时间占用连接 */
+const AI_TIMEOUT_MS = 30000;
+
 async function callAi(question, context) {
   const baseUrl = text(process.env.AI_BASE_URL).replace(/\/$/, '');
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${text(process.env.AI_API_KEY)}` },
-    body: JSON.stringify({
-      model: modelName(),
-      temperature: 0.2,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: context.hasData ? `【本账号实时数据】\n${context.summary}\n\n【问题】\n${question}` : `【问题】\n${question}`
-        }
-      ]
-    })
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+  let response;
+  try {
+    response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${text(process.env.AI_API_KEY)}` },
+      body: JSON.stringify({
+        model: modelName(),
+        temperature: 0.2,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          {
+            role: 'user',
+            content: context.hasData ? `【本账号实时数据】\n${context.summary}\n\n【问题】\n${question}` : `【问题】\n${question}`
+          }
+        ]
+      })
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') throw new Error(`AI 接口响应超时（${AI_TIMEOUT_MS / 1000} 秒）`);
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!response.ok) {
     const detail = await response.text();
@@ -185,7 +199,7 @@ async function callAi(question, context) {
  * - 未配置或调用失败 → 规则知识库兜底（回答来源 rule），并在回答前注明原因
  * - save 为 true 时把问答记录写入 expert_questions，便于后续人工专家复核
  */
-async function answerQuestion({ question, userId, baseId = null, category = '', save = true }) {
+async function answerQuestion({ question, title = '', userId, baseId = null, category = '', save = true }) {
   const value = text(question);
   if (value.length < 4) {
     const error = new Error('问题描述太短，请至少输入 4 个字');
@@ -234,7 +248,7 @@ async function answerQuestion({ question, userId, baseId = null, category = '', 
       )
       .run(
         baseId ? Number(baseId) : null,
-        value.slice(0, 60),
+        text(title).slice(0, 80) || value.slice(0, 60),
         value,
         text(category) || (result.source === 'ai' ? 'AI 问答' : '规则知识库'),
         result.answer,

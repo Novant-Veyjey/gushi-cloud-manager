@@ -39,6 +39,7 @@ const Database = require(path.join(ROOT, '后台', 'node_modules', 'better-sqlit
 
   // 2) 后台
   fs.copyFileSync(path.join(ROOT, '后台', 'package.json'), path.join(deploy, 'package.json'));
+  fs.copyFileSync(path.join(ROOT, '后台', 'package-lock.json'), path.join(deploy, 'package-lock.json'));
   fs.copyFileSync(path.join(ROOT, '后台', '.env'), path.join(deploy, '.env'));
   for (const file of fs.readdirSync(path.join(ROOT, '后台', 'server'))) {
     if (file.endsWith('.js')) fs.copyFileSync(path.join(ROOT, '后台', 'server', file), path.join(deploy, 'server', file));
@@ -47,6 +48,12 @@ const Database = require(path.join(ROOT, '后台', 'node_modules', 'better-sqlit
   if (fs.existsSync(jwt)) fs.copyFileSync(jwt, path.join(deploy, 'server', 'data', 'jwt.secret'));
   const pub = path.join(ROOT, '后台', 'public');
   if (fs.existsSync(pub)) fs.cpSync(pub, path.join(deploy, 'public'), { recursive: true });
+
+  // 2.1) 部署模板：Docker / Compose / Caddy / 部署说明
+  for (const file of ['Caddyfile', 'DEPLOY.md', 'docker-compose.yml', 'Dockerfile', '.npmrc']) {
+    fs.copyFileSync(path.join(ROOT, 'deploy', file), path.join(deploy, file));
+  }
+
 
   // 3) 小程序 H5 产物
   const distH5 = path.join(ROOT, 'gushi-miniapp', 'dist-h5');
@@ -61,6 +68,8 @@ const Database = require(path.join(ROOT, '后台', 'node_modules', 'better-sqlit
   const css = fs.readFileSync(path.join(deploy, 'dist-h5', 'css', cssFile), 'utf8');
   const checks = [
     ['后台服务 app.js', fs.existsSync(path.join(deploy, 'server', 'app.js'))],
+    ['依赖锁 package-lock.json', fs.existsSync(path.join(deploy, 'package-lock.json'))],
+    ['Docker Compose 模板', fs.existsSync(path.join(deploy, 'docker-compose.yml'))],
     ['.env（AI 密钥等配置）', fs.existsSync(path.join(deploy, '.env'))],
     ['数据库快照', fs.existsSync(path.join(deploy, 'server', 'data', 'gushi.sqlite'))],
     ['市场交易接口 orders.js', fs.existsSync(path.join(deploy, 'server', 'orders.js'))],

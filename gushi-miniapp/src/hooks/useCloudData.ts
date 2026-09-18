@@ -74,7 +74,9 @@ export function useCloudData() {
       ])
       setData({ dashboard, bases, batches, devices, readings, alerts, questions, products, demands, tasks })
     } catch (err) {
-      setError((err as Error).message)
+      // 静默刷新（定时 / 页面再次显示）失败时保留已有数据、不弹全屏错误，
+      // 避免网络抖动一下整个页面变成「后台连接失败」
+      if (!silent) setError((err as Error).message)
     } finally {
       if (!silent) setLoading(false)
     }

@@ -45,6 +45,12 @@ Thumbs.db
 # ---------- 部署产物与 IDE 状态 ----------
 # _deploy / deploy 是 Cloud Studio 部署用的工作目录（源码与数据在 后台/ 和 gushi-miniapp/ 中）
 /_deploy/
-/deploy/
+# deploy 根目录只跟踪部署模板，运行期组装出的文件仍全部忽略
+/deploy/*
+!/deploy/.npmrc
+!/deploy/Caddyfile
+!/deploy/DEPLOY.md
+!/deploy/docker-compose.yml
+!/deploy/Dockerfile
 # CodeBuddy IDE 的本地状态与集成数据
 .codebuddy/

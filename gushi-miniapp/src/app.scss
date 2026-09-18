@@ -87,10 +87,13 @@ textarea,
   object-fit: cover !important;
 }
 
-/* ---------- 二级页面左上角返回入口 ---------- */
+/* ---------- 二级页面顶部导航行（左返回 / 右快捷入口） ---------- */
 .back-row {
   display: flex;
-  justify-content: flex-start;
+  align-items: center;
+  /* 左右布局：左侧返回、右侧快捷入口各靠一边 */
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 12px;
 }
 
@@ -105,6 +108,8 @@ textarea,
   color: var(--g800);
   font-size: 28px;
   font-weight: 800;
+  /* 同样不允许换行：高度固定，换行后第二行会掉出胶囊外 */
+  white-space: nowrap;
   box-shadow: 0 6px 16px rgba(27, 73, 52, 0.05);
   transition: background-color 0.15s ease, transform 0.12s ease;
 }
@@ -118,6 +123,21 @@ textarea,
   font-size: 38px;
   line-height: 1;
   margin-right: 8px;
+}
+
+/*
+ * 右侧快捷入口（如「溯源」）：宽度按内容收缩、不占满整行，才能和左侧返回并排；
+ * 内容用 flex 双向居中，行高再兜一层，保证文字严格居中不偏上偏下。
+ */
+.back-bar-action {
+  justify-content: center;
+  min-width: 132px;
+  padding: 0 26px;
+  background: var(--g100);
+  border-color: #d4e8d9;
+  font-weight: 900;
+  text-align: center;
+  line-height: 1;
 }
 
 /* ---------- 页面右上角的常用入口（账号管理 / 退出登录） ---------- */
@@ -284,11 +304,16 @@ textarea,
 }
 
 /* ---------- 标题 ---------- */
+/**
+ * 功能大标题（生产批次台账 / 基地档案 / 当前账号…）统一左对齐。
+ * 页面默认 text-align: center，这里显式声明，避免标题被居中后与副标题缩进不一致。
+ */
 .section-title {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   margin: 32px 4px 16px;
+  text-align: left;
 }
 
 .section-title-main {
@@ -382,6 +407,31 @@ textarea,
   color: var(--muted);
   line-height: 1.75;
   margin-top: 8px;
+}
+
+/*
+ * 卡片主信息居中组：编号（DEMO-20260901-01）、账号名、批次号这类标识文字统一居中，
+ * 徽标另起一行居中，说明文字同样居中，保证同类卡片在视觉上对齐方式完全一致。
+ * 用法：卡片加 .card-center，主信息 / 徽标 / 说明分别加对应修饰类。
+ */
+.card-center {
+  text-align: center;
+}
+
+.card-center-title {
+  display: block;
+  text-align: center;
+}
+
+.card-center-badge {
+  display: inline-block;
+  margin-top: 12px;
+}
+
+.card-center-desc {
+  margin-top: 14px;
+  /* 说明文字本意是多行（H5 默认会把文本里的换行折叠成空格），这里保留换行 */
+  white-space: pre-line;
 }
 
 .badge {
@@ -526,6 +576,12 @@ textarea,
   font-weight: 900;
   /* 带边框与不带边框的按钮保持同样高度，避免并排时错位 */
   box-sizing: border-box;
+  /**
+   * 按钮文案一律不换行。
+   * 按钮高度靠 line-height 撑，换行后第二行会落到按钮框外；
+   * 主按钮是白色文字，掉到浅色页面上就直接“看不见”，表现为少了一个字。
+   */
+  white-space: nowrap;
 }
 
 .btn.primary {
@@ -550,29 +606,97 @@ textarea,
   margin-left: 16px;
 }
 
+/**
+ * 溯源页操作行：「新增溯源事件」+「批次台账」并排。
+ * 新增按钮不再独占整行（原来一行只放一个按钮，右侧大片空白），
+ * 文案仍按大标题处理：字号更大、左侧对齐。
+ */
+.add-toolbar {
+  margin: 26px 0 0;
+  gap: 14px;
+}
+
+.add-block {
+  display: block;
+  /* 保证「＋ 新增溯源事件」7 个字一行放得下：窄屏下先让右侧按钮收窄，不把文字挤到第二行 */
+  min-width: 300px;
+  /* 不换行：白字一旦换行会掉到按钮外，落在浅色背景上就“看不见”了（之前少了个「件」字就是这个原因） */
+  white-space: nowrap;
+  height: 96px;
+  line-height: 96px;
+  font-size: 34px;
+  text-align: left;
+  padding: 0 20px;
+  box-sizing: border-box;
+  letter-spacing: 2px;
+}
+
+/*
+ * 右侧配套入口：宽度在 7 个字（210px）基础上再加长 0.5 倍 → 315px，高度与新增按钮齐平。
+ * 全部尺寸都是设计稿像素（会按 750 稿换算成 rem），所以各机型上占宽比例一致；
+ * 用 flex-shrink:1 + min-width 兜底：空间实在不够时它先让位，避免挤压左侧文案。
+ */
+.add-side {
+  flex: 0 1 auto;
+  width: 315px;
+  min-width: 200px;
+  height: 96px;
+  line-height: 96px;
+  padding: 0;
+  font-size: 30px;
+}
+
+/* 说明性内容居中排布 */
+.intro-toolbar {
+  margin: 22px 0 4px;
+  justify-content: center;
+}
+
+.intro-toolbar .meta {
+  margin-top: 0;
+  text-align: center;
+}
+
 /* ---------- 搜索 ---------- */
 .search {
   flex: 1;
+  /* 允许被压缩：窄屏时输入框先占满剩余宽度，而不是被固定宽度的查询按钮挤到只剩几个字 */
+  min-width: 0;
   height: 84px;
   background: #ffffff;
   border: 1px solid var(--line);
   border-radius: 26px;
   display: flex;
   align-items: center;
-  padding: 0 24px;
+  padding: 0 16px;
   box-sizing: border-box;
 }
 
 .search-input {
   flex: 1;
-  font-size: 30px;
+  /* 不加 min-width: 0 时输入框会被 flex 撑到内容宽度，导致文字溢出被裁掉 */
+  min-width: 0;
+  /* 字号略收：窄屏上多显示 3~4 个字，提示文字与批次编号都能完整显示 */
+  font-size: 28px;
   color: var(--ink);
 }
 
 .search-icon {
   font-size: 32px;
   color: #8b9990;
-  margin-right: 12px;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+/* 搜索行左右布局：输入框占满剩余宽度，查询按钮按内容收窄（320px 小屏也不挤压输入框） */
+.search-toolbar {
+  gap: 12px;
+}
+
+.search-submit {
+  flex: 0 0 auto;
+  min-width: 110px;
+  padding: 0 22px;
 }
 
 /* ---------- 空状态 / 提示 ---------- */
@@ -686,11 +810,6 @@ textarea,
 }
 
 /* ---------- 产品 ---------- */
-.product-row {
-  display: flex;
-  align-items: flex-start;
-}
-
 .product-icon {
   width: 96px;
   height: 96px;
@@ -703,6 +822,15 @@ textarea,
   margin-right: 20px;
   font-size: 50px;
   flex-shrink: 0;
+}
+
+/*
+ * 产品图标居中变体：图标在卡片里单独占一行居中（产品名 / 徽标 / 说明依次居中）。
+ * 必须写在 .product-icon 之后，否则会被上面的 margin-right 覆盖，
+ * 只剩 margin-left: auto 生效，图标反而被挤到卡片右侧。
+ */
+.product-icon-center {
+  margin: 0 auto 16px;
 }
 
 .product-icon-img {
@@ -727,6 +855,8 @@ textarea,
   color: var(--muted);
   font-weight: 800;
   margin-bottom: 10px;
+  /* 与下方的输入框对齐：标签居左，输入内容同样居左，避免标签居中、输入居左的错位观感 */
+  text-align: left;
 }
 
 /* 字段下方的小字提示（如注册身份说明） */
@@ -766,6 +896,63 @@ textarea,
   border-color: var(--g800);
   color: #ffffff;
   font-weight: 800;
+}
+
+/*
+ * 职位分配：把「搜索选择账号 / 点选新职位 / 全部账号」拆成三块，
+ * 每块用白底卡片 + 边框包裹并留出段间距，避免内容糊成一片、分不清步骤。
+ */
+.assign-section {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  box-shadow: 0 10px 26px rgba(25, 70, 49, 0.05);
+  padding: 22px 20px;
+  margin-bottom: 22px;
+}
+
+/* 块标题：左侧序号胶囊 + 加粗标题，一眼看出这是独立的一步 */
+.assign-section-head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.assign-step {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  text-align: center;
+  border-radius: 50%;
+  background: var(--g100);
+  color: var(--g800);
+  font-size: 26px;
+  font-weight: 900;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.assign-section-title {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--ink);
+}
+
+.assign-section-sub {
+  display: block;
+  font-size: 26px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0 0 14px;
+}
+
+/* 搜索结果列表：浅底内嵌块，与卡片本体再区分一层 */
+.assign-list {
+  margin-top: 16px;
+  padding: 6px 14px;
+  background: #f8fbf9;
+  border: 1px solid #e8f0ea;
+  border-radius: 20px;
 }
 
 .field-input {

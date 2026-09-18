@@ -9,6 +9,8 @@ import StateHint from '@/components/StateHint'
 import { buildFormConfigs, type FormConfig } from '@/config/forms'
 import { batchCodeOf, useCloudData } from '@/hooks/useCloudData'
 import { FORM_MODULE, can, guard } from '@/utils/permission'
+import { deleteRecord } from '@/utils/deleteRecord'
+import { getUser } from '@/utils/storage'
 import { api, assetUrl } from '@/utils/request'
 import { dateOnly, money, readableTime, today } from '@/utils/format'
 import type { Demand, Order, Product } from '@/types'
@@ -22,6 +24,12 @@ interface SharedProduct extends Product {
   owner_username?: string
   base_name?: string
   batch_code?: string
+}
+
+/** 平台其他账号发布的有效采购需求（status 为 open / active），只读对接 */
+interface SharedDemand extends Demand {
+  owner_name?: string
+  owner_username?: string
 }
 
 /** 供应信息状态：按「上架日期 / 下架日期」与当天日期自动判定 */
@@ -84,6 +92,8 @@ export default function Market() {
   const [activeForm, setActiveForm] = useState<FormConfig | null>(null)
   const [sharedProducts, setSharedProducts] = useState<SharedProduct[]>([])
   const [sharedLoading, setSharedLoading] = useState(true)
+  const [sharedDemands, setSharedDemands] = useState<SharedDemand[]>([])
+  const [sharedDemandsLoading, setSharedDemandsLoading] = useState(true)
   const [orders, setOrders] = useState<Order[]>([])
   const [ordersLoading, setOrdersLoading] = useState(true)
   /** 订单分区：buyer=我采购的，seller=我收到的（作为供货方） */
@@ -99,6 +109,24 @@ export default function Market() {
       setSharedProducts([])
     } finally {
       setSharedLoading(false)
+    }
+  }, [])
+
+  /** 拉取平台其他账号发布的有效采购需求（只读，用于产销对接） */
+  const loadSharedDemands = useCallback(async () => {
+    if (!can('demands', 'r')) {
+      setSharedDemands([])
+      setSharedDemandsLoading(false)
+      return
+    }
+    try {
+      const rows = await api<SharedDemand[]>('/api/demands/shared')
+      setSharedDemands(rows || [])
+    } catch (err) {
+      // 无权限或后台异常时保持空列表，绝不填充编造数据
+      setSharedDemands([])
+    } finally {
+      setSharedDemandsLoading(false)
     }
   }, [])
 
@@ -121,6 +149,7 @@ export default function Market() {
 
   useDidShow(() => {
     loadShared()
+    loadSharedDemands()
     loadOrders()
   })
 
@@ -212,7 +241,14 @@ export default function Market() {
           </View>
         ) : null}
         {can('demands', 'w') ? (
-          <View className={`btn ${can('products', 'w') ? 'secondary' : 'primary'}`} onClick={() => openForm('demand')}>
+          <View
+            className={`btn ${can('products', 'w') ? 'secondary' : 'primary'}`}
+            onClick={() => {
+              // 采购方名称默认带当前账号昵称（可在表单里改），减少重复填写
+              const me = getUser()
+              openForm('demand', { buyer_name: me?.display_name || me?.username || '' })
+            }}
+          >
             发布采购需求
           </View>
         ) : null}
@@ -246,24 +282,19 @@ export default function Market() {
             <Text className='meta'>正在加载订单...</Text>
           ) : visibleOrders.length ? (
             visibleOrders.map((order) => (
-              <View className='card' key={order.id}>
-                <View className='row-top'>
-                  <View className='product-row'>
-                    <View className='product-icon'>{renderIcon(order.product_icon, order.product_name)}</View>
-                    <View>
-                      <Text className='row-title'>{order.product_name}</Text>
-                      <Text className='row-desc'>
-                        订单号：{order.order_no}
-                        {'\n'}
-                        {order.side === 'buyer'
-                          ? `供货方：${order.seller_name || '其他账号'}`
-                          : `采购方：${order.buyer_name || '其他账号'}`}
-                        {order.base_name ? ` · ${order.base_name}` : ''}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text className={`badge${ORDER_BADGE[order.status] || ''}`}>{order.status_label}</Text>
-                </View>
+              <View className='card card-center' key={order.id}>
+                {/* 订单卡片同样居中：图标一行、商品名、状态徽标、订单信息依次居中 */}
+                <View className='product-icon product-icon-center'>{renderIcon(order.product_icon, order.product_name)}</View>
+                <Text className='row-title card-center-title'>{order.product_name}</Text>
+                <Text className={`badge card-center-badge${ORDER_BADGE[order.status] || ''}`}>{order.status_label}</Text>
+                <Text className='row-desc card-center-desc'>
+                  订单号：{order.order_no}
+                  {'\n'}
+                  {order.side === 'buyer'
+                    ? `供货方：${order.seller_name || '其他账号'}`
+                    : `采购方：${order.buyer_name || '其他账号'}`}
+                  {order.base_name ? ` · ${order.base_name}` : ''}
+                </Text>
 
                 <View className='metric-line'>
                   <View className='metric-line-item'>
@@ -343,23 +374,18 @@ export default function Market() {
 
           {data.products.length ? (
             data.products.map((product) => (
-              <View className='card' key={product.id}>
-                <View className='row-top'>
-                  <View className='product-row'>
-                    <View className='product-icon'>{renderIcon(product.icon, product.name)}</View>
-                    <View>
-                      <Text className='row-title'>{product.name}</Text>
-                      <Text className='row-desc'>
-                        批次：{batchCodeOf(data.batches, product.batch_id)}
-                        {'\n'}
-                        上架：{dateOnly(product.available_date) || '未设置'} · 下架：{dateOnly(product.off_shelf_date) || '未设置'}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text className={`badge${productState(product).plain ? ' plain' : ''}`}>
-                    {productState(product).label}
-                  </Text>
-                </View>
+              <View className='card card-center' key={product.id}>
+                {/* 产品图标、名称、状态徽标与说明统一居中，与批次 / 基地卡片同一套对齐规则 */}
+                <View className='product-icon product-icon-center'>{renderIcon(product.icon, product.name)}</View>
+                <Text className='row-title card-center-title'>{product.name}</Text>
+                <Text className={`badge card-center-badge${productState(product).plain ? ' plain' : ''}`}>
+                  {productState(product).label}
+                </Text>
+                <Text className='row-desc card-center-desc'>
+                  批次：{batchCodeOf(data.batches, product.batch_id)}
+                  {'\n'}
+                  上架：{dateOnly(product.available_date) || '未设置'} · 下架：{dateOnly(product.off_shelf_date) || '未设置'}
+                </Text>
                 <View className='metric-line'>
                   <View className='metric-line-item'>
                     <Text className='metric-line-label'>数量</Text>
@@ -379,15 +405,33 @@ export default function Market() {
                 <Text className='meta'>{product.description || '暂无说明'}</Text>
                 {/* 仅基地管理员与平台管理员可修改自己发布的供应（后端同样校验 products 写权限） */}
                 {can('products', 'w') ? (
-                  <View className='toolbar' style='margin-bottom:0'>
-                    <View className='btn secondary' onClick={() => openForm('productEdit', productPreset(product))}>
-                      修改
+                  <View>
+                    <View className='toolbar' style='margin-bottom:0'>
+                      <View className='btn secondary' onClick={() => openForm('productEdit', productPreset(product))}>
+                        修改
+                      </View>
+                      <View
+                        className='btn secondary'
+                        onClick={() => openForm('icon', { id: String(product.id), icon: product.icon || '🍄' })}
+                      >
+                        更换产品图标
+                      </View>
                     </View>
-                    <View
-                      className='btn secondary'
-                      onClick={() => openForm('icon', { id: String(product.id), icon: product.icon || '🍄' })}
-                    >
-                      更换产品图标
+                    <View className='row-actions'>
+                      <Text
+                        className='link-danger'
+                        onClick={() =>
+                          deleteRecord({
+                            module: 'products',
+                            resource: 'products',
+                            id: product.id,
+                            label: '供应信息',
+                            onDone: () => reload(true)
+                          })
+                        }
+                      >
+                        删除下架
+                      </Text>
                     </View>
                   </View>
                 ) : null}
@@ -406,25 +450,40 @@ export default function Market() {
 
           {data.demands.length ? (
             data.demands.map((demand) => (
-              <View className='card' key={demand.id}>
-                <View className='row-top'>
-                  <View>
-                    <Text className='row-title'>{demand.buyer_name}</Text>
-                    <Text className='row-desc'>
-                      {demand.product_name} · {demand.quantity} {demand.unit}
-                    </Text>
-                  </View>
-                  <Text className='badge'>¥{money(demand.price)}</Text>
-                </View>
+              <View className='card card-center' key={demand.id}>
+                {/* 采购方、价格徽标与需求说明居中，与供应信息卡片保持一致 */}
+                <Text className='row-title card-center-title'>{demand.buyer_name}</Text>
+                <Text className='badge card-center-badge'>¥{money(demand.price)}</Text>
+                <Text className='row-desc card-center-desc'>
+                  {demand.product_name} · {demand.quantity} {demand.unit}
+                </Text>
                 <Text className='meta'>
                   {demand.requirements || '暂无补充要求'}
                   {demand.contact ? ` · 联系方式：${demand.contact}` : ''}
                 </Text>
                 {/* 仅采购商、基地管理员与平台管理员可修改自己发布的采购需求 */}
                 {can('demands', 'w') ? (
-                  <View className='toolbar' style='margin-bottom:0'>
-                    <View className='btn secondary' onClick={() => openForm('demandEdit', demandPreset(demand))}>
-                      修改
+                  <View>
+                    <View className='toolbar' style='margin-bottom:0'>
+                      <View className='btn secondary' onClick={() => openForm('demandEdit', demandPreset(demand))}>
+                        修改
+                      </View>
+                    </View>
+                    <View className='row-actions'>
+                      <Text
+                        className='link-danger'
+                        onClick={() =>
+                          deleteRecord({
+                            module: 'demands',
+                            resource: 'demands',
+                            id: demand.id,
+                            label: '采购需求',
+                            onDone: () => reload(true)
+                          })
+                        }
+                      >
+                        删除需求
+                      </Text>
                     </View>
                   </View>
                 ) : null}
@@ -432,6 +491,39 @@ export default function Market() {
             ))
           ) : (
             <EmptyState title='暂无采购需求' text='点击发布采购需求，保存真实采购方和产品需求。' />
+          )}
+
+          {/* 平台其他账号发布的有效采购需求：互通可见、只读查看（没有修改/删除入口） */}
+          <View className='section-title'>
+            <View>
+              <Text className='section-title-main'>其他采购需求</Text>
+              <Text className='section-title-sub'>来自平台其他账号的有效需求，只读查看，便于对接供货</Text>
+            </View>
+            <Text className='badge plain'>只读</Text>
+          </View>
+
+          {sharedDemandsLoading ? (
+            <Text className='meta'>正在加载其他采购需求...</Text>
+          ) : sharedDemands.length ? (
+            sharedDemands.map((item) => (
+              <View className='card card-center' key={item.id}>
+                {/* 只读的其他账号需求，同样居中显示 */}
+                <Text className='row-title card-center-title'>{item.product_name}</Text>
+                <Text className='badge plain card-center-badge'>其他账号</Text>
+                <Text className='row-desc card-center-desc'>
+                  发布者：{item.owner_name || item.owner_username || '其他账号'}
+                  {'\n'}
+                  {item.quantity} {item.unit} · 期望 ¥{money(item.price)}/{item.unit}
+                </Text>
+                <Text className='meta'>
+                  采购方：{item.buyer_name || '未填写'}
+                  {item.requirements ? ` · 要求：${item.requirements}` : ''}
+                  {item.contact ? `\n联系方式：${item.contact}` : ''}
+                </Text>
+              </View>
+            ))
+          ) : (
+            <EmptyState title='暂无其他采购需求' text='其他账号发布采购需求后会自动出现在这里，方便产销对接。' />
           )}
 
           {/* 平台其他账号上架的供应信息：互通可见、只读查看（没有修改/删除入口） */}
@@ -447,23 +539,18 @@ export default function Market() {
             <Text className='meta'>正在加载其他账号的供应信息...</Text>
           ) : sharedProducts.length ? (
             sharedProducts.map((item) => (
-              <View className='card' key={item.id}>
-                <View className='row-top'>
-                  <View className='product-row'>
-                    <View className='product-icon'>{renderIcon(item.icon, item.name)}</View>
-                    <View>
-                      <Text className='row-title'>{item.name}</Text>
-                      <Text className='row-desc'>
-                        发布者：{item.owner_name || item.owner_username || '其他账号'}
-                        {item.base_name ? ` · ${item.base_name}` : ''}
-                        {'\n'}
-                        批次：{item.batch_code || batchCodeOf(data.batches, item.batch_id)} · 上架：
-                        {dateOnly(item.available_date) || '未设置'} · 下架：{dateOnly(item.off_shelf_date) || '未设置'}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text className='badge plain'>其他账号</Text>
-                </View>
+              <View className='card card-center' key={item.id}>
+                {/* 只读的其他账号供应信息，与自建供应卡片同一套居中规则 */}
+                <View className='product-icon product-icon-center'>{renderIcon(item.icon, item.name)}</View>
+                <Text className='row-title card-center-title'>{item.name}</Text>
+                <Text className='badge plain card-center-badge'>其他账号</Text>
+                <Text className='row-desc card-center-desc'>
+                  发布者：{item.owner_name || item.owner_username || '其他账号'}
+                  {item.base_name ? ` · ${item.base_name}` : ''}
+                  {'\n'}
+                  批次：{item.batch_code || batchCodeOf(data.batches, item.batch_id)} · 上架：
+                  {dateOnly(item.available_date) || '未设置'} · 下架：{dateOnly(item.off_shelf_date) || '未设置'}
+                </Text>
                 <View className='metric-line'>
                   <View className='metric-line-item'>
                     <Text className='metric-line-label'>数量</Text>
@@ -505,8 +592,8 @@ export default function Market() {
         config={activeForm}
         onClose={() => setActiveForm(null)}
         onSaved={async () => {
-          // 下单/发布后同时刷新业务数据与订单列表，库存与订单状态立刻同步
-          await Promise.all([loadOrders(), reload(true)])
+          // 下单/发布后同时刷新业务数据、订单与共享列表，库存与订单状态立刻同步
+          await Promise.all([loadOrders(), loadSharedDemands(), reload(true)])
         }}
       />
     </View>

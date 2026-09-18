@@ -1,0 +1,22 @@
+{
+  "name": "gushi-cloud-manager",
+  "version": "0.1.0",
+  "private": true,
+  "description": "菇事云管家：数字技术赋能赣北食用菌产业振兴",
+  "scripts": {
+    "install:all": "npm --prefix 后台 install && npm --prefix gushi-miniapp install",
+    "start": "npm --prefix 后台 start",
+    "dev:server": "npm --prefix 后台 run dev",
+    "seed:demo": "npm --prefix 后台 run seed:demo",
+    "build:weapp": "npm --prefix gushi-miniapp run build:weapp",
+    "build:h5": "npm --prefix gushi-miniapp run build:h5",
+    "preview:h5": "npm --prefix gushi-miniapp run preview:h5",
+    "type-check": "npm --prefix gushi-miniapp run type-check",
+    "test": "npm --prefix 后台 test",
+    "test:mqtt": "npm --prefix 后台 run test:mqtt",
+    "deploy:prepare": "npm run build:h5 && node scripts/prep-deploy.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -220,7 +220,7 @@ export function buildFormConfigs(data: CloudData): Record<string, FormConfig> {
           options: requiredBaseOptions,
           placeholder: '请选择基地'
         },
-        { name: 'device_name', label: '设备名称', required: true, placeholder: '例如：1 号棚温湿度传感器' },
+        { name: 'device_name', label: '设备名称', placeholder: '例如：1 号棚温湿度传感器（手动补录可不填）' },
         { name: 'temperature', label: '温度（℃）', type: 'number' },
         { name: 'humidity', label: '湿度（%）', type: 'number' },
         { name: 'co2', label: 'CO₂（ppm）', type: 'number' },

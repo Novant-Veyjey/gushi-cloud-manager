@@ -8,8 +8,9 @@ import FormSheet from '@/components/FormSheet'
 import StateHint from '@/components/StateHint'
 import { buildFormConfigs, type FormConfig } from '@/config/forms'
 import { baseNameOf, useCloudData } from '@/hooks/useCloudData'
-import { PRIORITY_LABELS } from '@/config'
-import { FORM_MODULE, guard } from '@/utils/permission'
+import { BATCH_STATUS_LABELS, PRIORITY_LABELS } from '@/config'
+import { deleteRecord } from '@/utils/deleteRecord'
+import { FORM_MODULE, can, guard } from '@/utils/permission'
 import { api } from '@/utils/request'
 import { dateOnly, today } from '@/utils/format'
 import type { PrioritySuggestion } from '@/types'
@@ -23,6 +24,11 @@ export default function Production() {
   const [suggestDueDate, setSuggestDueDate] = useState(today())
   const [suggestion, setSuggestion] = useState<PrioritySuggestion | null>(null)
   const [suggesting, setSuggesting] = useState(false)
+  const [creatingTask, setCreatingTask] = useState(false)
+
+  const canWriteBatches = can('batches', 'w')
+  const canWriteBases = can('bases', 'w')
+  const canWriteTasks = can('tasks', 'w')
 
   const openForm = (key: string, preset?: Record<string, string>) => {
     const config = forms[key]
@@ -59,18 +65,54 @@ export default function Production() {
     }
   }
 
+  /** 按 AI / 规则引擎给出的优先级一键创建任务，不再弹表单二次填写 */
+  const createTaskFromSuggestion = async () => {
+    if (!guard('tasks', 'w')) return
+    if (!suggestion || creatingTask) return
+    setCreatingTask(true)
+    try {
+      await api('/api/tasks', {
+        method: 'POST',
+        data: {
+          title: suggestTitle.trim(),
+          description: `按优先级建议创建：${suggestion.reason}`,
+          due_date: suggestDueDate,
+          priority: suggestion.priority
+        }
+      })
+      Taro.showToast({ title: '任务已创建', icon: 'success' })
+      setSuggestion(null)
+      setSuggestTitle('')
+      await reload(true)
+    } catch (err) {
+      Taro.showToast({ title: (err as Error).message, icon: 'none' })
+    } finally {
+      setCreatingTask(false)
+    }
+  }
+
   return (
     <View className='page'>
-      <BrandBar title='生产批次' sub='菌棒与生产记录' onAdd={() => openForm('batch')} />
+      <BrandBar
+        title='生产批次'
+        sub='菌棒与生产记录'
+        onAdd={canWriteBatches ? () => openForm('batch') : undefined}
+      />
 
-      <View className='toolbar'>
-        <View className='btn primary' onClick={() => openForm('batch')}>
-          ＋ 新增批次
+      {canWriteBatches || canWriteBases ? (
+        <View className='toolbar'>
+          {canWriteBatches ? (
+            <View className='btn primary' onClick={() => openForm('batch')}>
+              ＋ 新增批次
+            </View>
+          ) : null}
+          {canWriteBases ? (
+            <View className='btn secondary' onClick={() => openForm('base')}>
+              新增基地
+            </View>
+          ) : null}
         </View>
-        <View className='btn secondary' onClick={() => openForm('base')}>
-          新增基地
-        </View>
-      </View>
+      ) : null}
 
       {loading || error ? (
         <StateHint loading={loading} error={error} onRetry={reload} />
@@ -85,19 +127,16 @@ export default function Production() {
 
           {data.batches.length ? (
             data.batches.map((batch) => (
-              <View className='card' key={batch.id}>
-                <View className='row-top'>
-                  <View>
-                    <Text className='row-title'>{batch.code}</Text>
-                    <Text className='row-desc'>
-                      {baseNameOf(data.bases, batch.base_id)}
-                      {'\n'}
-                      {batch.mushroom_type}
-                      {batch.variety ? ` · ${batch.variety}` : ''} · {batch.quantity} 棒
-                    </Text>
-                  </View>
-                  <Text className='badge'>{batch.stage}</Text>
-                </View>
+              <View className='card card-center' key={batch.id}>
+                {/* 批次编号居中显示，与下方指标卡的对齐方式保持一致 */}
+                <Text className='row-title card-center-title'>{batch.code}</Text>
+                <Text className='badge card-center-badge'>{batch.stage}</Text>
+                <Text className='row-desc card-center-desc'>
+                  {baseNameOf(data.bases, batch.base_id)}
+                  {'\n'}
+                  {batch.mushroom_type}
+                  {batch.variety ? ` · ${batch.variety}` : ''} · {batch.quantity} 棒
+                </Text>
                 <View className='metric-line'>
                   <View className='metric-line-item'>
                     <Text className='metric-line-label'>入库日期</Text>
@@ -109,9 +148,27 @@ export default function Production() {
                   </View>
                   <View className='metric-line-item'>
                     <Text className='metric-line-label'>状态</Text>
-                    <Text className='metric-line-value'>{batch.status}</Text>
+                    <Text className='metric-line-value'>{BATCH_STATUS_LABELS[batch.status] || batch.status}</Text>
                   </View>
                 </View>
+                {canWriteBatches ? (
+                  <View className='row-actions'>
+                    <Text
+                      className='link-danger'
+                      onClick={() =>
+                        deleteRecord({
+                          module: 'batches',
+                          resource: 'batches',
+                          id: batch.id,
+                          label: '批次',
+                          onDone: reload
+                        })
+                      }
+                    >
+                      删除批次
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             ))
           ) : (
@@ -120,81 +177,136 @@ export default function Production() {
 
           <View className='section-title'>
             <View>
-              <Text className='section-title-main'>任务优先级建议</Text>
-              <Text className='section-title-sub'>调用 /api/ai/suggest-priority，无 AI 密钥时自动降级为规则引擎</Text>
+              <Text className='section-title-main'>基地档案</Text>
+              <Text className='section-title-sub'>批次、设备与环境数据都归属到具体基地</Text>
             </View>
           </View>
-          <View className='card'>
-            <View className='field'>
-              <Text className='field-label'>任务标题</Text>
-              <Input
-                className='field-input'
-                value={suggestTitle}
-                placeholder='例如：3 号棚温度异常，立即检查通风'
-                onInput={(event) => setSuggestTitle(event.detail.value)}
-              />
-            </View>
-            <View className='field'>
-              <Text className='field-label'>截止日期</Text>
-              <Picker mode='date' value={suggestDueDate} onChange={(event) => setSuggestDueDate(String(event.detail.value))}>
-                <View className='field-picker filled'>{suggestDueDate}</View>
-              </Picker>
-            </View>
-            <View className='btn primary' onClick={handleSuggest}>
-              {suggesting ? '分析中...' : '获取优先级建议'}
-            </View>
-            {suggestion ? (
-              <View className='notice success' style='margin-top:20px'>
-                建议优先级：{PRIORITY_LABELS[suggestion.priority] || suggestion.priority}（来源：
-                {suggestion.source === 'ai' ? 'AI' : '规则引擎'}）{'\n'}
-                {suggestion.reason}
-              </View>
-            ) : null}
-            {suggestion ? (
-              <View
-                className='btn secondary'
-                onClick={() =>
-                  openForm('task', {
-                    title: suggestTitle,
-                    due_date: suggestDueDate,
-                    priority: suggestion.priority
-                  })
-                }
-              >
-                按该建议新增任务
-              </View>
-            ) : null}
-          </View>
-
-          <View className='section-title'>
-            <View>
-              <Text className='section-title-main'>生产任务</Text>
-              <Text className='section-title-sub'>任务保存后写入数据库</Text>
-            </View>
-            <Text className='section-title-action' onClick={() => openForm('task')}>
-              新增
-            </Text>
-          </View>
-          <View className='card'>
-            {data.tasks.length ? (
-              data.tasks.map((task) => (
-                <View className='todo-row' key={task.id}>
-                  <View className={`todo-icon${task.priority === 'high' ? ' red' : ''}`}>
-                    <Text>{task.priority === 'high' ? '!' : '✓'}</Text>
-                  </View>
-                  <View className='todo-copy'>
-                    <Text className='todo-title'>{task.title}</Text>
-                    <Text className='todo-desc'>
-                      {task.description || '无补充说明'} · 截止 {dateOnly(task.due_date) || '未设置'} · 优先级{' '}
-                      {PRIORITY_LABELS[task.priority] || task.priority}
+          {data.bases.length ? (
+            data.bases.map((base) => (
+              <View className='card card-center' key={base.id}>
+                {/* 基地名称同样居中，与批次卡片的编号对齐方式统一 */}
+                <Text className='row-title card-center-title'>{base.name}</Text>
+                <Text className='badge plain card-center-badge'>
+                  {base.status === 'active' ? '使用中' : base.status || '使用中'}
+                </Text>
+                <Text className='row-desc card-center-desc'>
+                  {[base.township, base.address].filter(Boolean).join(' · ') || '未填写地址'}
+                  {base.contact_name ? ` · 联系人：${base.contact_name}` : ''}
+                  {base.contact_phone ? ` ${base.contact_phone}` : ''}
+                  {base.area_mu ? ` · ${base.area_mu} 亩` : ''}
+                </Text>
+                {canWriteBases ? (
+                  <View className='row-actions'>
+                    <Text
+                      className='link-danger'
+                      onClick={() =>
+                        deleteRecord({
+                          module: 'bases',
+                          resource: 'bases',
+                          id: base.id,
+                          label: '基地',
+                          onDone: reload
+                        })
+                      }
+                    >
+                      删除基地
                     </Text>
                   </View>
+                ) : null}
+              </View>
+            ))
+          ) : (
+            <EmptyState title='暂无基地档案' text='先新增基地，再录入批次、接入大棚设备。' />
+          )}
+
+          {canWriteTasks ? (
+            <View>
+              <View className='section-title'>
+                <View>
+                  <Text className='section-title-main'>任务优先级建议</Text>
+                  <Text className='section-title-sub'>调用 /api/ai/suggest-priority，无 AI 密钥时自动降级为规则引擎</Text>
                 </View>
-              ))
-            ) : (
-              <EmptyState title='暂无生产任务' text='点击新增，可先在上方获取优先级建议。' />
-            )}
-          </View>
+              </View>
+              <View className='card'>
+                <View className='field'>
+                  <Text className='field-label'>任务标题</Text>
+                  <Input
+                    className='field-input'
+                    value={suggestTitle}
+                    placeholder='例如：3 号棚温度异常，立即检查通风'
+                    onInput={(event) => setSuggestTitle(event.detail.value)}
+                  />
+                </View>
+                <View className='field'>
+                  <Text className='field-label'>截止日期</Text>
+                  <Picker mode='date' value={suggestDueDate} onChange={(event) => setSuggestDueDate(String(event.detail.value))}>
+                    <View className='field-picker filled'>{suggestDueDate}</View>
+                  </Picker>
+                </View>
+                <View className='btn primary' onClick={handleSuggest}>
+                  {suggesting ? '分析中...' : '获取优先级建议'}
+                </View>
+                {suggestion ? (
+                  <View className='notice success' style='margin-top:20px'>
+                    建议优先级：{PRIORITY_LABELS[suggestion.priority] || suggestion.priority}（来源：
+                    {suggestion.source === 'ai' ? 'AI' : '规则引擎'}）{'\n'}
+                    {suggestion.reason}
+                  </View>
+                ) : null}
+                {suggestion ? (
+                  <View className='btn secondary' onClick={createTaskFromSuggestion}>
+                    {creatingTask ? '创建中...' : '按该建议一键创建任务'}
+                  </View>
+                ) : null}
+              </View>
+
+              <View className='section-title'>
+                <View>
+                  <Text className='section-title-main'>生产任务</Text>
+                  <Text className='section-title-sub'>任务保存后写入数据库</Text>
+                </View>
+                <Text className='section-title-action' onClick={() => openForm('task')}>
+                  新增
+                </Text>
+              </View>
+              <View className='card'>
+                {data.tasks.length ? (
+                  data.tasks.map((task) => (
+                    <View className='todo-row' key={task.id}>
+                      <View className={`todo-icon${task.priority === 'high' ? ' red' : ''}`}>
+                        <Text>{task.priority === 'high' ? '!' : '✓'}</Text>
+                      </View>
+                      <View className='todo-copy'>
+                        <Text className='todo-title'>{task.title}</Text>
+                        <Text className='todo-desc'>
+                          {task.description || '无补充说明'} · 截止 {dateOnly(task.due_date) || '未设置'} · 优先级{' '}
+                          {PRIORITY_LABELS[task.priority] || task.priority}
+                        </Text>
+                      </View>
+                      <View className='todo-side'>
+                        <Text
+                          className='link-danger'
+                          onClick={() =>
+                            deleteRecord({
+                              module: 'tasks',
+                              resource: 'tasks',
+                              id: task.id,
+                              label: '任务',
+                              onDone: reload
+                            })
+                          }
+                        >
+                          删除
+                        </Text>
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <EmptyState title='暂无生产任务' text='点击新增，可先在上方获取优先级建议。' />
+                )}
+              </View>
+            </View>
+          ) : null}
         </View>
       )}
 
