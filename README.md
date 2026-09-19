@@ -2,158 +2,98 @@
 
 **数字技术赋能赣北食用菌产业振兴**
 
-食用菌产业数字化管理平台：以基地、批次、菌棒为核心档案，打通生产记录、环境监测预警、AI 问答、质量溯源与产销对接，并提供微信小程序端。
+菇事云管家是一套面向食用菌产业的生产管理与产销对接平台。系统以基地、批次和菌棒为核心档案，提供生产记录、环境监测预警、AI 问答、质量溯源、供应采购和市场交易能力，并同时支持微信小程序与浏览器访问。
 
-> 📘 每个功能的详细说明见 **[小程序功能介绍书](./小程序介绍书.md)**（可在线直接阅读）。
->
-> 同内容的 Word 版是 [`菇事云管家-功能介绍书.docx`](./菇事云管家-功能介绍书.docx)，用于下载与打印——
-> **GitHub 网页不支持预览 Word 文件**（点开只会提示下载），在线看请用上面的 Markdown 版。
-> Word 版由 `scripts/md-to-docx.js` 从 Markdown 生成，改完介绍书后执行
-> `npm install docx && node scripts/md-to-docx.js` 即可同步。
->
-> 浏览器直接预览：打开 [`菇事云管家-功能预览.html`](./菇事云管家-功能预览.html)。
+[功能说明](./小程序介绍书.md) · [浏览器预览](./菇事云管家-功能预览.html) · [Word 版说明](./菇事云管家-功能介绍书.docx) · [项目需求文档](./后台/docs/菇事云管家-项目需求文档.docx)
+
+## 核心功能
+
+- 基地、批次、菌棒与生产任务台账
+- 大棚设备接入、环境记录、阈值预警与历史曲线
+- AI 智能问答、专家人工回复与问答记录
+- 二维码质量溯源与公开查询
+- 供应发布、采购需求与完整订单交易流程
+- 六类角色权限、账号隔离、职位分配与记录管理
+- 微信小程序与浏览器端共用同一套账号、接口和数据库
+
+## 项目结构
 
 | 目录 | 内容 |
 |---|---|
-| [`后台/`](./后台) | Express + better-sqlite3：RESTful 接口、JWT 登录、RBAC 权限、SQLite 持久化、设备接入与 MQTT 适配层 |
-| [`gushi-miniapp/`](./gushi-miniapp) | Taro 4 + React 18 + TypeScript 微信小程序：五个 Tab + AI 问答 + 登录注册 |
-| [`scripts/`](./scripts) | 文档与资源生成脚本（Markdown → Word 介绍书） |
-
-**功能**：基地 / 批次 / 环境监测预警（设备自动上报 + 阈值预警 + 24h 曲线）/ AI 问答 / 质量溯源（扫码 + 二维码）/ 供应与采购（发布 + 修改 + 删除）/ **市场交易（立即采购 → 下单 → 支付 → 发货 → 收货，含我的订单）** / 任务管理（AI 优先级建议）/ 注册身份选择 / 管理员职位分配 / 记录删除（确认提醒）/ 权限 / 微信小程序 / 网页版管理端
+| [`后台/`](./后台) | Express + better-sqlite3 服务端、REST API、JWT、RBAC、SQLite 与 MQTT 设备接入 |
+| [`gushi-miniapp/`](./gushi-miniapp) | Taro 4 + React 18 + TypeScript 小程序，也可构建为浏览器版本 |
+| [`scripts/`](./scripts) | 文档生成与部署组装脚本 |
 
 ## 快速开始
 
-```bash
-# 1) 后台（必须先启动）
-cd 后台 && npm install && npm start          # http://localhost:3000
-npm run seed:demo                            # 可选：演示数据，账号 demo / demo123456
+环境要求：Node.js 18 或更高版本。
 
-# 2) 小程序
-cd gushi-miniapp && npm install
-npm run dev:weapp                            # 微信开发者工具导入本目录，勾选“不校验合法域名”
-# 或浏览器预览：npm run build:h5 && npm run preview:h5   → http://localhost:5173
+```bash
+# 1. 安装依赖
+npm run install:all
+
+# 2. 写入演示数据（可选，账号 demo / demo123456）
+npm run seed:demo
+
+# 3. 启动服务端
+npm start
 ```
 
-Windows 上也可以双击启动脚本，省去敲命令：
+服务端地址：`http://localhost:3000`
 
-| 脚本 | 作用 |
-|---|---|
-| `后台/启动菇事云管家.cmd` | 启动后台服务（自动查找 Node，缺依赖自动安装，并在浏览器打开服务地址） |
-| `gushi-miniapp/启动浏览器预览.cmd` | 首次自动构建浏览器版，启动预览并打开 http://localhost:5173 |
+浏览器预览小程序需要另开一个终端：
 
-### 用手机查看浏览器预览
+```bash
+npm run build:h5
+npm run preview:h5
+```
 
-浏览器版的接口地址会**自动跟随当前访问地址**：本机用 `localhost:5173` 打开就自动连 `localhost:3000`；手机用 `http://<电脑局域网IP>:5173` 打开就自动连 `http://<电脑局域网IP>:3000`，换 IP 不需要重新构建。
+预览地址：`http://localhost:5173`
 
-前提是手机与电脑在同一 WiFi（或连电脑的移动热点），且两个服务都在运行（后台 `3000`、预览 `5173`）。
+微信小程序开发：
 
-`.env` 可选配置（不填也能跑，AI 会自动降级为规则知识库）：
+```bash
+npm run build:weapp
+```
+
+随后在微信开发者工具中导入 [`gushi-miniapp/`](./gushi-miniapp) 目录，本地开发时勾选“不校验合法域名”。
+
+Windows 用户也可以直接双击 [`一键启动.cmd`](./一键启动.cmd)。
+
+## 配置
+
+在 [`后台/`](./后台) 目录复制 `.env.example` 为 `.env` 后按需配置：
 
 ```text
-AI_BASE_URL=https://api.deepseek.com/v1     # AI 问答（OpenAI 兼容接口）
+AI_BASE_URL=https://api.deepseek.com/v1
 AI_API_KEY=你的密钥
 AI_MODEL=deepseek-chat
-MQTT_URL=mqtt://127.0.0.1:1883              # MQTT 设备接入（可选）
+MQTT_URL=mqtt://127.0.0.1:1883
 ```
 
-数据保存在 `后台/server/data/gushi.sqlite`，重启不丢失；`npm run backup` 备份数据库与图片。
+这些配置均为可选。未配置 AI 密钥时，系统会自动使用内置规则知识库。
 
-## 大棚硬件接入
+数据库默认保存在 `后台/server/data/gushi.sqlite`，重启后数据不会丢失。
 
-环境数据由大棚设备自动上报，无需人工录入：
+## 详细文档
+
+- [小程序功能说明](./小程序介绍书.md)
+- [后台开发说明](./后台/README.md)
+- [小程序开发说明](./gushi-miniapp/README.md)
+- [项目需求文档](./后台/docs/菇事云管家-项目需求文档.docx)
+
+## 测试与部署
 
 ```bash
-# 硬件端定时上报（设备密钥鉴权，无需登录）
-curl -X POST http://localhost:3000/api/ingest/readings \
-  -H "X-Device-Code: GS-XXXXXX" -H "X-Device-Secret: <设备密钥>" \
-  -H "Content-Type: application/json" \
-  -d '{"temperature":24.5,"humidity":88,"co2":650,"light":320}'
+npm test
+npm run type-check
+npm run test:mqtt
 
-# 也可走 MQTT：npm run mqtt（适配层） + npm run mqtt:broker（本地演示 broker）
+npm run deploy:prepare
 ```
 
-上报即入库并按阈值自动预警；超过 10 分钟无上报显示离线；`GET /api/devices/:id/series?hours=24` 提供历史曲线。设备编号与密钥在「监测 → 接入大棚设备」生成。
+部署产物会生成到 `_deploy/`，该目录不会提交到 Git。
 
-## AI 问答
+## 数据原则
 
-**提问即自动作答**，不需要等人工专家：
-
-- 小程序「AI 问答」页或「＋ → 问题提问」表单提交后，后台立即调用大模型回答并存档（走 `answerQuestion`，自动带入该账号最近的基地、批次、环境数据作为上下文）；
-- 回答标注来源：`ai`（大模型）/ `rule`（未配置密钥或调用失败时降级为内置规则知识库）；
-- 提问失败不影响记录保存，仍可在问答记录中查看。
-
-`POST /api/ai/ask` 为直接问答接口；`POST /api/questions` 保存提问时也会自动作答。
-
-**人工回复（专家回复）不是所有人都能做**：只有 `expert`（专家）与 `admin`（平台管理员）能回答提问。其它角色即使有 `questions` 写权限（用于提问），回复也会被 `403 当前角色（…）不能代替专家回复问题` 拦下。
-
-## 市场交易（订单）
-
-采购商在「市场」里看到货源后可以直接下单，走完整交易链路，而不是只能浏览：
-
-```text
-下单 → 待付款 →（支付）→ 待发货 →（发货）→ 待收货 →（收货）→ 已完成
-                    └────── 发货前买卖双方可取消，库存自动回补 ──────┘
-```
-
-| 接口 | 说明 |
-|---|---|
-| `POST /api/orders` | 下单：校验可售期、**不能采购自己发布的货**、数量不超库存；扣减库存用条件更新防并发超卖 |
-| `GET /api/orders` | 我的订单（买卖双方都可见，管理员可看全部）|
-| `POST /api/orders/:id/pay` | 买家支付 |
-| `POST /api/orders/:id/ship` | 卖家发货 |
-| `POST /api/orders/:id/receive` | 买家确认收货 |
-| `POST /api/orders/:id/cancel` | 取消订单（发货前双方均可），库存回补到原供应信息 |
-
-- **支付方式**：平台未接入真实支付通道，**在线支付为演示**（点击即视为已支付，界面上有明确提示）；也可选**货到付款**——下单后直接进入待发货，确认收货时补记付款时间。
-- **身份与权限**：订单接口按「买家 / 卖家」二次校验，返回 `side` 与 `actions` 字段（能不能支付 / 发货 / 收货 / 取消），小程序据此渲染按钮，不出现点了必然失败的按钮。权限模块 `orders`：采购商 / 菇农 / 基地管理员 `rw`，专家 / 政府机构 `r`，管理员全权，只读角色下单返回 403。
-- **库存**：下单即扣减、取消即回补，所以「其他供应商的供应信息」里显示的数量始终是可售数量。
-
-## 账号与权限
-
-- **注册身份可选**：注册时点选身份，仅限**菇农 / 合作社基地管理员 / 采购商**（附各身份权限说明）；「政府/服务机构」「专家」「平台管理员」不可自选——即使绕过界面传参，后端也强制降为普通菇农。
-- **管理员分配职务**（网页版导航栏「职位分配」/ 小程序首页「账号管理」）：
-  - 方式一：搜索对方账号并点选，再点选新职位直接修改（**无需对方密码**，按用户 ID 调 `PUT /api/admin/users/:id/role`）；
-  - 方式二：账号列表中点击职位徽章，展开职位芯片点选修改；
-  - 非管理员需先输入管理员账号密码切换身份；修改与删除均有确认提醒。
-- 注册后每个账号的数据互相隔离；JWT 登录态 7 天有效，退出立即失效；全平台密码不可重复（scrypt 加盐哈希存储）。
-- 六种角色（菇农 / 基地管理员 / 专家 / 采购商 / 政府机构 / 平台管理员）由后端强制校验，越权返回 403；前端只是隐藏无权限入口。
-- 提升管理员：`cd 后台 && npm run make:admin -- 账号`。
-- **记录删除**：网页版每类记录（批次 / 环境 / 溯源事件 / 供应 / 采购 / 任务 / 问答）均有删除按钮，弹「删除提醒」确认后执行 `DELETE /api/<资源>/:id`，只能删除本账号数据。
-- **发布内容修改**：供应信息与采购需求卡片上均有「修改」，表单自动带出原内容（含批次、单位、图标等下拉项），保存走 `PUT /api/products/:id`、`PUT /api/demands/:id` 覆盖原记录，同样只作用于本账号数据。
-
-### 网页版管理端（http://localhost:3000）
-
-启动后台后直接浏览器访问，无需安装任何东西：登录 / 注册（含身份选择与密码显隐）、生产台账、环境监测、溯源查询、供应与采购（发布 / 修改 / 删除）、**市场交易（立即采购 / 下单 / 支付 / 发货 / 收货 / 我的订单）**、AI 专家问答（提问表单内嵌页面主体）、职位分配、记录删除。与小程序共用同一套账号与数据库。
-
-## 测试
-
-```bash
-cd 后台
-npm test          # 接口 + RBAC + 账号隔离 + 管理员接口 + 硬件上报预警 + AI 问答 + 公开溯源
-npm run test:mqtt # MQTT 端到端
-```
-
-## 技术栈
-
-后端 Node.js + Express + better-sqlite3 + JWT（自研 HS256）；小程序 Taro 4 + React 18 + TypeScript；接口统一返回 `{ code, message, data }`。
-
-## 数据真实性原则
-
-只展示数据库中已保存的记录，无数据时显示空状态，统计数字与数据库一致，连不上或未登录时明确提示失败，不做虚构数据兜底；演示数据全部带“演示”标记。
-
-## 常见问题（开发中踩过的坑）
-
-| 现象 | 原因与处理 |
-|---|---|
-| H5 页面白屏、控制台 `process is not defined` | webpack5 的 h5 构建不再注入 Node 的 `process`。自定义环境变量必须在 `gushi-miniapp/config/index.ts` 的 `defineConstants` 里声明，否则打包后会残留裸 `process` 引用 |
-| H5 里按钮「白字白底」看不见（小程序正常） | 主题变量原先只挂在 `page` 上，而 H5 没有 `page` 元素（Taro 渲染的是 `div.taro_page`）。`app.scss` 里已把变量抽成 mixin，同时挂到 `page` 与 `:root` |
-| H5 底部 TabBar 图标是空白破图 | TabBar 的 `iconPath` 是相对产物根目录的路径，而 H5 构建会把图片放进 `static/images/...`。`npm run build:h5` 会执行 `scripts/copy-tabbar.js` 把图标补一份到 `assets/tabbar/` |
-| 弹层里滚不到底部的「取消 / 保存」 | 弹层需 flex 纵向布局 + 内容区 `.sheet-body` 独立滚动（关键是 `min-height: 0`），底部按钮 `flex-shrink: 0` 固定；H5 端打开弹层时会锁住背景页面滚动 |
-| 采购商 / 专家 / 政府账号打开页面提示「后台连接失败、当前角色没有该操作权限」 | `useCloudData` 会并发拉取全部模块，无权限模块返回 403 会让 `Promise.all` 整体失败。现已改为无读权限的模块直接跳过请求（`fetchIfAllowed`），只有真实故障才提示失败 |
-| Taro 的 `View` 绑 `onKeyDown` 没有反应 | Taro 只透传触摸 / 点击类事件，键盘操作要在 `document` 上监听并判断 `document.activeElement`（参考登录页密码显隐按钮） |
-| 弹层底部按钮被底部 TabBar 盖住 | H5 的 TabBar 是固定层且层级高于页面内弹层，弹层打开时用 `utils/tabbar.ts` 的 `useHideTabBarWhen` 收起，关闭后自动恢复 |
-| 改了代码但页面没变化 | 清缓存：浏览器 `Ctrl + F5`；微信开发者工具点一次「编译」 |
-
----
-
-详细说明见 [`后台/README.md`](./后台/README.md) 与 [`gushi-miniapp/README.md`](./gushi-miniapp/README.md)。
+页面只展示数据库中已经保存的数据，无数据时显示空状态，不使用虚构数据兜底。演示数据均带“演示”标记，正式使用前应替换为经过确认的真实业务数据。
