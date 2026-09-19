@@ -88,26 +88,128 @@ function mimeOf(filePath: string): string {
   return 'image/jpeg'
 }
 
+/** 浏览器版（TARO_ENV=h5）与小程序端的图片选择/压缩行为不同，这里统一区分 */
+const isH5 = process.env.TARO_ENV === 'h5'
+
 /**
- * 选择图片并上传到后台 /api/uploads，返回数据库中保存的图片地址（如 /uploads/icon-xxx.jpg）。
- * 仅在用户主动选择图片时调用。
+ * 浏览器端压缩：等比缩放到最长边不超过 maxSize，再按质量转成 JPEG。
+ * Taro 的 H5 实现会忽略 chooseImage 的 sizeType（不做任何压缩，见 @tarojs/taro-h5 的 chooseMedia），
+ * 手机原图动辄三四 MB 以上，会直接撞上后台 4MB 限制，所以在这里兜底压缩。
  */
-export async function chooseAndUploadImage(): Promise<string> {
-  const chosen = await Taro.chooseImage({
-    count: 1,
-    sizeType: ['compressed'],
-    sourceType: ['album', 'camera']
+function compressInBrowser(src: string, maxSize = 1280, quality = 0.82): Promise<{ mime: string; base64: string }> {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    // 图片来源是本地 blob，声明 crossOrigin 便于后续 canvas 读取像素
+    image.crossOrigin = 'anonymous'
+    image.onload = () => {
+      const scale = Math.min(1, maxSize / Math.max(image.width, image.height))
+      const width = Math.max(1, Math.round(image.width * scale))
+      const height = Math.max(1, Math.round(image.height * scale))
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const context = canvas.getContext('2d')
+      if (!context) {
+        reject(new Error('当前浏览器不支持图片压缩，请更换浏览器后重试'))
+        return
+      }
+      // 透明 PNG 转 JPEG 后透明区域会变黑，先铺一层白底
+      context.fillStyle = '#ffffff'
+      context.fillRect(0, 0, width, height)
+      context.drawImage(image, 0, 0, width, height)
+      const matched = canvas.toDataURL('image/jpeg', quality).match(/^data:(image\/[a-z+]+);base64,(.+)$/)
+      if (!matched) {
+        reject(new Error('图片处理失败，请重新选择'))
+        return
+      }
+      resolve({ mime: matched[1], base64: matched[2] })
+    }
+    image.onerror = () => reject(new Error('读取图片失败，请重新选择'))
+    image.src = src
   })
-  const filePath = chosen.tempFilePaths[0]
-  const base64 = await readFileAsBase64(filePath)
+}
+
+/** 统一提交到 /api/uploads，返回后台保存的图片地址（如 /uploads/u1/icon-xxx.jpg） */
+async function uploadImageData(mime: string, base64: string): Promise<string> {
   if (base64.length * 0.75 > 4 * 1024 * 1024) {
     throw new Error('图片不能超过 4MB，请压缩后重试')
   }
   const result = await api<{ url: string }>('/api/uploads', {
     method: 'POST',
-    data: { data: `data:${mimeOf(filePath)};base64,${base64}` }
+    data: { data: `data:${mime};base64,${base64}` },
+    // 图片 base64 体积较大，弱网下用默认 10 秒容易超时失败
+    timeout: 30000
   })
   return result.url
+}
+
+/** 用户主动取消/放弃选择：小程序与 Taro H5 的 errMsg 都是 chooseImage:fail cancel 或 abort */
+function isPickCancel(error: unknown): boolean {
+  const message = (error as { errMsg?: string })?.errMsg || (error instanceof Error ? error.message : '')
+  return /cancel|abort/i.test(String(message || ''))
+}
+
+/** 标记「用户自己取消了选择」的错误，调用方据此静默返回，不要弹报错 */
+function cancelledPick(): Error {
+  return Object.assign(new Error('已取消选择图片'), { cancelled: true })
+}
+
+/** 判断是否为用户取消选择（取消不是失败，不该弹提示） */
+export function isCancelledPick(error: unknown): boolean {
+  return Boolean((error as { cancelled?: boolean })?.cancelled)
+}
+
+/**
+ * 让用户选一张本地图片，返回可读取的本地路径（小程序端是临时文件路径，浏览器端是 blob 地址）。
+ *
+ * 这里只负责「选」，不上传：调用方必须在选图完成后再展示 loading，
+ * 否则 H5 端的全屏 loading 遮罩会盖住选择器，现场表现就是「点了选不了图」。
+ *
+ * sourceType 按端区分：H5 端只要带上 'camera'，Taro 就会给隐藏的 file input 加 capture 属性，
+ * 部分移动浏览器会因此直接进入相机、连系统选择器都不弹；只传 'album' 时，
+ * 系统的图片选择器本身仍然提供「拍照」入口，两种能力都不会丢。
+ */
+export async function chooseLocalImage(): Promise<string> {
+  try {
+    const chosen = await Taro.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: isH5 ? ['album'] : ['album', 'camera']
+    })
+    const filePath = chosen?.tempFilePaths?.[0]
+    if (!filePath) throw cancelledPick()
+    return filePath
+  } catch (error) {
+    if (isCancelledPick(error) || isPickCancel(error)) throw cancelledPick()
+    const message = String((error as { errMsg?: string })?.errMsg || '')
+    // 微信未在小程序后台声明相册隐私权限时会返回 api scope is not declared in the privacy agreement
+    if (/privacy|scope/i.test(message)) {
+      throw new Error('未获得相册权限，请在微信「设置 - 隐私」中允许后重试')
+    }
+    console.error('选择图片失败：', error)
+    throw new Error('打开图片选择器失败，请重试')
+  }
+}
+
+/** 压缩并上传已经选中的图片，返回后台保存的图片地址 */
+export async function uploadLocalImage(filePath: string): Promise<string> {
+  if (isH5) {
+    // H5 端 Taro 会忽略 sizeType（不做压缩），手机原图很容易超过后台 4MB 限制，这里兜底压缩
+    const compressed = await compressInBrowser(filePath)
+    return uploadImageData(compressed.mime, compressed.base64)
+  }
+
+  const base64 = await readFileAsBase64(filePath)
+  return uploadImageData(mimeOf(filePath), base64)
+}
+
+/**
+ * 选择图片并上传到后台 /api/uploads，返回数据库中保存的图片地址（如 /uploads/icon-xxx.jpg）。
+ * 选择 + 上传一步到位；需要自己控制 loading 时机的场景请分别调用 chooseLocalImage / uploadLocalImage。
+ */
+export async function chooseAndUploadImage(): Promise<string> {
+  const filePath = await chooseLocalImage()
+  return uploadLocalImage(filePath)
 }
 
 /** 把后台返回的图片地址拼成可显示的完整地址 */

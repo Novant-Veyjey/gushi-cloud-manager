@@ -810,32 +810,110 @@ textarea,
 }
 
 /* ---------- 产品 ---------- */
-.product-icon {
-  width: 96px;
-  height: 96px;
-  border-radius: 28px;
-  background: #eef6ef;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  margin-right: 20px;
-  font-size: 50px;
-  flex-shrink: 0;
-}
-
 /*
- * 产品图标居中变体：图标在卡片里单独占一行居中（产品名 / 徽标 / 说明依次居中）。
- * 必须写在 .product-icon 之后，否则会被上面的 margin-right 覆盖，
- * 只剩 margin-left: auto 生效，图标反而被挤到卡片右侧。
+ * 产品图标外框已交给 SquareFrame 组件承载：边长 / 位置 / 底色 / 圆角 / 边框都是组件参数，
+ * 并且用 padding-bottom 撑高，保证任何屏幕下都是严格正方形（详见 components/SquareFrame）。
+ * 这里只保留图片自身的填充规则：铺满正方形，配合 mode=aspectFit 按原始比例完整显示。
  */
-.product-icon-center {
-  margin: 0 auto 16px;
-}
-
 .product-icon-img {
   width: 100%;
   height: 100%;
+}
+
+/* 表单里上传后的图片预览：与市场页商品图同一套尺寸与质感，居中并留出上下间距 */
+.upload-preview-frame {
+  margin: 16px auto 4px;
+}
+
+/*
+ * 商品卡（市场页）：参考主流购物软件的商品图展示。
+ * 所有规则都收在 .product-card 作用域内，不改动 .card / .badge / .metric-line 等通用类，
+ * 因此只影响市场页的卡片，其他页面的视觉完全不受影响。
+ */
+.product-card {
+  padding: 30px 30px 34px;
+  border-radius: 40px;
+  /* 描边更淡、阴影更柔更大，卡片像浮在浅色页面背景上 */
+  border: 1px solid rgba(229, 236, 231, 0.85);
+  box-shadow: 0 22px 52px rgba(25, 70, 49, 0.09);
+  margin-bottom: 26px;
+}
+
+/* 商品图：正方形本身由 SquareFrame 保证，这里只补内描边与下方留白 */
+.product-card .square-frame {
+  box-shadow: inset 0 0 0 2px rgba(56, 161, 105, 0.08);
+  margin-bottom: 26px;
+}
+
+/* 商品名：字号与字重再提一档，作为图片下方的视觉主角 */
+.product-card .row-title {
+  font-size: 38px;
+  line-height: 1.35;
+  letter-spacing: 0.5px;
+}
+
+/*
+ * 状态标签：可供应用实心绿胶囊 + 轻微投影，接近购物软件里的营销标签；
+ * 已下架等次要状态回落到低调的灰底，避免抢走商品图的视觉重心。
+ */
+.product-card .card-center-badge {
+  padding: 10px 24px;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, var(--g600), var(--g700));
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(56, 161, 105, 0.22);
+}
+
+.product-card .card-center-badge.plain {
+  background: #f2f5f3;
+  color: #6b7a70;
+  box-shadow: none;
+}
+
+/* 商品副信息与说明：字号收一点、与图片拉开层级 */
+.product-card .card-center-desc {
+  font-size: 26px;
+  margin-top: 18px;
+}
+
+.product-card .meta {
+  font-size: 26px;
+  margin-top: 18px;
+}
+
+/*
+ * 价格焦点：三项指标里中间那项是价格（数量 / 价格 / 单位），
+ * 用浅绿渐变色块配更大更粗的深绿数字，做出购物软件里「价格最醒目」的层级。
+ */
+.product-card .metric-line-item:nth-child(2) {
+  background: linear-gradient(180deg, #eef8f1 0%, #e5f3ea 100%);
+  box-shadow: inset 0 0 0 2px rgba(56, 161, 105, 0.12);
+}
+
+.product-card .metric-line-item:nth-child(2) .metric-line-label {
+  color: var(--g700);
+  font-weight: 800;
+}
+
+.product-card .metric-line-item:nth-child(2) .metric-line-value {
+  color: var(--g800);
+  font-size: 36px;
+  font-weight: 900;
+}
+
+/* 卡片内的操作按钮：更饱满的胶囊按钮，贴近购物软件的操作手感 */
+.product-card .btn {
+  height: 88px;
+  line-height: 88px;
+  border-radius: 30px;
+}
+
+/* 按下时轻微下沉并收窄阴影，提供明确的点击反馈 */
+.product-card:active {
+  transform: translateY(2px);
+  box-shadow: 0 12px 30px rgba(25, 70, 49, 0.1);
 }
 
 .price {

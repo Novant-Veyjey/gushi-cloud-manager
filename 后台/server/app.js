@@ -888,10 +888,22 @@ if (HAS_H5) {
 // 一体部署时根路径给小程序浏览器版，网页版管理端从 /admin/ 进入
 app.use('/admin', express.static(path.join(__dirname, '..', 'public')));
 app.use(express.static(path.join(__dirname, '..', 'public')));
+/**
+ * 静态资源目录：文件不存在时必须明确返回 404，不能让下面的 SPA 兜底接管。
+ * 否则 /uploads 下已经丢失的图片会返回 200 + HTML，小程序 <Image> 拿到 HTML 只会静默显示空白，
+ * 现场表现就是「图标上传成功了却看不到」，排查时还看不到任何报错。
+ */
+const STATIC_PATH_PREFIXES = ['/uploads/', '/assets/'];
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
+  if (STATIC_PATH_PREFIXES.some((prefix) => req.path.startsWith(prefix))) return next();
   if (HAS_H5) return res.sendFile(H5_INDEX);
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+});
+// 兜底：到这里仍未命中的请求一律 404，不再回退 index.html 掩盖缺失的资源
+app.use((req, res, next) => {
+  if (res.headersSent) return next();
+  fail(res, 404, '资源不存在');
 });
 app.use((error, req, res, next) => {
   console.error(error);

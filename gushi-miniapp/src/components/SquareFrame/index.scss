@@ -1,0 +1,32 @@
+/*
+ * 正方形容器：宽度由外部样式决定，高度由 .square-frame__ratio 的 padding-bottom 撑出来。
+ * 百分比 padding 始终按「父元素宽度」计算，所以不管宽度是固定值、百分比还是
+ * 随屏幕缩放的单位（rpx / rem），高度都与宽度严格相等，永远不会变成长方形。
+ * box-sizing: border-box 让加边框后的外框依然是正方形。
+ */
+.square-frame {
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  flex-shrink: 0;
+  /* 窄屏兜底：宽度被压缩时高度会跟着一起缩，仍然是正方形 */
+  max-width: 100%;
+}
+
+.square-frame__ratio {
+  display: block;
+  width: 100%;
+  padding-bottom: 100%;
+}
+
+.square-frame__content {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}

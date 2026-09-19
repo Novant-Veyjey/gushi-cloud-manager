@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Image, Input, Picker, ScrollView, Text, Textarea, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 
+import SquareFrame from '@/components/SquareFrame'
 import { PRODUCT_ICON_PRESETS } from '@/config'
-import { api, assetUrl, chooseAndUploadImage } from '@/utils/request'
+import { api, assetUrl, chooseLocalImage, isCancelledPick, uploadLocalImage } from '@/utils/request'
 import { useHideTabBarWhen } from '@/utils/tabbar'
 import { nowLocalDateTime, today } from '@/utils/format'
 import type { FormConfig, FormField } from '@/config/forms'
@@ -14,6 +15,14 @@ interface Props {
   onClose: () => void
   /** 保存成功后回调，参数是后台返回的记录（例如新建设备时可用于展示设备密钥） */
   onSaved: (result?: any) => void | Promise<void>
+}
+
+/** 上传后的图片预览容器：与市场页商品图保持同一套尺寸和质感 */
+const UPLOAD_PREVIEW_FRAME = {
+  size: '100%',
+  maxSize: '320px',
+  radius: '20px',
+  background: 'linear-gradient(160deg, #f9fcf9 0%, #e8f4ec 100%)'
 }
 
 /**
@@ -95,10 +104,24 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
     }
   }
 
+  /**
+   * 上传图片：先让用户选图，选完再显示 loading 上传。
+   * 顺序不能反 —— H5 端的 loading 是全屏遮罩，先弹出来会盖住选择器，表现为「点了选不了图」。
+   */
   const pickImage = async (name: string) => {
+    let filePath = ''
     try {
-      Taro.showLoading({ title: '上传中...' })
-      const url = await chooseAndUploadImage()
+      filePath = await chooseLocalImage()
+    } catch (error) {
+      // 用户自己取消选择不算失败，静默返回，不弹报错
+      if (isCancelledPick(error)) return
+      Taro.showToast({ title: (error as Error).message, icon: 'none' })
+      return
+    }
+
+    try {
+      Taro.showLoading({ title: '上传中...', mask: true })
+      const url = await uploadLocalImage(filePath)
       setValue(name, url)
     } catch (error) {
       Taro.showToast({ title: (error as Error).message, icon: 'none' })
@@ -254,7 +277,9 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
           {isImage ? (
             <View className='meta'>
               <Text>已选择自定义图片：</Text>
-              <Image className='product-icon-img' style='width:120px;height:120px;border-radius:24px' src={assetUrl(value)} mode='aspectFill' />
+              <SquareFrame {...UPLOAD_PREVIEW_FRAME} className='upload-preview-frame'>
+                <Image className='product-icon-img' src={assetUrl(value)} mode='aspectFit' />
+              </SquareFrame>
             </View>
           ) : null}
         </View>
@@ -268,7 +293,11 @@ export default function FormSheet({ visible, config, onClose, onSaved }: Props) 
           <View className='btn secondary' onClick={() => pickImage(field.name)}>
             {value ? '重新选择图片' : '选择图片并上传'}
           </View>
-          {value ? <Image style='width:160px;height:160px;border-radius:24px;margin-top:16px' src={assetUrl(value)} mode='aspectFill' /> : null}
+          {value ? (
+            <SquareFrame {...UPLOAD_PREVIEW_FRAME} className='upload-preview-frame'>
+              <Image className='product-icon-img' src={assetUrl(value)} mode='aspectFit' />
+            </SquareFrame>
+          ) : null}
         </View>
       )
     }

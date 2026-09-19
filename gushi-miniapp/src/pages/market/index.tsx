@@ -5,6 +5,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import BrandBar from '@/components/BrandBar'
 import EmptyState from '@/components/EmptyState'
 import FormSheet from '@/components/FormSheet'
+import SquareFrame from '@/components/SquareFrame'
 import StateHint from '@/components/StateHint'
 import { buildFormConfigs, type FormConfig } from '@/config/forms'
 import { batchCodeOf, useCloudData } from '@/hooks/useCloudData'
@@ -56,6 +57,24 @@ const productPreset = (product: Product): Record<string, string> => ({
   description: product.description || ''
 })
 
+/**
+ * 产品图标的正方形容器参数：订单卡片、我的供应信息、其他账号供应信息三处共用同一套配置，
+ * 需要调整尺寸 / 底色 / 圆角 / 边框时只改这里即可。
+ */
+const ICON_FRAME_PROPS = {
+  /** 占满卡片内容宽度：两端行为一致，任何屏幕都是「大图」效果 */
+  size: '100%',
+  /** 桌面浏览器上的上限，避免在超宽卡片里被无限放大 */
+  maxSize: '320px',
+  align: 'center' as const,
+  /** 商品图底衬：自上而下的极浅绿渐变，比纯色更有质感 */
+  background: 'linear-gradient(160deg, #f9fcf9 0%, #e8f4ec 100%)',
+  /** 图片圆角：比卡片圆角略小，层次更清楚（两端都是 20 CSS px） */
+  radius: '20px',
+  /** emoji 占位图标的字号（两端一致） */
+  fontSize: '120px'
+}
+
 /** 订单状态徽章配色：待付款/待发货=橙色提醒，待收货=绿色，已完成/已取消=灰色 */
 const ORDER_BADGE: Record<string, string> = {
   created: ' warn',
@@ -98,6 +117,8 @@ export default function Market() {
   const [ordersLoading, setOrdersLoading] = useState(true)
   /** 订单分区：buyer=我采购的，seller=我收到的（作为供货方） */
   const [orderTab, setOrderTab] = useState<'buyer' | 'seller'>('buyer')
+  /** 图片图标加载失败的记录：失败后回退到 emoji，避免图标区只剩一片空白 */
+  const [brokenIcons, setBrokenIcons] = useState<Record<string, boolean>>({})
 
   /** 拉取平台其他账号上架的供应信息（只读，用于产销对接） */
   const loadShared = useCallback(async () => {
@@ -217,12 +238,24 @@ export default function Market() {
   const sellerOrders = orders.filter((item) => item.side === 'seller')
   const visibleOrders = orderTab === 'buyer' ? buyerOrders : sellerOrders
 
+  /**
+   * 产品图标：emoji 直接渲染文本，图片地址渲染 Image。
+   * 图片加载失败（文件被清理、域名不可达等）时回退到 emoji，
+   * 否则图标区只会剩一片空白，看不出是「图标没换成」还是「图片取不到」。
+   */
   const renderIcon = (icon: string, name: string) => {
     const url = assetUrl(icon)
-    if (url) {
-      return <Image className='product-icon-img' src={url} mode='aspectFill' />
+    if (url && !brokenIcons[icon]) {
+      return (
+        <Image
+          className='product-icon-img'
+          src={url}
+          mode='aspectFit'
+          onError={() => setBrokenIcons((prev) => (prev[icon] ? prev : { ...prev, [icon]: true }))}
+        />
+      )
     }
-    return <Text>{icon || '🍄'}</Text>
+    return <Text>{url ? '🍄' : icon || '🍄'}</Text>
   }
 
   return (
@@ -282,9 +315,9 @@ export default function Market() {
             <Text className='meta'>正在加载订单...</Text>
           ) : visibleOrders.length ? (
             visibleOrders.map((order) => (
-              <View className='card card-center' key={order.id}>
+              <View className='card card-center product-card' key={order.id}>
                 {/* 订单卡片同样居中：图标一行、商品名、状态徽标、订单信息依次居中 */}
-                <View className='product-icon product-icon-center'>{renderIcon(order.product_icon, order.product_name)}</View>
+                <SquareFrame {...ICON_FRAME_PROPS}>{renderIcon(order.product_icon, order.product_name)}</SquareFrame>
                 <Text className='row-title card-center-title'>{order.product_name}</Text>
                 <Text className={`badge card-center-badge${ORDER_BADGE[order.status] || ''}`}>{order.status_label}</Text>
                 <Text className='row-desc card-center-desc'>
@@ -374,9 +407,9 @@ export default function Market() {
 
           {data.products.length ? (
             data.products.map((product) => (
-              <View className='card card-center' key={product.id}>
+              <View className='card card-center product-card' key={product.id}>
                 {/* 产品图标、名称、状态徽标与说明统一居中，与批次 / 基地卡片同一套对齐规则 */}
-                <View className='product-icon product-icon-center'>{renderIcon(product.icon, product.name)}</View>
+                <SquareFrame {...ICON_FRAME_PROPS}>{renderIcon(product.icon, product.name)}</SquareFrame>
                 <Text className='row-title card-center-title'>{product.name}</Text>
                 <Text className={`badge card-center-badge${productState(product).plain ? ' plain' : ''}`}>
                   {productState(product).label}
@@ -539,9 +572,9 @@ export default function Market() {
             <Text className='meta'>正在加载其他账号的供应信息...</Text>
           ) : sharedProducts.length ? (
             sharedProducts.map((item) => (
-              <View className='card card-center' key={item.id}>
+              <View className='card card-center product-card' key={item.id}>
                 {/* 只读的其他账号供应信息，与自建供应卡片同一套居中规则 */}
-                <View className='product-icon product-icon-center'>{renderIcon(item.icon, item.name)}</View>
+                <SquareFrame {...ICON_FRAME_PROPS}>{renderIcon(item.icon, item.name)}</SquareFrame>
                 <Text className='row-title card-center-title'>{item.name}</Text>
                 <Text className='badge plain card-center-badge'>其他账号</Text>
                 <Text className='row-desc card-center-desc'>
@@ -592,8 +625,8 @@ export default function Market() {
         config={activeForm}
         onClose={() => setActiveForm(null)}
         onSaved={async () => {
-          // 下单/发布后同时刷新业务数据、订单与共享列表，库存与订单状态立刻同步
-          await Promise.all([loadOrders(), loadSharedDemands(), reload(true)])
+          // 下单/发布/更换图标后同时刷新业务数据、我的订单与两个共享列表，库存和图标立刻同步
+          await Promise.all([loadOrders(), loadShared(), loadSharedDemands(), reload(true)])
         }}
       />
     </View>
