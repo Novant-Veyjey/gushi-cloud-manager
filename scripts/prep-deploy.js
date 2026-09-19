@@ -63,9 +63,14 @@ const Database = require(path.join(ROOT, '后台', 'node_modules', 'better-sqlit
   }
   fs.cpSync(distH5, path.join(deploy, 'dist-h5'), { recursive: true });
 
-  // 校验关键产物
-  const cssFile = fs.readdirSync(path.join(deploy, 'dist-h5', 'css')).filter((f) => f.endsWith('.css'))[0];
-  const css = fs.readFileSync(path.join(deploy, 'dist-h5', 'css', cssFile), 'utf8');
+  // 校验关键产物：页面级样式会被 webpack 拆成多个 css 文件，
+  // 必须把所有 css 拼起来再检查 —— 只读第一个会漏掉主样式包，导致「样式缺失」误报。
+  const cssDir = path.join(deploy, 'dist-h5', 'css');
+  const css = fs
+    .readdirSync(cssDir)
+    .filter((file) => file.endsWith('.css'))
+    .map((file) => fs.readFileSync(path.join(cssDir, file), 'utf8'))
+    .join('\n');
   const checks = [
     ['后台服务 app.js', fs.existsSync(path.join(deploy, 'server', 'app.js'))],
     ['依赖锁 package-lock.json', fs.existsSync(path.join(deploy, 'package-lock.json'))],
