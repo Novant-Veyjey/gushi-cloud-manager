@@ -552,6 +552,20 @@ textarea,
   margin-top: 8px;
 }
 
+/* 职务分配搜索结果：账号名与说明统一左对齐 */
+.assign-list .todo-copy {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.assign-list .todo-title,
+.assign-list .todo-desc {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
 .todo-action {
   font-size: 28px;
   color: var(--g700);
@@ -1380,21 +1394,31 @@ textarea,
 }
 
 .user-info {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  align-items: flex-start;
+  text-align: left;
 }
 
 .user-name {
+  display: block;
+  width: 100%;
   font-size: 32px;
   font-weight: 800;
   color: var(--ink);
+  text-align: left;
 }
 
 .user-sub {
+  display: block;
+  width: 100%;
   font-size: 26px;
   color: var(--muted);
   margin-top: 6px;
+  text-align: left;
 }
 
 .user-role-picker {
