@@ -881,13 +881,26 @@ if (fs.existsSync(SHARED_ASSETS)) {
 const H5_DIST = process.env.H5_DIST ? path.resolve(process.env.H5_DIST) : '';
 const H5_INDEX = H5_DIST ? path.join(H5_DIST, 'index.html') : '';
 const HAS_H5 = Boolean(H5_INDEX) && fs.existsSync(H5_INDEX);
+
+/**
+ * 页面 HTML（管理端单文件页 + H5 单页应用）关闭强缓存，只保留 ETag 协商。
+ * 手机微信内置浏览器对 HTML 的强缓存很激进：页面改完不重新进入就一直看到旧版本，
+ * 现场表现就是「明明改了却没生效」。带哈希的 js/css 仍走默认长缓存，不受影响。
+ */
+const HTML_NO_CACHE = {
+  etag: true,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+  }
+};
+
 if (HAS_H5) {
-  app.use(express.static(H5_DIST));
+  app.use(express.static(H5_DIST, HTML_NO_CACHE));
 }
 
 // 一体部署时根路径给小程序浏览器版，网页版管理端从 /admin/ 进入
-app.use('/admin', express.static(path.join(__dirname, '..', 'public')));
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use('/admin', express.static(path.join(__dirname, '..', 'public'), HTML_NO_CACHE));
+app.use(express.static(path.join(__dirname, '..', 'public'), HTML_NO_CACHE));
 /**
  * 静态资源目录：文件不存在时必须明确返回 404，不能让下面的 SPA 兜底接管。
  * 否则 /uploads 下已经丢失的图片会返回 200 + HTML，小程序 <Image> 拿到 HTML 只会静默显示空白，
