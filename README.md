@@ -39,7 +39,7 @@ npm run seed:demo
 npm start
 ```
 
-服务端地址：`http://localhost:3000`
+服务端地址：(http://8.134.125.233)
 
 浏览器预览小程序需要另开一个终端：
 
@@ -48,7 +48,7 @@ npm run build:h5
 npm run preview:h5
 ```
 
-预览地址：`http://localhost:5173`
+预览地址：http://8.134.125.233
 
 微信小程序开发：
 
